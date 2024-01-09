@@ -900,7 +900,6 @@ version = "0.1.0"
 dependencies = [
  "cairo-rs",
  "gdal",
- "gio",
  "lazy_static",
  "librsvg",
  "oxhttp",
@@ -908,7 +907,6 @@ dependencies = [
  "postgres",
  "r2d2",
  "r2d2_postgres",
- "rand",
  "regex",
 ]
 
