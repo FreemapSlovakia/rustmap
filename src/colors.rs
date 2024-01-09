@@ -64,6 +64,7 @@ lazy_static! {
     pub static ref FARMLAND: Color = hsl_to_rgb(60, 70, 95);
     pub static ref FARMYARD: Color = hsl_to_rgb(50, 44, 85);
     pub static ref FOREST: Color = hsl_to_rgb(110, 60, 83);
+    pub static ref GLOW: Color = hsl_to_rgb(0, 33, 70);
     pub static ref GRASSY: Color = hsl_to_rgb(100, 100, 93);
     pub static ref HEATH: Color = hsl_to_rgb(85, 60, 85);
     pub static ref HOSPITAL: Color = hsl_to_rgb(50, 85, 92);

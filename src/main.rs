@@ -108,15 +108,19 @@ fn render(
 
     landuse::render(&ctx, client);
 
-    hillshading::render(&ctx, zoom);
+    hillshading::render(&ctx, zoom, scale);
 
-    contours::render(&ctx, client, zoom);
+    if zoom > 11 {
+        contours::render(&ctx, client, zoom);
+    }
 
     water_areas::render(&ctx, client);
 
     roads::render(&ctx, zoom, client);
 
-    buildings::render(&ctx, client);
+    if zoom > 12 {
+        buildings::render(&ctx, client);
+    }
 
     // pois::render(context);
 

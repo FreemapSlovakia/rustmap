@@ -33,7 +33,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, zoom: u32) {
         };
 
         if width == 0.0 {
-            return;
+            continue;
         }
 
         let geom: LineString = row.get("wkb_geometry");

@@ -17,7 +17,7 @@ pub fn draw_mpoly(geom: ewkb::GeometryT<Point>, ctx: &Ctx) {
     }
 }
 
-pub fn draw_line<'a>(ctx: &Ctx, iter: core::slice::Iter<'a, Point>) {
+pub fn draw_line(ctx: &Ctx, iter: core::slice::Iter<Point>) {
     let Ctx {
         context,
         bbox: (min_x, min_y, max_x, max_y),
@@ -40,7 +40,7 @@ pub fn draw_line<'a>(ctx: &Ctx, iter: core::slice::Iter<'a, Point>) {
     }
 }
 
-pub fn draw_poly<'a>(ctx: &Ctx, poly: &Polygon) {
+pub fn draw_poly(ctx: &Ctx, poly: &Polygon) {
     let context = &ctx.context;
 
     for ring in &poly.rings {

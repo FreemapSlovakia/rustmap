@@ -9,6 +9,7 @@ fn read_rgba_from_gdal(
     gt_x_width: f64,
     gt_y_off: f64,
     gt_y_width: f64,
+    scale: f64
 ) -> Vec<u8> {
     let Ctx {
         bbox: (min_x, min_y, max_x, max_y),
@@ -27,7 +28,11 @@ fn read_rgba_from_gdal(
     let source_width = (pixel_max_x - pixel_min_x) as usize;
     let source_height = (pixel_max_y - pixel_min_y) as usize;
 
-    let off = (w * h) as usize;
+    let w_scaled = (*w as f64 * scale) as usize;
+
+    let h_scaled = (*h as f64 * scale) as usize;
+
+    let off = (w_scaled * h_scaled) as usize;
 
     let mut data = vec![0u8; off];
 
@@ -39,7 +44,7 @@ fn read_rgba_from_gdal(
         band.read_into_slice::<u8>(
             (window_x, window_y),
             (source_width, source_height),
-            (*w as usize, *h as usize), // Resampled size
+            (w_scaled, h_scaled), // Resampled size
             &mut data,
             Some(gdal::raster::ResampleAlg::Lanczos),
         )
@@ -66,13 +71,14 @@ fn read_rgba_from_gdal(
     rgba_data
 }
 
-pub fn render(ctx: &Ctx, zoom: u32) {
+pub fn render(ctx: &Ctx, zoom: u32, scale: f64) {
     let Ctx {
         context,
         size: (w, h),
         ..
     } = ctx;
 
+    // TODO use pool
     let hillshading_dataset = Dataset::open("/home/martin/14TB/hillshading/sk/final.tif").unwrap();
 
     let [gt_x_off, gt_x_width, _, gt_y_off, _, gt_y_width] =
@@ -85,18 +91,26 @@ pub fn render(ctx: &Ctx, zoom: u32) {
         gt_x_width,
         gt_y_off,
         gt_y_width,
+        scale,
     );
 
     let surface = ImageSurface::create_for_data(
         rgba_data.to_vec(),
         Format::ARgb32,
-        *w as i32,
-        *h as i32,
-        *w as i32 * 4,
+        (*w as f64 * scale) as i32,
+        (*h as f64 * scale) as i32,
+        (*w as f64 * scale) as i32 * 4,
     )
     .unwrap();
+
+    context.save().unwrap();
+
+    context.identity_matrix();
 
     context.set_source_surface(surface, 0.0, 0.0).unwrap();
 
     context.paint_with_alpha(1.0f64.min(1.0 - (zoom as f64 - 7.0).ln() / 5.0)).unwrap();
+
+    context.restore().unwrap();
+
 }
