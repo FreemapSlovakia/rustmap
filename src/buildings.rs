@@ -18,6 +18,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         context.set_source_rgb(0.5, 0.5, 0.5);
 
-        draw_mpoly(geom, &ctx);
+        draw_mpoly(&geom, &ctx);
+
+        context.fill().unwrap();
     }
 }

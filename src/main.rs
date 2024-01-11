@@ -57,7 +57,7 @@ fn render(
     let path = request.url().path();
 
     lazy_static! {
-        static ref RE: Regex =
+        static ref URL_PATH_REGEXP: Regex =
             Regex::new(r"/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)(?:@(?P<scale>\d+(?:\.\d*)?)x)?").unwrap();
     }
 
@@ -66,7 +66,7 @@ fn render(
     let zoom: u32;
     let scale: f64;
 
-    match RE.captures(path) {
+    match URL_PATH_REGEXP.captures(path) {
         Some(m) => {
             x = m.name("x").unwrap().as_str().parse::<u32>().unwrap();
             y = m.name("y").unwrap().as_str().parse::<u32>().unwrap();
@@ -106,7 +106,7 @@ fn render(
 
     context.paint().unwrap();
 
-    landuse::render(&ctx, client);
+    landuse::render(&ctx, zoom, client);
 
     hillshading::render(&ctx, zoom, scale);
 
@@ -143,6 +143,14 @@ fn render(
     // context.move_to(100., 140.);
     // context.set_source_rgb(0.0, 0.0, 0.0); // Black color
     // context.show_text("Hello, Cairo!").unwrap();
+
+    // debug tile border
+    // context.set_dash(&[], 0.0);
+    // context.set_line_width(2.0);
+    // context.set_source_rgb(0.0, 0.0, 1.0); // Red border for visibility
+    // context.rectangle(0.0, 0.0, w as f64, h as f64);
+    // context.stroke().unwrap();
+
 
     let mut buffer = Vec::new();
 

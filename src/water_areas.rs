@@ -17,6 +17,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         context.set_source_color(*colors::WATER);
 
-        draw_mpoly(geom, &ctx);
+        draw_mpoly(&geom, &ctx);
+
+        context.fill().unwrap();
   }
 }

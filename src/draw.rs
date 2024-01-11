@@ -1,7 +1,7 @@
 use crate::ctx::Ctx;
 use postgis::ewkb::{self, Geometry, Point, Polygon};
 
-pub fn draw_mpoly(geom: ewkb::GeometryT<Point>, ctx: &Ctx) {
+pub fn draw_mpoly(geom: &ewkb::GeometryT<Point>, ctx: &Ctx) {
     match geom {
         Geometry::Polygon(p) => {
             draw_poly(ctx, &p);
@@ -12,7 +12,7 @@ pub fn draw_mpoly(geom: ewkb::GeometryT<Point>, ctx: &Ctx) {
             }
         }
         _ => {
-            println!("?");
+            panic!("not a polygon");
         }
     }
 }
@@ -40,15 +40,10 @@ pub fn draw_line(ctx: &Ctx, iter: core::slice::Iter<Point>) {
     }
 }
 
-pub fn draw_poly(ctx: &Ctx, poly: &Polygon) {
-    let context = &ctx.context;
-
+fn draw_poly(ctx: &Ctx, poly: &Polygon) {
     for ring in &poly.rings {
         draw_line(&ctx, ring.points.iter());
 
-        // ring.points
-        // context.close_path();
+        // ctx.context.close_path();
     }
-
-    context.fill().unwrap();
 }

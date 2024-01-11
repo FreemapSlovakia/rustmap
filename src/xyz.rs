@@ -33,3 +33,23 @@ pub fn bbox_size_in_pixels(
 
     (width_pixels, height_pixels)
 }
+
+pub fn to_absolute_pixel_coords(x: f64, y: f64, zoom: u8) -> (f64, f64) {
+    // Tile size in pixels (usually 256 or 512)
+    let tile_size: f64 = 256.0;
+
+    // Earth's radius in the same units as x, y (meters for EPSG:3857)
+
+    // Total number of tiles in one row or column at the given zoom level
+    let num_tiles = 2f64.powi(zoom as i32);
+
+    // Total map circumference at this zoom level
+    let total_map_circumference = num_tiles * tile_size;
+
+    // Convert x, y to pixel coordinates
+    let pixel_x = (x + HALF_CIRCUMFERENCE) / (2.0 * HALF_CIRCUMFERENCE) * total_map_circumference;
+    let pixel_y = (HALF_CIRCUMFERENCE - y) / (2.0 * HALF_CIRCUMFERENCE) * total_map_circumference;
+
+    (pixel_x, pixel_y)
+}
+ // x /  2 ^ zoom * 256
