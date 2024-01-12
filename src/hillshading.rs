@@ -9,7 +9,7 @@ fn read_rgba_from_gdal(
     gt_x_width: f64,
     gt_y_off: f64,
     gt_y_width: f64,
-    scale: f64
+    scale: f64,
 ) -> Vec<u8> {
     let Ctx {
         bbox: (min_x, min_y, max_x, max_y),
@@ -71,15 +71,16 @@ fn read_rgba_from_gdal(
     rgba_data
 }
 
-pub fn render(ctx: &Ctx, zoom: u32, scale: f64) {
+pub fn render(ctx: &Ctx, scale: f64) {
     let Ctx {
         context,
         size: (w, h),
+        cache,
+        zoom,
         ..
     } = ctx;
 
-    // TODO use pool
-    let hillshading_dataset = Dataset::open("/home/martin/14TB/hillshading/sk/final.tif").unwrap();
+    let hillshading_dataset = &cache.hillshading_dataset;
 
     let [gt_x_off, gt_x_width, _, gt_y_off, _, gt_y_width] =
         hillshading_dataset.geo_transform().unwrap();
@@ -109,8 +110,9 @@ pub fn render(ctx: &Ctx, zoom: u32, scale: f64) {
 
     context.set_source_surface(surface, 0.0, 0.0).unwrap();
 
-    context.paint_with_alpha(1.0f64.min(1.0 - (zoom as f64 - 7.0).ln() / 5.0)).unwrap();
+    context
+        .paint_with_alpha(1.0f64.min(1.0 - (*zoom as f64 - 7.0).ln() / 5.0))
+        .unwrap();
 
     context.restore().unwrap();
-
 }

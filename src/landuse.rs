@@ -9,9 +9,10 @@ use postgis::ewkb::Geometry;
 use postgres::Client;
 use rsvg::Loader;
 
-pub fn render(ctx: &Ctx, zoom: u32, client: &mut Client) {
+pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
         bbox: (min_x, min_y, max_x, max_y),
+        zoom,
         context,
         ..
     } = ctx;
@@ -36,7 +37,7 @@ pub fn render(ctx: &Ctx, zoom: u32, client: &mut Client) {
 
         let colour_area = |color: Color| {
             context.set_source_color(color);
-            draw_mpoly(&geom, &ctx);
+            draw_mpoly(&geom, ctx);
             context.fill().unwrap();
         };
 
@@ -63,7 +64,7 @@ pub fn render(ctx: &Ctx, zoom: u32, client: &mut Client) {
 
             let pattern = SurfacePattern::create(tile);
 
-            let (x, y) = to_absolute_pixel_coords(*min_x, *min_y, zoom as u8);
+            let (x, y) = to_absolute_pixel_coords(*min_x, *min_y, *zoom as u8);
 
             let mut matrix = Matrix::identity();
             matrix.translate((x % dim.0).round(), (y % dim.1).round());
@@ -73,7 +74,7 @@ pub fn render(ctx: &Ctx, zoom: u32, client: &mut Client) {
 
             context.set_source(&pattern).unwrap();
 
-            draw_mpoly(&geom, &ctx);
+            draw_mpoly(&geom, ctx);
 
             context.fill().unwrap();
         };

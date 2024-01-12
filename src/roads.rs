@@ -3,12 +3,14 @@ use crate::{colors, ctx::Ctx, draw::draw_line};
 use postgis::ewkb::LineString;
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, zoom: u32, client: &mut Client) {
+pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
         bbox: (min_x, min_y, max_x, max_y),
         context,
         ..
     } = ctx;
+
+    let zoom = ctx.zoom;
 
     // TODO no roads on zoom 7 and lower
 
@@ -39,7 +41,7 @@ pub fn render(ctx: &Ctx, zoom: u32, client: &mut Client) {
     let highway_width_coef = || 1.5f64.powf(8.6f64.max(zoom as f64) - 8.0);
 
     let rows = &client
-        .query(&query, &[&min_x, &min_y, &max_x, &max_y])
+        .query(&query, &[min_x, min_y, max_x, max_y])
         .unwrap();
 
     let ke = || match zoom {

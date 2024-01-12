@@ -1,25 +1,34 @@
 use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::draw_line,
+    draw::draw_smooth_bezier_spline,
 };
 use postgis::ewkb::LineString;
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, zoom: u32) {
-    if zoom < 12 {
-        return;
-    }
-
+pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
         bbox: (min_x, min_y, max_x, max_y),
         context,
+        zoom,
         ..
     } = ctx;
 
+    if *zoom < 12 {
+        return;
+    }
+
+
+    let simplify_factor: f64 = match zoom { ..=12 => 2000.0, 13 => 1000.0, 14 => 200.0, 15 => 50.0, _ => 0.0 };
+
+    // TODO measure performance impact of simplification, if it makes something faster
+
     for row in &client.query(
-        "SELECT wkb_geometry, height FROM contour_sk_split WHERE wkb_geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)",
-        &[&min_x, &min_y, &max_x, &max_y]
+        "SELECT ST_SimplifyVW((ST_Dump(ST_LineMerge(ST_Collect(wkb_geometry)))).geom, $5) AS geom, height
+        FROM contour_sk_split
+        WHERE wkb_geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)
+        GROUP BY height",
+        &[min_x, min_y, max_x, max_y, &simplify_factor]
     ).unwrap() {
         let height: f64 = row.get("height");
 
@@ -36,13 +45,19 @@ pub fn render(ctx: &Ctx, client: &mut Client, zoom: u32) {
             continue;
         }
 
-        let geom: LineString = row.get("wkb_geometry");
+        let geom: LineString = row.get("geom");
 
-        context.set_source_color_a(*colors::CONTOUR, 1.0 / 3.0);
+        context.set_dash(&[], 0.0);
 
         context.set_line_width(width);
 
-        draw_line(&ctx, geom.points.iter());
+        context.set_source_color_a(*colors::CONTOUR, 1.0 / 3.0);
+
+        // draw_line(&ctx, geom.points.iter());
+
+        // context.stroke().unwrap();
+
+        draw_smooth_bezier_spline(&ctx, geom.points.iter(), 1.0);
 
         context.stroke().unwrap();
     }

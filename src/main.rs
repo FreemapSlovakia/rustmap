@@ -1,18 +1,23 @@
 #[macro_use]
 extern crate lazy_static;
 
+use cache::Cache;
 use cairo::{Context, Format, ImageSurface};
 use ctx::Ctx;
+use gdal::Dataset;
+use lockfree_object_pool::MutexObjectPool;
 use oxhttp::model::{Request, Response, Status};
 use oxhttp::Server;
 use postgres::{Config, NoTls};
 use r2d2::PooledConnection;
 use r2d2_postgres::PostgresConnectionManager;
 use regex::Regex;
+use std::sync::Arc;
 use std::time::Duration;
 use xyz::{bbox_size_in_pixels, tile_bounds_to_epsg3857};
 
 mod buildings;
+mod cache;
 mod colors;
 mod contours;
 mod ctx;
@@ -22,6 +27,7 @@ mod landuse;
 mod pois;
 mod roads;
 mod water_areas;
+mod water_lines;
 mod xyz;
 
 pub fn main() {
@@ -36,10 +42,23 @@ pub fn main() {
 
     let pool = r2d2::Pool::builder().max_size(24).build(manager).unwrap();
 
+    let object_pool = Arc::new(MutexObjectPool::new(
+        || Cache {
+            hillshading_dataset: Dataset::open("/home/martin/14TB/hillshading/sk/final.tif")
+                .unwrap(),
+            // svg_map: HashMap::new(),
+        },
+        |_| {},
+    ));
+
     let mut server = Server::new(move |request| {
         let mut conn = pool.get().unwrap();
 
-        render(request, &mut conn)
+        let object_pool = object_pool.clone();
+
+        let mut cache = object_pool.pull();
+
+        render(request, &mut conn, &mut cache)
     });
 
     server.set_num_threads(128);
@@ -50,15 +69,17 @@ pub fn main() {
     server.listen(("localhost", 3050)).unwrap();
 }
 
-fn render(
+fn render<'a>(
     request: &mut Request,
     client: &mut PooledConnection<PostgresConnectionManager<NoTls>>,
+    cache: &mut Cache,
 ) -> Response {
     let path = request.url().path();
 
     lazy_static! {
         static ref URL_PATH_REGEXP: Regex =
-            Regex::new(r"/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)(?:@(?P<scale>\d+(?:\.\d*)?)x)?").unwrap();
+            Regex::new(r"/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)(?:@(?P<scale>\d+(?:\.\d*)?)x)?")
+                .unwrap();
     }
 
     let x: u32;
@@ -96,6 +117,8 @@ fn render(
         context: Context::new(&surface).unwrap(),
         bbox,
         size: (w, h),
+        zoom,
+        cache,
     };
 
     let context = &ctx.context;
@@ -106,17 +129,21 @@ fn render(
 
     context.paint().unwrap();
 
-    landuse::render(&ctx, zoom, client);
+    landuse::render(&ctx, client);
 
-    hillshading::render(&ctx, zoom, scale);
+    // TODO cutlines
 
-    if zoom > 11 {
-        contours::render(&ctx, client, zoom);
-    }
+    water_lines::render(&ctx, client);
 
     water_areas::render(&ctx, client);
 
-    roads::render(&ctx, zoom, client);
+    roads::render(&ctx, client);
+
+    hillshading::render(&ctx, scale);
+
+    if zoom > 11 {
+        contours::render(&ctx, client);
+    }
 
     if zoom > 12 {
         buildings::render(&ctx, client);
@@ -150,7 +177,6 @@ fn render(
     // context.set_source_rgb(0.0, 0.0, 1.0); // Red border for visibility
     // context.rectangle(0.0, 0.0, w as f64, h as f64);
     // context.stroke().unwrap();
-
 
     let mut buffer = Vec::new();
 
