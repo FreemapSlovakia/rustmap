@@ -24,7 +24,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     // TODO measure performance impact of simplification, if it makes something faster
 
     for row in &client.query(
-        "SELECT ST_SimplifyVW((ST_Dump(ST_LineMerge(ST_Collect(wkb_geometry)))).geom, $5) AS geom, height
+        "SELECT ST_SimplifyVW((ST_Dump(ST_LineMerge(ST_Collect(ST_ClipByBox2D(wkb_geometry, ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), 100)))))).geom, $5) AS geom, height
         FROM contour_sk_split
         WHERE wkb_geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)
         GROUP BY height",
