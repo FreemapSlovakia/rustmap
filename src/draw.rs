@@ -67,8 +67,15 @@ impl Projectable for Point {
     }
 }
 
+// https://github.com/ghaerr/agg-2.6/blob/master/agg-src/src/agg_vcgen_smooth_poly1.cpp
 // https://agg.sourceforge.net/antigrain.com/research/bezier_interpolation/index.html
 pub fn draw_smooth_bezier_spline(ctx: &Ctx, iter: Iter<Point>, smooth_value: f64) {
+    if smooth_value == 0.0 {
+        draw_line(ctx, iter);
+
+        return;
+    }
+
     let mut points: Vec<(f64, f64)> = iter.map(|p| p.project(ctx)).collect();
 
     let mut len = points.len();
@@ -105,43 +112,48 @@ pub fn draw_smooth_bezier_spline(ctx: &Ctx, iter: Iter<Point>, smooth_value: f64
         return;
     }
 
-    for i in 1..len - 1 + off * 4 {
-        let (x0, y0) = points[(i - 1) % len];
+    for i in off..len - 1 + off * 4 {
         let (x1, y1) = points[i % len];
         let (x2, y2) = points[(i + 1) % len];
-        let (x3, y3) = if i < len - 2 {
-            points[i + 2]
-        } else {
-            points[(i + 2) % len]
-            // (x2, y2)
-        };
 
-        let xc1 = (x0 + x1) / 2.0;
-        let yc1 = (y0 + y1) / 2.0;
+        let len2 = ((x2 - x1).powi(2) + (y2 - y1).powi(2)).sqrt();
         let xc2 = (x1 + x2) / 2.0;
         let yc2 = (y1 + y2) / 2.0;
-        let xc3 = (x2 + x3) / 2.0;
-        let yc3 = (y2 + y3) / 2.0;
 
-        let len1 = ((x1 - x0).powi(2) + (y1 - y0).powi(2)).sqrt();
-        let len2 = ((x2 - x1).powi(2) + (y2 - y1).powi(2)).sqrt();
-        let len3 = ((x3 - x2).powi(2) + (y3 - y2).powi(2)).sqrt();
+        let ctrl1 = if off == 0 && i == 0 {
+            (x1, y1)
+        } else {
+            let (x0, y0) = points[(i - 1) % len];
+            let len1 = ((x1 - x0).powi(2) + (y1 - y0).powi(2)).sqrt();
+            let k1 = len1 / (len1 + len2);
+            let xc1 = (x0 + x1) / 2.0;
+            let yc1 = (y0 + y1) / 2.0;
+            let xm1 = xc1 + (xc2 - xc1) * k1;
+            let ym1 = yc1 + (yc2 - yc1) * k1;
 
-        let k1 = len1 / (len1 + len2);
-        let k2 = len2 / (len2 + len3);
+            (
+                xm1 + (xc2 - xm1) * smooth_value + x1 - xm1,
+                ym1 + (yc2 - ym1) * smooth_value + y1 - ym1,
+            )
+        };
 
-        let xm1 = xc1 + (xc2 - xc1) * k1;
-        let ym1 = yc1 + (yc2 - yc1) * k1;
+        let ctrl2 = if off == 0 && i == len - 2 {
+            (x2, y2)
+        } else {
+            let (x3, y3) = points[(i + 2) % len];
+            let len3 = ((x3 - x2).powi(2) + (y3 - y2).powi(2)).sqrt();
+            let k2 = len2 / (len2 + len3);
+            let xc3 = (x2 + x3) / 2.0;
+            let yc3 = (y2 + y3) / 2.0;
+            let xm2 = xc2 + (xc3 - xc2) * k2;
+            let ym2 = yc2 + (yc3 - yc2) * k2;
 
-        let xm2 = xc2 + (xc3 - xc2) * k2;
-        let ym2 = yc2 + (yc3 - yc2) * k2;
+            (
+                xm2 + (xc2 - xm2) * smooth_value + x2 - xm2,
+                ym2 + (yc2 - ym2) * smooth_value + y2 - ym2,
+            )
+        };
 
-        let ctrl1_x = xm1 + (xc2 - xm1) * smooth_value + x1 - xm1;
-        let ctrl1_y = ym1 + (yc2 - ym1) * smooth_value + y1 - ym1;
-
-        let ctrl2_x = xm2 + (xc2 - xm2) * smooth_value + x2 - xm2;
-        let ctrl2_y = ym2 + (yc2 - ym2) * smooth_value + y2 - ym2;
-
-        context.curve_to(ctrl1_x, ctrl1_y, ctrl2_x, ctrl2_y, x2, y2);
+        context.curve_to(ctrl1.0, ctrl1.1, ctrl2.0, ctrl2.1, x2, y2);
     }
 }
