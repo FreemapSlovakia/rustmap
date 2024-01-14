@@ -34,6 +34,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     let apply_glow_defaults = |width: f64| {
         context.set_source_color(*colors::GLOW);
+        context.set_dash(&[], 0.0);
         context.set_line_join(cairo::LineJoin::Round);
         context.set_line_width(width);
     };

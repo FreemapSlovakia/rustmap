@@ -2,7 +2,7 @@ use crate::ctx::Ctx;
 use core::slice::Iter;
 use postgis::ewkb::{Geometry, GeometryT, Point, Polygon};
 
-pub fn draw_mpoly(geom: &GeometryT<Point>, ctx: &Ctx) {
+pub fn draw_mpoly(ctx: &Ctx, geom: &GeometryT<Point>) {
     match geom {
         Geometry::Polygon(p) => {
             draw_poly(ctx, &p);
@@ -105,7 +105,7 @@ pub fn draw_smooth_bezier_spline(ctx: &Ctx, iter: Iter<Point>, smooth_value: f64
     context.move_to(x, y);
 
     if len < 3 {
-        let (x1, y1) = points[0];
+        let (x1, y1) = points[1];
 
         context.line_to(x1, y1);
 

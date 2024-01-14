@@ -25,6 +25,7 @@ mod draw;
 mod hillshading;
 mod landuse;
 mod pois;
+mod power_lines;
 mod roads;
 mod water_areas;
 mod water_lines;
@@ -118,6 +119,7 @@ fn render<'a>(
         bbox,
         size: (w, h),
         zoom,
+        scale,
         cache,
     };
 
@@ -139,14 +141,18 @@ fn render<'a>(
 
     roads::render(&ctx, client);
 
-    hillshading::render(&ctx, scale);
+    hillshading::render(&ctx);
 
-    if zoom > 11 {
+    if zoom >= 12 {
         contours::render(&ctx, client);
     }
 
-    if zoom > 12 {
+    if zoom >= 13 {
         buildings::render(&ctx, client);
+    }
+
+    if zoom >= 13 {
+        power_lines::render(&ctx, client);
     }
 
     // pois::render(context);

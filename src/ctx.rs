@@ -7,5 +7,6 @@ pub struct Ctx<'a> {
     pub bbox: (f64, f64, f64, f64),
     pub size: (u32, u32),
     pub zoom: u32,
+    pub scale: f64,
     pub cache: &'a mut Cache,
 }

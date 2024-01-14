@@ -71,12 +71,13 @@ fn read_rgba_from_gdal(
     rgba_data
 }
 
-pub fn render(ctx: &Ctx, scale: f64) {
+pub fn render(ctx: &Ctx) {
     let Ctx {
         context,
         size: (w, h),
         cache,
         zoom,
+        scale,
         ..
     } = ctx;
 
@@ -92,7 +93,7 @@ pub fn render(ctx: &Ctx, scale: f64) {
         gt_x_width,
         gt_y_off,
         gt_y_width,
-        scale,
+        *scale,
     );
 
     let surface = ImageSurface::create_for_data(

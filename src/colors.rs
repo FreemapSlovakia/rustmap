@@ -80,7 +80,8 @@ lazy_static! {
     pub static ref PISTE: Color = hsl_to_rgb(0, 255, 255);
     pub static ref PITCH_STROKE: Color = hsl_to_rgb(110, 35, 50);
     pub static ref PITCH: Color = hsl_to_rgb(110, 35, 75);
-    pub static ref POWER_LINE: Color = hsl_to_rgb(0, 0, 50);
+    pub static ref POWER_LINE: Color = hsl_to_rgb(0, 0, 0);
+    pub static ref POWER_LINE_MINOR: Color = hsl_to_rgb(0, 0, 50);
     pub static ref PROTECTED: Color = hsl_to_rgb(120, 75, 25);
     pub static ref QUARRY: Color = hsl_to_rgb(0, 0, 78);
     pub static ref RESIDENTIAL: Color = hsl_to_rgb(100, 0, 91);
