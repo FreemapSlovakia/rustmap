@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 cairo-rs = { version = "0.18.5", features = ["png"] }
+cavalier_contours = "0.3.0"
 gdal = { version = "0.16.0", features = ["bindgen"] }
 lazy_static = "1.4.0"
 librsvg = { version = "2.57.1", features = ["c-api"] }

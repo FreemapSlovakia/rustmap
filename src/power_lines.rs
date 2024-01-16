@@ -44,11 +44,19 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         context.stroke().unwrap();
     }
 
-    // TODO buffer
-    let sql =
-        "SELECT geometry, type FROM osm_features WHERE type IN ('pylon', 'tower', 'pole') AND geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)";
+    if *zoom < 14 {
+        return;
+    }
 
-    for row in &client.query(sql, &[min_x, min_y, max_x, max_y]).unwrap() {
+    // TODO buffer
+    let sql = format!(
+        "SELECT geometry, type
+        FROM osm_features
+        WHERE type IN ('pylon', 'tower'{}) AND geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)",
+        if *zoom < 15 { "" } else { ", 'pole'" }
+    );
+
+    for row in &client.query(&sql, &[min_x, min_y, max_x, max_y]).unwrap() {
         let geom: Point = row.get("geometry");
 
         context.set_source_color(if row.get::<_, &str>("type") == "pole" {

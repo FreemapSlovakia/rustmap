@@ -1,4 +1,4 @@
-use crate::colors::ContextExt;
+use crate::colors::{Color, ContextExt};
 use crate::{colors, ctx::Ctx, draw::draw_line};
 use postgis::ewkb::LineString;
 use postgres::Client;
@@ -41,9 +41,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     let highway_width_coef = || 1.5f64.powf(8.6f64.max(zoom as f64) - 8.0);
 
-    let rows = &client
-        .query(&query, &[min_x, min_y, max_x, max_y])
-        .unwrap();
+    let rows = &client.query(&query, &[min_x, min_y, max_x, max_y]).unwrap();
 
     let ke = || match zoom {
         12 => 0.66,
@@ -100,19 +98,18 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 // TODO strokeOpacity="[trail_visibility]"
                 draw();
             }
-            // <RuleEx filter="[type] = 'raceway' or ([type] = 'track' and [class] = 'leisure')" minZoom={14}>
-            //   <LineSymbolizer {...glowDflt} strokeWidth={1.2} />
-            // </RuleEx>
-
-            // <RuleEx minZoom={13} type="bridleway">
-            //   <LineSymbolizer
-            //     {...glowDflt}
-            //     strokeWidth={1.2}
-            //     stroke={hsl(120, 50, 80)}
-            //     strokeOpacity="[trail_visibility]"
-            //   />
-            // </RuleEx>
-
+            (14.., "highway", _) if typ == "raceway" || (typ == "track" && class == "leisure") => {
+                apply_glow_defaults(1.2);
+                draw();
+            }
+            (13.., "highway", "bridleway")
+                if typ == "raceway" || (typ == "track" && class == "leisure") =>
+            {
+                apply_glow_defaults(1.2);
+                context.set_source_color(*colors::BRIDLEWAY2);
+                // strokeOpacity="[trail_visibility]"
+                draw();
+            }
             (_, "highway", "motorway" | "trunk") => {
                 apply_highway_defaults(4.0);
                 draw();
@@ -133,10 +130,12 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 apply_highway_defaults(2.5);
                 draw();
             }
-
-            // <RuleEx minZoom={14} type="piste">
-            //   <Road strokeWidth={2.2} stroke="#a0a0a0" strokeDasharray="6,2" />
-            // </RuleEx>
+            (14.., "highway", "piste") => {
+                apply_highway_defaults(2.2);
+                context.set_dash(&[6.0, 2.0], 0.0);
+                context.set_source_color(*colors::PISTE2);
+                draw();
+            }
             _ => (),
         }
     }
@@ -156,38 +155,82 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             context.stroke().unwrap();
         };
 
+        let draw_rail = |color: Color,
+                         weight: f64,
+                         sleeper_weight: f64,
+                         spacing: f64,
+                         glow_width: f64| {
+            context.set_line_join(cairo::LineJoin::Round);
+
+            let gw = weight + glow_width * 2.0;
+
+            let sgw = sleeper_weight + glow_width * 2.0;
+
+            context.set_source_color(*colors::RAIL_GLOW);
+            context.set_dash(&[], 0.0);
+            context.set_line_width(gw);
+            draw_line(ctx, geom.points.iter());
+            context.stroke().unwrap();
+
+            context.set_dash(&[0.0, (spacing - gw) / 2.0, gw, (spacing - gw) / 2.0], 0.0);
+            context.set_line_width(sgw);
+            draw_line(ctx, geom.points.iter());
+            context.stroke().unwrap();
+
+            context.set_source_color(color);
+            context.set_dash(&[], 0.0);
+            context.set_line_width(weight);
+            draw_line(ctx, geom.points.iter());
+            context.stroke().unwrap();
+
+            context.set_dash(
+                &[
+                    0.0,
+                    (spacing - weight) / 2.0,
+                    weight,
+                    (spacing - weight) / 2.0,
+                ],
+                0.0,
+            );
+            context.set_line_width(sleeper_weight);
+            draw_line(ctx, geom.points.iter());
+            context.stroke().unwrap();
+        };
+
         match (zoom, class, typ) {
             (14.., _, "pier") => {
                 apply_highway_defaults(2.0);
                 draw();
             }
+            (12.., "railway", "rail") if ["main", ""].contains(&service) => {
+                draw_rail(*colors::RAIL, 1.5, 5.0, 9.5, 1.0);
+            }
             (13.., "railway", _)
-                if (["light_rail", "tram"].contains(&typ)
-                    || typ == "rail" && service != "main" && service != "") =>
+                if ["light_rail", "tram"].contains(&typ)
+                    || typ == "rail" && service != "main" && service != "" =>
             {
-                // TODO <Rail color={hsl(0, 0, 20)} weight={1} sleeperWeight={4.5} spacing={9.5} glowWidth={1} />
+                draw_rail(*colors::TRAM, 1.0, 4.5, 9.5, 1.0);
             }
             (
                 13..,
                 "railway",
                 "miniature" | "monorail" | "funicular" | "narrow_gauge" | "subway",
             ) => {
-                // TODO <Rail color={hsl(0, 0, 20)} weight={1} sleeperWeight={4.5} spacing={7.5} glowWidth={1} />
+                draw_rail(*colors::TRAM, 1.0, 4.5, 7.5, 1.0);
             }
             (14.., "railway", "construction" | "disused" | "preserved") => {
-                // TODO <Rail color={hsl(0, 0, 33)} weight={1} sleeperWeight={4.5} spacing={7.5} glowWidth={1} />
+                draw_rail(*colors::RAILWAY_DISUSED, 1.0, 4.5, 7.5, 1.0);
             }
-            (8..=14, "railway", "rail") if ["main", ""].contains(&service) => {
+            (8..=11, "railway", "rail") if ["main", ""].contains(&service) => {
                 let koef = 0.8 * 1.15f64.powf((zoom - 8) as f64);
 
-                // TODO
-                // <Rail
-                //     color="black"
-                //     weight={koef}
-                //     sleeperWeight={(10 / 3) * koef}
-                //     spacing={(9.5 / 1.5) * koef}
-                //     glowWidth={0.5 * koef}
-                // />
+                draw_rail(
+                    *colors::RAIL,
+                    koef,
+                    10.0 / 3.0 * koef,
+                    9.5 / 1.5 * koef,
+                    0.5 * koef,
+                );
             }
             (8..=11, "highway", "motorway" | "trunk" | "motorway_link" | "trunk_link") => {
                 apply_highway_defaults(0.8 * highway_width_coef());

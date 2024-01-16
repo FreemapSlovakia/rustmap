@@ -2,7 +2,7 @@
 extern crate lazy_static;
 
 use cache::Cache;
-use cairo::{Context, Format, ImageSurface};
+use cairo::{Context, Format, ImageSurface, Surface, SvgSurface};
 use ctx::Ctx;
 use gdal::Dataset;
 use lockfree_object_pool::MutexObjectPool;
@@ -12,6 +12,7 @@ use postgres::{Config, NoTls};
 use r2d2::PooledConnection;
 use r2d2_postgres::PostgresConnectionManager;
 use regex::Regex;
+use std::ops::Deref;
 use std::sync::Arc;
 use std::time::Duration;
 use xyz::{bbox_size_in_pixels, tile_bounds_to_epsg3857};
@@ -79,7 +80,7 @@ fn render<'a>(
 
     lazy_static! {
         static ref URL_PATH_REGEXP: Regex =
-            Regex::new(r"/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)(?:@(?P<scale>\d+(?:\.\d*)?)x)?")
+            Regex::new(r"/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)(?:@(?P<scale>\d+(?:\.\d*)?)x)?(?:\.(?P<ext>jpg|png|svg))?")
                 .unwrap();
     }
 
@@ -87,6 +88,7 @@ fn render<'a>(
     let y: u32;
     let zoom: u32;
     let scale: f64;
+    let ext: &str;
 
     match URL_PATH_REGEXP.captures(path) {
         Some(m) => {
@@ -96,7 +98,8 @@ fn render<'a>(
             scale = m
                 .name("scale")
                 .map(|m| m.as_str().parse::<f64>().unwrap())
-                .unwrap_or_else(|| 1f64);
+                .unwrap_or(1f64);
+            ext = m.name("ext").map(|m| m.as_str()).unwrap_or("png");
         }
         None => {
             return Response::builder(Status::BAD_REQUEST).build();
@@ -107,89 +110,88 @@ fn render<'a>(
 
     let (w, h) = bbox_size_in_pixels(bbox.0, bbox.1, bbox.2, bbox.3, zoom as f64);
 
-    let surface = ImageSurface::create(
-        Format::ARgb32,
-        (w as f64 * scale) as i32,
-        (h as f64 * scale) as i32,
-    )
-    .unwrap();
+    let is_svg = ext == "svg";
 
-    let ctx = Ctx {
-        context: Context::new(&surface).unwrap(),
-        bbox,
-        size: (w, h),
-        zoom,
-        scale,
-        cache,
+    let mut draw = |surface: &Surface| {
+        let ctx = Ctx {
+            context: Context::new(surface).unwrap(),
+            bbox,
+            size: (w, h),
+            zoom,
+            scale,
+            cache,
+        };
+
+        let context = &ctx.context;
+
+        context.scale(scale, scale);
+
+        context.set_source_rgb(1.0, 1.0, 1.0);
+
+        context.paint().unwrap();
+
+        landuse::render(&ctx, client);
+
+        // TODO cutlines
+
+        water_lines::render(&ctx, client);
+
+        water_areas::render(&ctx, client);
+
+        roads::render(&ctx, client);
+
+        hillshading::render(&ctx);
+
+        if zoom >= 12 {
+            contours::render(&ctx, client);
+        }
+
+        if zoom >= 13 {
+            buildings::render(&ctx, client);
+        }
+
+        if zoom >= 13 {
+            power_lines::render(&ctx, client);
+        }
     };
 
-    let context = &ctx.context;
+    let buffer = if is_svg {
+        let mut buffer = Vec::new();
 
-    context.scale(scale, scale);
+        let surface: SvgSurface;
 
-    context.set_source_rgb(1.0, 1.0, 1.0);
+        unsafe {
+            surface = SvgSurface::for_raw_stream(w as f64 * scale, h as f64 * scale, &mut buffer)
+                .unwrap();
+        }
 
-    context.paint().unwrap();
+        draw(surface.deref());
 
-    landuse::render(&ctx, client);
+        surface.finish_output_stream().unwrap();
 
-    // TODO cutlines
+        buffer
+    } else {
+        let mut buffer = Vec::new();
 
-    water_lines::render(&ctx, client);
+        let surface = ImageSurface::create(
+            Format::ARgb32,
+            (w as f64 * scale) as i32,
+            (h as f64 * scale) as i32,
+        )
+        .unwrap();
 
-    water_areas::render(&ctx, client);
+        draw(surface.deref());
 
-    roads::render(&ctx, client);
+        surface.write_to_png(&mut buffer).unwrap();
 
-    hillshading::render(&ctx);
-
-    if zoom >= 12 {
-        contours::render(&ctx, client);
-    }
-
-    if zoom >= 13 {
-        buildings::render(&ctx, client);
-    }
-
-    if zoom >= 13 {
-        power_lines::render(&ctx, client);
-    }
-
-    // pois::render(context);
-
-    // context.select_font_face("Sans", cairo::FontSlant::Normal, cairo::FontWeight::Normal);
-
-    // context.set_font_size(40.0);
-
-    // context.move_to(100., 140.);
-
-    // context.text_path("Hello, Cairo!");
-
-    // context.set_source_rgb(0.0, 0.0, 1.0); // Blue color for fill
-    // context.fill_preserve().unwrap();
-
-    // context.set_source_rgba(1.0, 1.0, 1.0, 0.75); // Red color for stroke
-    // context.set_line_width(10.0);
-    // context.set_line_join(cairo::LineJoin::Round);
-    // context.stroke().unwrap();
-
-    // context.move_to(100., 140.);
-    // context.set_source_rgb(0.0, 0.0, 0.0); // Black color
-    // context.show_text("Hello, Cairo!").unwrap();
-
-    // debug tile border
-    // context.set_dash(&[], 0.0);
-    // context.set_line_width(2.0);
-    // context.set_source_rgb(0.0, 0.0, 1.0); // Red border for visibility
-    // context.rectangle(0.0, 0.0, w as f64, h as f64);
-    // context.stroke().unwrap();
-
-    let mut buffer = Vec::new();
-
-    surface.write_to_png(&mut buffer).unwrap();
+        buffer
+    };
 
     Response::builder(Status::OK)
-        .with_header("Content-Type", "image/png")
+        .with_header(
+            "Content-Type",
+            if is_svg { "image/svg+xml" } else { "image/png" },
+        )
         .unwrap()
         .with_body(buffer)
 }

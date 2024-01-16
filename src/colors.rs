@@ -55,6 +55,7 @@ lazy_static! {
     pub static ref BROWNFIELD: Color = hsl_to_rgb(30, 30, 68);
     pub static ref BUILDING: Color = hsl_to_rgb(0, 0, 50);
     pub static ref BRIDLEWAY: Color = hsl_to_rgb(120, 50, 30);
+    pub static ref BRIDLEWAY2: Color = hsl_to_rgb(120, 50, 80);
     pub static ref CLEARCUT: Color = hsl_to_rgb(95, 40, 85);
     pub static ref COLLEGE: Color = hsl_to_rgb(60, 85, 92);
     pub static ref COMMERCIAL: Color = hsl_to_rgb(320, 40, 90);
@@ -78,6 +79,7 @@ lazy_static! {
     pub static ref PIER: Color = hsl_to_rgb(0, 0, 0);
     pub static ref PIPELINE: Color = hsl_to_rgb(0, 0, 50);
     pub static ref PISTE: Color = hsl_to_rgb(0, 255, 255);
+    pub static ref PISTE2: Color = hsl_to_rgb(0, 0, 62);
     pub static ref PITCH_STROKE: Color = hsl_to_rgb(110, 35, 50);
     pub static ref PITCH: Color = hsl_to_rgb(110, 35, 75);
     pub static ref POWER_LINE: Color = hsl_to_rgb(0, 0, 0);
@@ -97,6 +99,10 @@ lazy_static! {
     pub static ref WATER_LABEL: Color = hsl_to_rgb(216, 100, 50);
     pub static ref WATER_SLIDE: Color = hsl_to_rgb(180, 50, 50);
     pub static ref WATER: Color = hsl_to_rgb(216, 65, 70);
+    pub static ref RAIL_GLOW: Color = hsl_to_rgb(0, 100, 100);
+    pub static ref TRAM: Color = hsl_to_rgb(0, 0, 20);
+    pub static ref RAILWAY_DISUSED: Color = hsl_to_rgb(0, 0, 30);
+    pub static ref RAIL: Color = hsl_to_rgb(0, 0, 0);
 }
 
 pub trait ContextExt {
