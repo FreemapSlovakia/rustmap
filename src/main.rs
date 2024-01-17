@@ -47,7 +47,7 @@ pub fn main() {
     let object_pool = Arc::new(MutexObjectPool::new(
         || Cache {
             hillshading_dataset: Dataset::open("/home/martin/14TB/hillshading/sk/final.tif")
-                .unwrap(),
+                .expect("Error opening hillshading geotiff"),
             // svg_map: HashMap::new(),
         },
         |_| {},
