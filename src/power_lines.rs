@@ -11,14 +11,15 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
         context,
         bbox: (min_x, min_y, max_x, max_y),
-        zoom,
         scale,
         ..
     } = ctx;
 
+    let zoom = ctx.zoom;
+
     let sql = &format!(
         "SELECT geometry, type FROM osm_feature_lines WHERE {} AND geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)",
-        if *zoom < 14 {
+        if zoom < 14 {
             "type = 'line'"
         } else {
             "type IN ('line', 'minor_line')"
@@ -44,19 +45,18 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         context.stroke().unwrap();
     }
 
-    if *zoom < 14 {
+    if zoom < 14 {
         return;
     }
 
-    // TODO buffer
     let sql = format!(
         "SELECT geometry, type
         FROM osm_features
-        WHERE type IN ('pylon', 'tower'{}) AND geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)",
-        if *zoom < 15 { "" } else { ", 'pole'" }
+        WHERE type IN ('pylon', 'tower'{}) AND geometry && make_buffered_envelope($1, $2, $3, $4, $5, 4)",
+        if zoom < 15 { "" } else { ", 'pole'" }
     );
 
-    for row in &client.query(&sql, &[min_x, min_y, max_x, max_y]).unwrap() {
+    for row in &client.query(&sql, &[min_x, min_y, max_x, max_y, &zoom]).unwrap() {
         let geom: Point = row.get("geometry");
 
         context.set_source_color(if row.get::<_, &str>("type") == "pole" {
