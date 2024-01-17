@@ -156,20 +156,16 @@ fn render<'a>(
     };
 
     let buffer = if is_svg {
-        let mut buffer = Vec::new();
-
-        let surface: SvgSurface;
-
-        unsafe {
-            surface = SvgSurface::for_raw_stream(w as f64 * scale, h as f64 * scale, &mut buffer)
-                .unwrap();
-        }
+        let surface =
+            SvgSurface::for_stream(w as f64 * scale, h as f64 * scale, Vec::new()).unwrap();
 
         draw(surface.deref());
 
-        surface.finish_output_stream().unwrap();
-
-        buffer
+        *surface
+            .finish_output_stream()
+            .unwrap()
+            .downcast::<Vec<u8>>()
+            .unwrap()
     } else {
         let mut buffer = Vec::new();
 

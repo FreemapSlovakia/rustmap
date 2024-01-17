@@ -155,47 +155,44 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             context.stroke().unwrap();
         };
 
-        let draw_rail = |color: Color,
-                         weight: f64,
-                         sleeper_weight: f64,
-                         spacing: f64,
-                         glow_width: f64| {
-            context.set_line_join(cairo::LineJoin::Round);
+        let draw_rail =
+            |color: Color, weight: f64, sleeper_weight: f64, spacing: f64, glow_width: f64| {
+                context.set_line_join(cairo::LineJoin::Round);
 
-            let gw = weight + glow_width * 2.0;
+                let gw = weight + glow_width * 2.0;
 
-            let sgw = sleeper_weight + glow_width * 2.0;
+                let sgw = sleeper_weight + glow_width * 2.0;
 
-            context.set_source_color(*colors::RAIL_GLOW);
-            context.set_dash(&[], 0.0);
-            context.set_line_width(gw);
-            draw_line(ctx, geom.points.iter());
-            context.stroke().unwrap();
+                context.set_source_color(*colors::RAIL_GLOW);
+                context.set_dash(&[], 0.0);
+                context.set_line_width(gw);
+                draw_line(ctx, geom.points.iter());
+                context.stroke().unwrap();
 
-            context.set_dash(&[0.0, (spacing - gw) / 2.0, gw, (spacing - gw) / 2.0], 0.0);
-            context.set_line_width(sgw);
-            draw_line(ctx, geom.points.iter());
-            context.stroke().unwrap();
+                context.set_dash(&[0.0, (spacing - gw) / 2.0, gw, (spacing - gw) / 2.0], 0.0);
+                context.set_line_width(sgw);
+                draw_line(ctx, geom.points.iter());
+                context.stroke().unwrap();
 
-            context.set_source_color(color);
-            context.set_dash(&[], 0.0);
-            context.set_line_width(weight);
-            draw_line(ctx, geom.points.iter());
-            context.stroke().unwrap();
+                context.set_source_color(color);
+                context.set_dash(&[], 0.0);
+                context.set_line_width(weight);
+                draw_line(ctx, geom.points.iter());
+                context.stroke().unwrap();
 
-            context.set_dash(
-                &[
+                context.set_dash(
+                    &[
+                        0.0,
+                        (spacing - weight) / 2.0,
+                        weight,
+                        (spacing - weight) / 2.0,
+                    ],
                     0.0,
-                    (spacing - weight) / 2.0,
-                    weight,
-                    (spacing - weight) / 2.0,
-                ],
-                0.0,
-            );
-            context.set_line_width(sleeper_weight);
-            draw_line(ctx, geom.points.iter());
-            context.stroke().unwrap();
-        };
+                );
+                context.set_line_width(sleeper_weight);
+                draw_line(ctx, geom.points.iter());
+                context.stroke().unwrap();
+            };
 
         match (zoom, class, typ) {
             (14.., _, "pier") => {
@@ -273,8 +270,14 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 // TODO Road
             }
             (12.., "highway", "construction") => {
-                //   <Road stroke="yellow" strokeWidth={1.5 + 1 / 3} strokeDasharray="5,5" />
-                //   <Road stroke="#666" strokeWidth={1.5 + 1 / 3} strokeDasharray="0,5,5,0" />
+                apply_highway_defaults(1.5 + 1.0 / 3.0);
+                context.set_source_color(*colors::CONSTRUCTION_ROAD_1);
+                context.set_dash(&[5.0, 5.0], 0.0);
+                draw();
+
+                context.set_source_color(*colors::CONSTRUCTION_ROAD_2);
+                context.set_dash(&[5.0, 5.0], 5.0);
+                draw();
             }
             (12.., "highway", "secondary_link" | "tertiary" | "tertiary_link") => {
                 apply_highway_defaults(1.5);
