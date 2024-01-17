@@ -398,7 +398,9 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 draw_bridges_tunnels(1.0 + 1.0);
             }
             (14.., "highway", "steps") => {
-                // TODO <LinePatternSymbolizer file="images/steps.svg" />
+                apply_highway_defaults(2.5);
+                context.set_dash(&[1.0, 2.0], 1.0);
+                draw();
             }
             (12.., "highway", _)
                 if typ == "service" && service != "parking_aisle"
