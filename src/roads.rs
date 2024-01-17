@@ -155,6 +155,63 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             context.stroke().unwrap();
         };
 
+        let draw_bridges_tunnels = |width: f64| {
+            if row.get::<_, i16>("bridge") > 0 {
+                context.save().unwrap();
+                context.set_dash(&[], 0.0);
+                context.set_source_rgb(0.0, 0.0, 0.0);
+
+                context.push_group();
+
+                context.set_line_cap(cairo::LineCap::Butt);
+                context.set_line_width(width + 2.0);
+                draw();
+                context.stroke().unwrap();
+
+                context.set_line_cap(cairo::LineCap::Square);
+                context.set_operator(cairo::Operator::Clear);
+                context.set_line_width(width);
+                draw();
+                context.stroke().unwrap();
+
+                context.pop_group_to_source().unwrap();
+                context.paint().unwrap();
+
+                context.restore().unwrap();
+            }
+
+            if row.get::<_, i16>("tunnel") > 0 {
+                context.set_dash(&[], 0.0);
+                context.set_line_width(width + 1.0);
+
+                context.set_source_rgba(0.8, 0.8, 0.8, 0.8);
+                draw();
+                context.stroke().unwrap();
+
+                context.save().unwrap();
+                context.set_dash(&[3.0, 3.0], 0.0);
+                context.set_source_rgba(0.0, 0.0, 0.0, 0.5);
+
+                context.push_group();
+
+                context.set_line_cap(cairo::LineCap::Butt);
+                context.set_line_width(width + 2.0);
+                draw();
+                context.stroke().unwrap();
+
+                context.set_line_cap(cairo::LineCap::Square);
+                context.set_operator(cairo::Operator::Clear);
+                context.set_line_width(width + 0.8);
+                draw();
+                context.stroke().unwrap();
+
+                context.pop_group_to_source().unwrap();
+                context.paint().unwrap();
+
+                context.restore().unwrap();
+            }
+        };
+
         let draw_rail =
             |color: Color, weight: f64, sleeper_weight: f64, spacing: f64, glow_width: f64| {
                 context.set_line_join(cairo::LineJoin::Round);
@@ -192,6 +249,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 context.set_line_width(sleeper_weight);
                 draw_line(ctx, geom.points.iter());
                 context.stroke().unwrap();
+
+                draw_bridges_tunnels(sleeper_weight + glow_width);
             };
 
         match (zoom, class, typ) {
@@ -249,25 +308,29 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 apply_highway_defaults(2.5);
                 context.set_source_color(*colors::SUPERROAD);
                 draw();
-                // TODO Road
+
+                draw_bridges_tunnels(2.5 + 1.0);
             }
             (12.., "highway", "motorway_link" | "trunk_link") => {
                 apply_highway_defaults(1.5 + 2.0 / 3.0);
                 context.set_source_color(*colors::SUPERROAD);
                 draw();
-                // TODO Road
+
+                draw_bridges_tunnels(1.5 + 2.0 / 3.0  + 1.0);
             }
             (12.., "highway", "primary") => {
                 apply_highway_defaults(1.5 + 2.0 / 3.0);
                 context.set_source_color(*colors::ROAD);
                 draw();
-                // TODO Road
+
+                draw_bridges_tunnels(1.5 + 2.0 / 3.0 + 1.0);
             }
             (12.., "highway", "primary_link" | "secondary") => {
                 apply_highway_defaults(1.5 + 1.0 / 3.0);
                 context.set_source_color(*colors::ROAD);
                 draw();
-                // TODO Road
+
+                draw_bridges_tunnels(1.5 + 1.0 / 3.0 + 1.0);
             }
             (12.., "highway", "construction") => {
                 apply_highway_defaults(1.5 + 1.0 / 3.0);
@@ -283,48 +346,56 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 apply_highway_defaults(1.5);
                 context.set_source_color(*colors::ROAD);
                 draw();
-                // TODO Road
+
+                draw_bridges_tunnels(1.5 + 1.0 / 3.0 + 1.0);
             }
             (12..=13, "highway", "living_street" | "residential" | "unclassified" | "road") => {
                 apply_highway_defaults(1.0);
                 draw();
-                // TODO Road
+
+                draw_bridges_tunnels(1.0 + 1.0);
             }
             (14.., "highway", "living_street" | "residential" | "unclassified" | "road") => {
                 apply_highway_defaults(1.0);
                 context.set_source_color(*colors::ROAD);
                 draw();
-                // TODO Road
+
+                draw_bridges_tunnels(1.0 + 1.0);
             }
             (14.., "highway", "water_slide") => {
                 apply_highway_defaults(1.5);
                 context.set_source_color(*colors::WATER_SLIDE);
                 draw();
-                // TODO Road
+
+                draw_bridges_tunnels(1.5 + 1.0);
             }
             (14.., "highway", "service") if service == "parking_aisle" => {
                 apply_highway_defaults(1.0);
                 draw();
-                // TODO Road
+
+                draw_bridges_tunnels(1.0 + 1.0);
             }
             (14.., "highway", _) if typ == "raceway" || typ == "track" && class == "leisure" => {
                 apply_highway_defaults(1.2);
                 context.set_dash(&[9.5, 1.5], 0.0);
                 draw();
-                // TODO Road
+
+                draw_bridges_tunnels(1.2 + 1.0);
             }
             (14.., "highway", "piste") => {
                 apply_highway_defaults(1.2);
                 context.set_source_color(*colors::PISTE);
                 context.set_dash(&[9.5, 1.5], 0.0);
                 draw();
-                // TODO Road
+
+                draw_bridges_tunnels(1.2 + 1.0);
             }
             (14.., "highway", "footway" | "pedestrian" | "platform") => {
                 apply_highway_defaults(1.0);
                 context.set_dash(&[4.0, 2.0], 0.0);
                 draw();
-                // TODO Road
+
+                draw_bridges_tunnels(1.0 + 1.0);
             }
             (14.., "highway", "steps") => {
                 // TODO <LinePatternSymbolizer file="images/steps.svg" />
@@ -333,9 +404,12 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 if typ == "service" && service != "parking_aisle"
                     || ["escape", "corridor", "bus_guideway"].contains(&typ) =>
             {
-                apply_highway_defaults(ke() * 1.2);
+                let width = ke() * 1.2;
+
+                apply_highway_defaults(width);
                 draw();
-                // TODO Road
+
+                draw_bridges_tunnels(width + 1.0);
             }
             (12.., "highway", _)
                 if typ == "path"
@@ -343,11 +417,14 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                         || row.get::<_, &str>("foot") == "designated")
                     && (zoom > 12 || row.get("is_in_route")) =>
             {
-                apply_highway_defaults(ke());
+                let width = ke();
+
+                apply_highway_defaults(width);
                 context.set_dash(&[3.0, 3.0], 0.0);
                 // TODO strokeOpacity="[trail_visibility]"
                 draw();
-                // TODO Road
+
+                draw_bridges_tunnels(width + 1.0);
             }
             (12.., "highway", _)
                 if typ == "path"
@@ -355,12 +432,15 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                     && row.get::<_, &str>("foot") == "designated"
                     && (zoom > 12 || row.get("is_in_route")) =>
             {
-                apply_highway_defaults(ke());
+                let width = ke();
+
+                apply_highway_defaults(width);
                 context.set_dash(&[4.0, 2.0], 0.0);
                 context.set_source_color(*colors::CYCLEWAY);
                 // TODO strokeOpacity="[trail_visibility]"
                 draw();
-                // TODO Road
+
+                draw_bridges_tunnels(width + 1.0);
             }
             (12.., "highway", _)
                 if (typ == "cycleway"
@@ -369,33 +449,44 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                         && row.get::<_, &str>("foot") != "designated")
                     && (zoom > 12 || row.get("is_in_route")) =>
             {
-                apply_highway_defaults(ke());
+                let width = ke();
+
+                apply_highway_defaults(width);
                 context.set_dash(&[6.0, 3.0], 0.0);
                 context.set_source_color(*colors::CYCLEWAY);
                 // TODO strokeOpacity="[trail_visibility]"
                 draw();
-                // TODO Road
+
+                draw_bridges_tunnels(width + 1.0);
             }
             (12.., "highway", "bridleway") if zoom > 12 || row.get("is_in_route") => {
-                apply_highway_defaults(ke());
+                let width = ke();
+
+                apply_highway_defaults(width);
                 context.set_dash(&[6.0, 3.0], 0.0);
                 context.set_source_color(*colors::BRIDLEWAY);
                 // TODO strokeOpacity="[trail_visibility]"
                 draw();
-                // TODO Road
+
+                draw_bridges_tunnels(width + 1.0);
             }
             (12.., "highway", "via_ferrata") if zoom > 12 || row.get("is_in_route") => {
-                apply_highway_defaults(ke());
+                let width = ke();
+
+                apply_highway_defaults(width);
                 context.set_dash(&[4.0, 4.0], 0.0);
                 draw();
-                // TODO Road
+
+                draw_bridges_tunnels(width + 1.0);
             }
             (12.., "highway", "track")
                 if (zoom > 12
                     || row.get("is_in_route")
                     || row.get::<_, &str>("tracktype") == "grade1") =>
             {
-                apply_highway_defaults(ke() * 1.2);
+                let width = ke() * 1.2;
+
+                apply_highway_defaults(width);
                 context.set_dash(
                     match row.get::<_, &str>("tracktype") {
                         "grade1" => &[],
@@ -409,7 +500,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 );
                 // TODO strokeOpacity="[trail_visibility]"
                 draw();
-                // TODO Road
+
+                draw_bridges_tunnels(width + 1.0);
             }
 
             // <RuleEx minZoom={14} filter="[oneway] <> 0">
