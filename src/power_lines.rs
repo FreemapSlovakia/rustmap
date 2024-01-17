@@ -56,7 +56,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         if zoom < 15 { "" } else { ", 'pole'" }
     );
 
-    for row in &client.query(&sql, &[min_x, min_y, max_x, max_y, &zoom]).unwrap() {
+    for row in &client.query(&sql, &[min_x, min_y, max_x, max_y, &(zoom as i32)]).unwrap() {
         let geom: Point = row.get("geometry");
 
         context.set_source_color(if row.get::<_, &str>("type") == "pole" {
