@@ -20,7 +20,9 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         12.. => "osm_roads",
     };
 
-    let query = format!("SELECT {table}.geometry, {table}.type, tracktype, class, service, bridge, tunnel, oneway, power(0.666, greatest(0, trail_visibility - 1)) AS trail_visibility, bicycle, foot, osm_route_members.member IS NOT NULL AS is_in_route
+    let query = format!("SELECT {table}.geometry, {table}.type, tracktype, class, service, bridge, tunnel, oneway, bicycle, foot,
+            power(0.666, greatest(0, trail_visibility - 1))::DOUBLE PRECISION AS trail_visibility,
+            osm_route_members.member IS NOT NULL AS is_in_route
         FROM {table} LEFT JOIN osm_route_members ON osm_route_members.type = 1 AND osm_route_members.member = {table}.osm_id
         WHERE {table}.geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)
         ORDER BY z_order, CASE WHEN {table}.type = 'rail' AND service IN ('', 'main') THEN 2 ELSE 1 END, {table}.osm_id", table = table);
@@ -316,7 +318,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 context.set_source_color(*colors::SUPERROAD);
                 draw();
 
-                draw_bridges_tunnels(1.5 + 2.0 / 3.0  + 1.0);
+                draw_bridges_tunnels(1.5 + 2.0 / 3.0 + 1.0);
             }
             (12.., "highway", "primary") => {
                 apply_highway_defaults(1.5 + 2.0 / 3.0);
@@ -399,7 +401,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             }
             (14.., "highway", "steps") => {
                 apply_highway_defaults(2.5);
-                context.set_dash(&[1.0, 2.0], 1.0);
+                context.set_dash(&[1.0, 2.0], 2.0);
                 draw();
             }
             (12.., "highway", _)
@@ -413,24 +415,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
                 draw_bridges_tunnels(width + 1.0);
             }
-            (12.., "highway", _)
-                if typ == "path"
-                    && (row.get::<_, &str>("bicycle") != "designated"
-                        || row.get::<_, &str>("foot") == "designated")
-                    && (zoom > 12 || row.get("is_in_route")) =>
-            {
-                let width = ke();
-
-                apply_highway_defaults(width);
-                context.set_dash(&[3.0, 3.0], 0.0);
-                // TODO strokeOpacity="[trail_visibility]"
-                draw();
-
-                draw_bridges_tunnels(width + 1.0);
-            }
-            (12.., "highway", _)
-                if typ == "path"
-                    && row.get::<_, &str>("bicycle") == "designated"
+            (12.., "highway", "path")
+                if row.get::<_, &str>("bicycle") == "designated"
                     && row.get::<_, &str>("foot") == "designated"
                     && (zoom > 12 || row.get("is_in_route")) =>
             {
@@ -438,8 +424,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
                 apply_highway_defaults(width);
                 context.set_dash(&[4.0, 2.0], 0.0);
-                context.set_source_color(*colors::CYCLEWAY);
-                // TODO strokeOpacity="[trail_visibility]"
+                context.set_source_color_a(*colors::CYCLEWAY, row.get("trail_visibility"));
                 draw();
 
                 draw_bridges_tunnels(width + 1.0);
@@ -455,8 +440,21 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
                 apply_highway_defaults(width);
                 context.set_dash(&[6.0, 3.0], 0.0);
-                context.set_source_color(*colors::CYCLEWAY);
-                // TODO strokeOpacity="[trail_visibility]"
+                context.set_source_color_a(*colors::CYCLEWAY, row.get("trail_visibility"));
+                draw();
+
+                draw_bridges_tunnels(width + 1.0);
+            }
+            (12.., "highway", "path")
+                if (row.get::<_, &str>("bicycle") != "designated"
+                    || row.get::<_, &str>("foot") == "designated")
+                    && (zoom > 12 || row.get("is_in_route")) =>
+            {
+                let width = ke();
+
+                apply_highway_defaults(width);
+                context.set_dash(&[3.0, 3.0], 0.0);
+                context.set_source_color_a(*colors::TRACK, row.get("trail_visibility"));
                 draw();
 
                 draw_bridges_tunnels(width + 1.0);
@@ -466,8 +464,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
                 apply_highway_defaults(width);
                 context.set_dash(&[6.0, 3.0], 0.0);
-                context.set_source_color(*colors::BRIDLEWAY);
-                // TODO strokeOpacity="[trail_visibility]"
+                context.set_source_color_a(*colors::BRIDLEWAY, row.get("trail_visibility"));
                 draw();
 
                 draw_bridges_tunnels(width + 1.0);
@@ -500,7 +497,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                     },
                     0.0,
                 );
-                // TODO strokeOpacity="[trail_visibility]"
+                context.set_source_color_a(*colors::TRACK, row.get("trail_visibility"));
                 draw();
 
                 draw_bridges_tunnels(width + 1.0);

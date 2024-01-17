@@ -1,6 +1,9 @@
 use crate::ctx::Ctx;
 use cairo::{Format, ImageSurface};
-use gdal::Dataset;
+use gdal::{
+    errors::GdalError,
+    Dataset,
+};
 
 fn read_rgba_from_gdal(
     dataset: &Dataset,
@@ -41,14 +44,20 @@ fn read_rgba_from_gdal(
     for band_index in 0..4 as usize {
         let band = dataset.rasterband(band_index as isize + 1).unwrap();
 
-        band.read_into_slice::<u8>(
+        let result = band.read_into_slice::<u8>(
             (window_x, window_y),
             (source_width, source_height),
             (w_scaled, h_scaled), // Resampled size
             &mut data,
             Some(gdal::raster::ResampleAlg::Lanczos),
-        )
-        .unwrap();
+        );
+
+        match result {
+            Err(GdalError::CplError { class: 3, number: 5, .. }) => {
+                return rgba_data;
+            }
+            _ => {}
+        }
 
         for i in 0..off {
             rgba_data[i * 4 + band_index] = data[i];

@@ -17,6 +17,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use xyz::{bbox_size_in_pixels, tile_bounds_to_epsg3857};
 
+mod barrierways;
 mod buildings;
 mod cache;
 mod colors;
@@ -25,9 +26,9 @@ mod ctx;
 mod draw;
 mod hillshading;
 mod landuse;
-mod pois;
 mod power_lines;
 mod roads;
+mod trees;
 mod water_areas;
 mod water_lines;
 mod xyz;
@@ -138,6 +139,10 @@ fn render<'a>(
 
         water_areas::render(&ctx, client);
 
+        if zoom >= 16 {
+            trees::render(&ctx, client);
+        }
+
         roads::render(&ctx, client);
 
         hillshading::render(&ctx);
@@ -148,6 +153,10 @@ fn render<'a>(
 
         if zoom >= 13 {
             buildings::render(&ctx, client);
+        }
+
+        if zoom >= 16 {
+            barrierways::render(&ctx, client);
         }
 
         if zoom >= 13 {

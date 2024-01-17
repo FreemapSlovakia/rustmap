@@ -14,12 +14,13 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         ..
     } = ctx;
 
-    if *zoom < 12 {
-        return;
-    }
-
-
-    let simplify_factor: f64 = match zoom { ..=12 => 2000.0, 13 => 1000.0, 14 => 200.0, 15 => 50.0, _ => 0.0 };
+    let simplify_factor: f64 = match zoom {
+        ..=12 => 2000.0,
+        13 => 1000.0,
+        14 => 200.0,
+        15 => 50.0,
+        _ => 0.0,
+    };
 
     // TODO measure performance impact of simplification, if it makes something faster
 
