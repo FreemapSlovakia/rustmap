@@ -6,6 +6,7 @@ Attempt to reimplement https://github.com/FreemapSlovakia/freemap-mapnik into Ru
 
 - Mapnik is no more actively developed except for keeping it to build itself with tools of the recent versions.
 - Better control of the rendering
+- Improve resource demands (CPU, memory)
 - I want to improve my Rust proficiency
 
 ## Technical details
@@ -22,8 +23,15 @@ Install Rust and run:
 cargo run
 ```
 
-TMS URL is then http://localhost:3050/{zoom}/{x}/{y}@2x (adjust your scaling)
+TMS URL is then `http://localhost:3050/{zoom}/{x}/{y}@2x[|.png|.svg]` (adjust your scaling).
 
 ## TODO
 
-Almost everything.
+- Texts
+- Icons
+- Collision management
+- Outdoor routes
+- LinePatternSymbolizer
+- Nodejs binding
+- support for PDF, WebP, Avif, Jpeg
+- ...and other things still missing but present in freemap-mapnik
