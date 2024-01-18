@@ -1,7 +1,6 @@
 use crate::{ctx::Ctx, draw::Projectable};
 use postgis::ewkb::Point;
 use postgres::Client;
-use rsvg::Loader;
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
@@ -10,15 +9,9 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         ..
     } = ctx;
 
+    let mut cache = ctx.cache.borrow_mut();
+
     let zoom = ctx.zoom;
-
-    // TODO lazy
-
-    let handle = Loader::new().read_path("images/tree2.svg").unwrap();
-
-    let renderer = rsvg::CairoRenderer::new(&handle);
-
-    let dim = renderer.intrinsic_size_in_pixels().unwrap();
 
     for row in &client.query(
       "SELECT type, geometry
@@ -31,20 +24,28 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         ORDER BY type, st_x(geometry)",
       &[min_x, min_y, max_x, max_y, &(zoom as i32)]
   ).unwrap() {
-      let geometry: Point = row.get("geometry");
+    let geometry: Point = row.get("geometry");
 
-      let typ: &str = row.get("type");
+    let typ: &str = row.get("type");
 
-      let point = geometry.project(ctx);
+    let point = geometry.project(ctx);
 
-      let z = (2.0 + 2f64.powf(zoom as f64 - 15.0)) * (if typ == "shrub" {0.115} else {0.23});
+    let scale = (2.0 + 2f64.powf(zoom as f64 - 15.0)) * (if typ == "shrub" {0.1} else {0.2});
 
-      renderer
-            .render_document(&context, &cairo::Rectangle::new(
-                point.0 - z * dim.0 / 2.0,
-                point.1 - z * dim.1 / 2.0,
-                z * dim.0,
-                z * dim.1)
-            ).unwrap();
+    let surface = cache.get_svg("images/tree2.svg");
+
+    let rect = surface.extents().unwrap();
+
+    context.save().unwrap();
+
+    context.translate(point.0 - scale * rect.width() / 2.0, point.1 - scale * rect.height() / 2.0);
+
+    context.scale(scale, scale);
+
+    context.set_source_surface(surface, 0.0, 0.0).unwrap();
+
+    context.paint().unwrap();
+
+    context.restore().unwrap();
   }
 }

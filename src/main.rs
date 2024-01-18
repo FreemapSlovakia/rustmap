@@ -5,15 +5,15 @@ use cache::Cache;
 use cairo::{Context, Format, ImageSurface, Surface, SvgSurface};
 use ctx::Ctx;
 use gdal::Dataset;
-use lockfree_object_pool::MutexObjectPool;
 use oxhttp::model::{Request, Response, Status};
 use oxhttp::Server;
 use postgres::{Config, NoTls};
 use r2d2::PooledConnection;
 use r2d2_postgres::PostgresConnectionManager;
 use regex::Regex;
+use std::cell::RefCell;
+use std::collections::HashMap;
 use std::ops::Deref;
-use std::sync::Arc;
 use std::time::Duration;
 use xyz::{bbox_size_in_pixels, tile_bounds_to_epsg3857};
 
@@ -33,6 +33,16 @@ mod water_areas;
 mod water_lines;
 mod xyz;
 
+thread_local! {
+    static THREAD_LOCAL_DATA: RefCell<Cache> = RefCell::new(Cache {
+        hillshading_dataset: Dataset::open("/home/martin/14TB/hillshading/sk/final.tif")
+        .expect("Error opening hillshading geotiff"),
+        svg_map: HashMap::new()
+    });
+}
+
+// thread_local!(static FOO: RefCell<u32> = RefCell::new(1));
+
 pub fn main() {
     let manager = r2d2_postgres::PostgresConnectionManager::new(
         Config::new()
@@ -45,23 +55,21 @@ pub fn main() {
 
     let pool = r2d2::Pool::builder().max_size(24).build(manager).unwrap();
 
-    let object_pool = Arc::new(MutexObjectPool::new(
-        || Cache {
-            hillshading_dataset: Dataset::open("/home/martin/14TB/hillshading/sk/final.tif")
-                .expect("Error opening hillshading geotiff"),
-            // svg_map: HashMap::new(),
-        },
-        |_| {},
-    ));
+    // let object_pool = Arc::new(MutexObjectPool::new(
+    //     || Cache {
+    //         hillshading_dataset: Dataset::open("/home/martin/14TB/hillshading/sk/final.tif")
+    //             .expect("Error opening hillshading geotiff"),
+    //         // svg_map: None,
+    //     },
+    //     |_| {},
+    // ));
 
     let mut server = Server::new(move |request| {
         let mut conn = pool.get().unwrap();
 
-        let object_pool = object_pool.clone();
-
-        let mut cache = object_pool.pull();
-
-        render(request, &mut conn, &mut cache)
+        THREAD_LOCAL_DATA.with(|f| {
+            render(request, &mut conn, f)
+        })
     });
 
     server.set_num_threads(128);
@@ -75,7 +83,7 @@ pub fn main() {
 fn render<'a>(
     request: &mut Request,
     client: &mut PooledConnection<PostgresConnectionManager<NoTls>>,
-    cache: &mut Cache,
+    cache: &RefCell<Cache>,
 ) -> Response {
     let path = request.url().path();
 

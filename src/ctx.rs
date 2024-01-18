@@ -1,6 +1,6 @@
-use cairo::Context;
-
 use crate::cache::Cache;
+use cairo::Context;
+use std::cell::RefCell;
 
 pub struct Ctx<'a> {
     pub context: Context,
@@ -8,5 +8,5 @@ pub struct Ctx<'a> {
     pub size: (u32, u32),
     pub zoom: u32,
     pub scale: f64,
-    pub cache: &'a mut Cache,
+    pub cache: &'a RefCell<Cache>,
 }

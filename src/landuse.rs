@@ -4,10 +4,9 @@ use crate::{
     draw::draw_mpoly,
     xyz::to_absolute_pixel_coords,
 };
-use cairo::{Content, Context, Extend, Matrix, RecordingSurface, Rectangle, SurfacePattern};
+use cairo::{Extend, Matrix, SurfacePattern};
 use postgis::ewkb::Geometry;
 use postgres::Client;
-use rsvg::Loader;
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
@@ -16,6 +15,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         context,
         ..
     } = ctx;
+
+    let mut cache = ctx.cache.borrow_mut();
 
     let query = &format!(
         "SELECT
@@ -41,33 +42,17 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             context.fill().unwrap();
         };
 
-        let pattern_area = |path: &str| {
-            let handle = Loader::new().read_path(path).unwrap();
-
-            let renderer = rsvg::CairoRenderer::new(&handle);
-
-            let dim = renderer.intrinsic_size_in_pixels().unwrap();
-
-            let tile = RecordingSurface::create(
-                Content::ColorAlpha,
-                Some(Rectangle::new(0.0, 0.0, dim.0, dim.1)),
-            )
-            .unwrap();
-
-            {
-                let context = Context::new(&tile).unwrap();
-
-                renderer
-                    .render_document(&context, &cairo::Rectangle::new(0.0, 0.0, dim.0, dim.1))
-                    .unwrap();
-            }
+        let mut pattern_area = |path: &str| {
+            let tile = cache.get_svg(path);
 
             let pattern = SurfacePattern::create(tile);
 
             let (x, y) = to_absolute_pixel_coords(*min_x, *min_y, *zoom as u8);
 
+            let rect = tile.extents().unwrap();
+
             let mut matrix = Matrix::identity();
-            matrix.translate((x % dim.0).round(), (y % dim.1).round());
+            matrix.translate((x % rect.width()).round(), (y % rect.height()).round());
             pattern.set_matrix(matrix);
 
             pattern.set_extend(Extend::Repeat);

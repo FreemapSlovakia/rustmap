@@ -90,7 +90,7 @@ pub fn render(ctx: &Ctx) {
         ..
     } = ctx;
 
-    let hillshading_dataset = &cache.hillshading_dataset;
+    let hillshading_dataset = &cache.borrow_mut().hillshading_dataset;
 
     let [gt_x_off, gt_x_width, _, gt_y_off, _, gt_y_width] =
         hillshading_dataset.geo_transform().unwrap();
