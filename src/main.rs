@@ -37,18 +37,17 @@ thread_local! {
     static THREAD_LOCAL_DATA: RefCell<Cache> = {
         let dataset = Dataset::open("/home/martin/14TB/hillshading/sk/final.tif");
 
-        if(dataset.is_err()) {
-            println!("Error opening hillshading geotiff");
-            RefCell::new(Cache {
-                hillshading_dataset: None,
-                svg_map: HashMap::new()
-            })
-        } else {
-            RefCell::new(Cache {
-                hillshading_dataset: Some(dataset.unwrap()),
-                svg_map: HashMap::new()
-            })
-        }
+        RefCell::new(Cache {
+            hillshading_dataset: match dataset {
+                Ok(dataset) => Some(dataset),
+                _ => {
+                    eprintln!("Error opening hillshading geotiff");
+
+                    None
+                },
+            },
+            svg_map: HashMap::new()
+        })
     };
 }
 
@@ -69,9 +68,7 @@ pub fn main() {
     let mut server = Server::new(move |request| {
         let mut conn = pool.get().unwrap();
 
-        THREAD_LOCAL_DATA.with(|f| {
-            render(request, &mut conn, f)
-        })
+        THREAD_LOCAL_DATA.with(|f| render(request, &mut conn, f))
     });
 
     server.set_num_threads(128);

@@ -1,9 +1,6 @@
 use crate::ctx::Ctx;
 use cairo::{Format, ImageSurface};
-use gdal::{
-    errors::GdalError,
-    Dataset,
-};
+use gdal::{errors::GdalError, Dataset};
 
 fn read_rgba_from_gdal(
     dataset: &Dataset,
@@ -53,7 +50,11 @@ fn read_rgba_from_gdal(
         );
 
         match result {
-            Err(GdalError::CplError { class: 3, number: 5, .. }) => {
+            Err(GdalError::CplError {
+                class: 3,
+                number: 5,
+                ..
+            }) => {
                 return rgba_data;
             }
             _ => {}
@@ -90,7 +91,8 @@ pub fn render(ctx: &Ctx) {
         ..
     } = ctx;
 
-    let mut cache = &cache.borrow_mut();
+    let cache = &cache.borrow_mut();
+
     let hillshading_dataset = match &cache.hillshading_dataset {
         Some(v) => v,
         None => return,

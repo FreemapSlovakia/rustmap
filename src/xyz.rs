@@ -52,4 +52,3 @@ pub fn to_absolute_pixel_coords(x: f64, y: f64, zoom: u8) -> (f64, f64) {
 
     (pixel_x, pixel_y)
 }
- // x /  2 ^ zoom * 256

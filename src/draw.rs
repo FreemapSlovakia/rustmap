@@ -1,6 +1,6 @@
 use crate::ctx::Ctx;
+use cavalier_contours::polyline::{PlineSource, PlineSourceMut, PlineVertex, Polyline};
 use core::slice::Iter;
-use cavalier_contours::polyline::{Polyline, PlineSource, PlineSourceMut, PlineVertex};
 use postgis::ewkb::{Geometry, GeometryT, Point, Polygon};
 
 pub fn draw_mpoly(ctx: &Ctx, geom: &GeometryT<Point>) {

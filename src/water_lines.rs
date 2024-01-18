@@ -54,7 +54,12 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 if *zoom >= 12 {
                     context.set_source_color(*colors::WATER);
 
-                    context.set_source_rgba(1.0, 1.0, 1.0, if row.get("tunnel") { 0.8 } else { 0.5 });
+                    context.set_source_rgba(
+                        1.0,
+                        1.0,
+                        1.0,
+                        if row.get("tunnel") { 0.8 } else { 0.5 },
+                    );
 
                     context.set_line_width(if typ == "river" {
                         3.4

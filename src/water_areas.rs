@@ -1,4 +1,8 @@
-use crate::{colors::{self, ContextExt}, ctx::Ctx, draw::draw_mpoly};
+use crate::{
+    colors::{self, ContextExt},
+    ctx::Ctx,
+    draw::draw_mpoly,
+};
 use postgis::ewkb::Geometry;
 use postgres::Client;
 
