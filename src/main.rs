@@ -55,15 +55,6 @@ pub fn main() {
 
     let pool = r2d2::Pool::builder().max_size(24).build(manager).unwrap();
 
-    // let object_pool = Arc::new(MutexObjectPool::new(
-    //     || Cache {
-    //         hillshading_dataset: Dataset::open("/home/martin/14TB/hillshading/sk/final.tif")
-    //             .expect("Error opening hillshading geotiff"),
-    //         // svg_map: None,
-    //     },
-    //     |_| {},
-    // ));
-
     let mut server = Server::new(move |request| {
         let mut conn = pool.get().unwrap();
 
@@ -141,8 +132,6 @@ fn render<'a>(
 
         landuse::render(&ctx, client);
 
-        // TODO cutlines
-
         water_lines::render(&ctx, client);
 
         water_areas::render(&ctx, client);
@@ -151,7 +140,9 @@ fn render<'a>(
             trees::render(&ctx, client);
         }
 
-        roads::render(&ctx, client);
+        if zoom >= 8 {
+            roads::render(&ctx, client);
+        }
 
         hillshading::render(&ctx);
 
@@ -168,7 +159,11 @@ fn render<'a>(
         }
 
         if zoom >= 13 {
-            power_lines::render(&ctx, client);
+            power_lines::render_lines(&ctx, client);
+        }
+
+        if zoom >= 14 {
+            power_lines::render_towers_poles(&ctx, client);
         }
     };
 

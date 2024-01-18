@@ -7,11 +7,10 @@ use crate::{
     draw::{draw_line, Projectable},
 };
 
-pub fn render(ctx: &Ctx, client: &mut Client) {
+pub fn render_lines(ctx: &Ctx, client: &mut Client) {
     let Ctx {
         context,
         bbox: (min_x, min_y, max_x, max_y),
-        scale,
         ..
     } = ctx;
 
@@ -44,10 +43,17 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         context.stroke().unwrap();
     }
+}
 
-    if zoom < 14 {
-        return;
-    }
+pub fn render_towers_poles(ctx: &Ctx, client: &mut Client) {
+    let Ctx {
+        context,
+        bbox: (min_x, min_y, max_x, max_y),
+        scale,
+        ..
+    } = ctx;
+
+    let zoom = ctx.zoom;
 
     let sql = format!(
         "SELECT geometry, type
@@ -56,7 +62,10 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         if zoom < 15 { "" } else { ", 'pole'" }
     );
 
-    for row in &client.query(&sql, &[min_x, min_y, max_x, max_y, &(zoom as i32)]).unwrap() {
+    for row in &client
+        .query(&sql, &[min_x, min_y, max_x, max_y, &(zoom as i32)])
+        .unwrap()
+    {
         let geom: Point = row.get("geometry");
 
         context.set_source_color(if row.get::<_, &str>("type") == "pole" {
