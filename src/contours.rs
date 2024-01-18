@@ -30,7 +30,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         WHERE wkb_geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)
         GROUP BY height",
         &[min_x, min_y, max_x, max_y, &simplify_factor]
-    ).unwrap() {
+    ).unwrap_or(Vec::new()) {
         let height: f64 = row.get("height");
 
         let width = match zoom {

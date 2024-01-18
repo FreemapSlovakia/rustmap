@@ -34,11 +34,22 @@ mod water_lines;
 mod xyz;
 
 thread_local! {
-    static THREAD_LOCAL_DATA: RefCell<Cache> = RefCell::new(Cache {
-        hillshading_dataset: Dataset::open("/home/martin/14TB/hillshading/sk/final.tif")
-        .expect("Error opening hillshading geotiff"),
-        svg_map: HashMap::new()
-    });
+    static THREAD_LOCAL_DATA: RefCell<Cache> = {
+        let dataset = Dataset::open("/home/martin/14TB/hillshading/sk/final.tif");
+
+        if(dataset.is_err()) {
+            println!("Error opening hillshading geotiff");
+            RefCell::new(Cache {
+                hillshading_dataset: None,
+                svg_map: HashMap::new()
+            })
+        } else {
+            RefCell::new(Cache {
+                hillshading_dataset: Some(dataset.unwrap()),
+                svg_map: HashMap::new()
+            })
+        }
+    };
 }
 
 // thread_local!(static FOO: RefCell<u32> = RefCell::new(1));
