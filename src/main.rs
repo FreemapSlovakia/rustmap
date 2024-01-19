@@ -32,6 +32,7 @@ mod trees;
 mod water_areas;
 mod water_lines;
 mod xyz;
+mod line_pattern;
 
 thread_local! {
     static THREAD_LOCAL_DATA: RefCell<Cache> = {
