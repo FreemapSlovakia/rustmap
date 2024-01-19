@@ -28,6 +28,7 @@ mod hillshading;
 mod landuse;
 mod power_lines;
 mod roads;
+mod routes;
 mod trees;
 mod water_areas;
 mod water_lines;
