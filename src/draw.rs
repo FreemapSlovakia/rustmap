@@ -20,8 +20,6 @@ pub fn draw_mpoly(ctx: &Ctx, geom: &GeometryT<Point>) {
 }
 
 pub fn draw_line(ctx: &Ctx, iter: Iter<Point>) {
-    // let mut polyline = Polyline::new();
-
     for (i, p) in iter.enumerate() {
         let (x, y) = p.project(ctx);
 
@@ -30,22 +28,30 @@ pub fn draw_line(ctx: &Ctx, iter: Iter<Point>) {
         } else {
             ctx.context.line_to(x, y);
         }
+    }
+}
 
-        // polyline.add_vertex(PlineVertex::new(x, y, 0.0));
+pub fn draw_line_off(ctx: &Ctx, iter: Iter<Point>, offset: f64) {
+    let mut polyline = Polyline::new();
+
+    for p in iter {
+        let (x, y) = p.project(ctx);
+
+        polyline.add_vertex(PlineVertex::new(x, y, 0.0));
     }
 
-    // for pc in polyline.parallel_offset(5.0) {
-    //     let mut first = true;
+    for pc in polyline.parallel_offset(offset) {
+        let mut first = true;
 
-    //     for v in pc.vertex_data {
-    //         if first {
-    //             ctx.context.move_to(v.x, v.y);
-    //             first = false;
-    //         } else {
-    //             ctx.context.line_to(v.x, v.y);
-    //         }
-    //     }
-    // }
+        for v in pc.vertex_data {
+            if first {
+                ctx.context.move_to(v.x, v.y);
+                first = false;
+            } else {
+                ctx.context.line_to(v.x, v.y);
+            }
+        }
+    }
 }
 
 fn draw_poly(ctx: &Ctx, poly: &Polygon) {

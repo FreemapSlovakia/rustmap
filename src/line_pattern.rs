@@ -1,3 +1,6 @@
+extern crate cairo;
+use cairo::Context;
+
 type Point = (f64, f64);
 
 fn get_perpendicular(dx: f64, dy: f64, length: f64, stroke_width: f64) -> Point {
@@ -66,9 +69,6 @@ fn compute_corners(p0: Point, p1: Point, stroke_width: f64) -> (Point, Point, Po
     )
 }
 
-extern crate cairo;
-use cairo::{Context, LineCap};
-
 // Assuming type Point and other functions are defined
 
 pub fn draw_polyline_outline(
@@ -80,9 +80,6 @@ pub fn draw_polyline_outline(
     if vertices.len() < 2 {
         return;
     }
-
-    context.set_line_width(stroke_width);
-    context.set_line_cap(LineCap::Butt);
 
     for i in 0..vertices.len() - 1 {
         let p1 = vertices[i];
@@ -165,16 +162,20 @@ pub fn draw_polyline_outline(
 
         // Drawing logic
         context.move_to(corner1.0, corner1.1);
+
         if let Some(ec) = extra_corner1 {
             context.line_to(ec.0, ec.1);
         }
+
         context.line_to(corner2.0, corner2.1);
         context.line_to(corner3.0, corner3.1);
+
         if let Some(ec) = extra_corner2 {
             context.line_to(ec.0, ec.1);
         }
+
         context.line_to(corner4.0, corner4.1);
         context.close_path();
-        context.stroke();
+        context.stroke().unwrap();
     }
 }

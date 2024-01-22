@@ -1,8 +1,11 @@
 use bitflags::bitflags;
-use postgis::ewkb::Geometry;
+use postgis::ewkb::MultiLineString;
 use postgres::Client;
 
-use crate::{ctx::Ctx, draw::draw_mpoly};
+use crate::{
+    ctx::Ctx,
+    draw::draw_line_off,
+};
 
 const COLOR_SQL: &str = r#"
   CASE
@@ -28,6 +31,81 @@ const COLOR_SQL: &str = r#"
   END
 "#;
 
+const COLORS: [(&str, (f64, f64, f64)); 9] = [
+    (
+        "none",
+        (
+            0xa0 as f64 / 255.0,
+            0xa0 as f64 / 255.0,
+            0xa0 as f64 / 255.0,
+        ),
+    ),
+    (
+        "purple",
+        (
+            0xc0 as f64 / 255.0,
+            0x00 as f64 / 255.0,
+            0xc0 as f64 / 255.0,
+        ),
+    ),
+    (
+        "orange",
+        (
+            0xff as f64 / 255.0,
+            0x80 as f64 / 255.0,
+            0x00 as f64 / 255.0,
+        ),
+    ),
+    (
+        "white",
+        (
+            0xff as f64 / 255.0,
+            0xff as f64 / 255.0,
+            0xff as f64 / 255.0,
+        ),
+    ),
+    (
+        "black",
+        (
+            0x00 as f64 / 255.0,
+            0x00 as f64 / 255.0,
+            0x00 as f64 / 255.0,
+        ),
+    ),
+    (
+        "yellow",
+        (
+            0xf0 as f64 / 255.0,
+            0xf0 as f64 / 255.0,
+            0x00 as f64 / 255.0,
+        ),
+    ),
+    (
+        "green",
+        (
+            0x00 as f64 / 255.0,
+            0xa0 as f64 / 255.0,
+            0x00 as f64 / 255.0,
+        ),
+    ),
+    (
+        "blue",
+        (
+            0x50 as f64 / 255.0,
+            0x50 as f64 / 255.0,
+            0xff as f64 / 255.0,
+        ),
+    ),
+    (
+        "red",
+        (
+            0xff as f64 / 255.0,
+            0x30 as f64 / 255.0,
+            0x30 as f64 / 255.0,
+        ),
+    ),
+];
+
 bitflags! {
   pub struct RouteTypes: u32 {
       const HIKING = 0b00000001;
@@ -49,7 +127,7 @@ fn format_vec(vec: &Vec<&str>) -> String {
 }
 
 fn get_routes_query(
-    route_types: RouteTypes,
+    route_types: &RouteTypes,
     include_networks: Option<Vec<&str>>,
     gen_suffix: &str,
 ) -> String {
@@ -97,7 +175,7 @@ fn get_routes_query(
 
     return format!(r#"
 SELECT
-  ST_LineMerge(ST_Collect(geometry)) AS geometry,
+  ST_Multi(ST_LineMerge(ST_Collect(geometry))) AS geometry,
   idx(arr1, 0) AS h_red,
   idx(arr1, 1) AS h_blue,
   idx(arr1, 2) AS h_green,
@@ -216,7 +294,7 @@ FROM (
         END
     ))) AS arr2
   FROM osm_route_members{gen_suffix} JOIN osm_routes ON (osm_route_members{gen_suffix}.osm_id = osm_routes.osm_id AND state <> 'proposed')
-  WHERE {where}geometry && !bbox!
+  WHERE {where}geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)
   GROUP BY member
 ) AS aaa
 GROUP BY
@@ -238,12 +316,130 @@ GROUP BY
     );
 }
 
-// !includeNetworks ? "" : `network IN (${includeNetworks.map((n) => `'${n}'`).join(",")}) AND `
-
-pub fn render(ctx: &Ctx, client: &mut Client) {
+pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
     let Ctx {
         context,
         bbox: (min_x, min_y, max_x, max_y),
         ..
     } = ctx;
+
+    let zoom = ctx.zoom;
+
+    let query = match zoom {
+        9 => get_routes_query(route_types, Some(vec!["iwn", "icn"]), "_gen0"),
+        10 => get_routes_query(route_types, Some(vec!["iwn", "nwn", "icn", "ncn"]), "_gen1"),
+        11 => get_routes_query(
+            route_types,
+            Some(vec!["iwn", "nwn", "rwn", "icn", "ncn", "rcn"]),
+            "_gen1",
+        ),
+        12..=13 => get_routes_query(route_types, None, ""),
+        14.. => get_routes_query(route_types, None, ""),
+        _ => return,
+    };
+
+    let rows = &client.query(&query, &[min_x, min_y, max_x, max_y]).unwrap();
+
+    for row in rows {
+        let geom: MultiLineString = row.get("geometry");
+
+        let (zo, wf) = match zoom {
+            ..=11 => (1.0, 1.5),
+            12 => (2.0, 1.5),
+            13.. => (3.0, 2.0),
+        }; // offset from highway
+
+        let df = 1.25;
+
+        for color in COLORS.iter() {
+            if route_types.contains(RouteTypes::HORSE) {
+                let off = row.get::<_, i32>(&format!("r_{}", color.0)[..]);
+
+                if off > 0 {
+                    let offset = (zo + (off as f64 - 1.0) * wf * df) + 0.5;
+
+                    // <LinePatternSymbolizer
+                    //   file={path.resolve(tmpdir(), `horse-${color}.svg`)}
+                    //   offset={offset}
+                    //   transform={`scale(${wf / 2})`}
+                    // />
+                }
+            }
+
+            if route_types.contains(RouteTypes::SKI) {
+                let off = row.get::<_, i32>(&format!("s_{}", color.0)[..]);
+
+                if off > 0 {
+                    let offset = -(zo + (off as f64 - 1.0) * wf * 2.0) - 1.0;
+
+                    // <LinePatternSymbolizer
+                    //   file={path.resolve(tmpdir(), `ski-${color}.svg`)}
+                    //   offset={offset}
+                    //   transform={`scale(${wf / 2})`}
+                    // />
+                }
+            }
+
+            if route_types.contains(RouteTypes::BICYCLE) {
+                let off = row.get::<_, i32>(&format!("b_{}", color.0)[..]);
+
+                if off > 0 {
+                    let offset = -(zo + (off as f64 - 1.0) * wf * 2.0) - 1.0;
+
+                    for part in geom.lines.iter() {
+                        draw_line_off(ctx, part.points.iter(), offset);
+                    }
+
+                    context.set_line_width(wf * 2.0);
+                    context.set_line_join(cairo::LineJoin::Round);
+                    context.set_line_cap(cairo::LineCap::Round);
+                    context.set_source_rgb(color.1 .0, color.1 .1, color.1 .2);
+                    context.set_dash(&[0.001, wf * 3.0], 0.0);
+
+                    context.stroke().unwrap();
+                }
+            }
+
+            if route_types.contains(RouteTypes::HIKING) {
+                {
+                    let off = row.get::<_, i32>(&format!("h_{}", color.0)[..]);
+
+                    if off > 0 {
+                        let offset = (zo + (off as f64 - 1.0) * wf * df) + 0.5;
+
+                        for part in geom.lines.iter() {
+                            draw_line_off(ctx, part.points.iter(), offset);
+                        }
+                        context.set_line_width(wf);
+                        context.set_line_join(cairo::LineJoin::Round);
+                        context.set_line_cap(cairo::LineCap::Butt);
+                        context.set_source_rgb(color.1 .0, color.1 .1, color.1 .2);
+                        context.set_dash(&[], 0.0);
+
+                        context.stroke().unwrap();
+                    }
+                }
+
+                {
+                    let off = row.get::<_, i32>(&format!("h_{}_loc", color.0)[..]);
+
+                    if off > 0 {
+                        let offset = (zo + (off as f64 - 1.0) * wf * df) + 0.5;
+
+                        for part in geom.lines.iter() {
+                            draw_line_off(ctx, part.points.iter(), offset);
+                        }
+
+                        context.set_line_width(wf);
+                        context.set_line_join(cairo::LineJoin::Round);
+                        context.set_line_cap(cairo::LineCap::Butt);
+                        context.set_source_rgb(color.1 .0, color.1 .1, color.1 .2);
+                        context.set_dash(&[wf * 3.0, wf], 0.0);
+
+                        context.stroke().unwrap();
+                    }
+                }
+            }
+        }
+    }
 }

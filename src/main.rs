@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate lazy_static;
 
+use crate::routes::RouteTypes;
 use cache::Cache;
 use cairo::{Context, Format, ImageSurface, Surface, SvgSurface};
 use ctx::Ctx;
@@ -26,6 +27,7 @@ mod ctx;
 mod draw;
 mod hillshading;
 mod landuse;
+mod line_pattern;
 mod power_lines;
 mod roads;
 mod routes;
@@ -33,7 +35,6 @@ mod trees;
 mod water_areas;
 mod water_lines;
 mod xyz;
-mod line_pattern;
 
 thread_local! {
     static THREAD_LOCAL_DATA: RefCell<Cache> = {
@@ -175,6 +176,10 @@ fn render<'a>(
         if zoom >= 14 {
             power_lines::render_towers_poles(&ctx, client);
         }
+
+        context.save().unwrap();
+        routes::render(&ctx, client, &RouteTypes::all());
+        context.restore().unwrap();
     };
 
     let buffer = if is_svg {
