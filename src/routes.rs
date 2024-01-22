@@ -169,6 +169,8 @@ fn get_routes_query(
                 result.push('\'');
             }
 
+            result.push_str(") AND ");
+
             result
         }
     };
