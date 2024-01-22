@@ -42,13 +42,48 @@ pub fn draw_line_off(ctx: &Ctx, iter: Iter<Point>, offset: f64) {
 
     for pc in polyline.parallel_offset(offset) {
         let mut first = true;
+        let mut p1 = (0.0, 0.0);
+        let mut prev_bulge = 0.0;
 
         for v in pc.vertex_data {
             if first {
                 ctx.context.move_to(v.x, v.y);
                 first = false;
+                p1 = (v.x, v.y);
+                prev_bulge = v.bulge;
             } else {
-                ctx.context.line_to(v.x, v.y);
+                let p2 = (v.x, v.y);
+
+                if prev_bulge == 0.0 {
+                    ctx.context.line_to(p2.0, p2.1);
+                } else {
+                    let theta = 4.0 * prev_bulge.atan();
+                    let dist = ((p2.0 - p1.0).powi(2) + (p2.1 - p1.1).powi(2)).sqrt();
+                    let radius = dist / (2.0 * (theta / 2.0).sin());
+
+                    // Calculate center of the arc
+                    let mx = (p1.0 + p2.0) / 2.0;
+                    let my = (p1.1 + p2.1) / 2.0;
+                    let l = (radius.powi(2) - (dist / 2.0).powi(2)).sqrt();
+                    let direction = if prev_bulge > 0.0 { 1.0 } else { -1.0 };
+                    let ox = mx - direction * l * (p2.1 - p1.1) / dist;
+                    let oy = my + direction * l * (p2.0 - p1.0) / dist;
+
+                    // Calculate start and end angles
+                    let start_angle = (p1.1 - oy).atan2(p1.0 - ox);
+                    let end_angle = (p2.1 - oy).atan2(p2.0 - ox);
+
+                    if prev_bulge > 0.0 {
+                        ctx.context
+                            .arc(ox, oy, radius.abs(), start_angle, end_angle);
+                    } else {
+                        ctx.context
+                            .arc_negative(ox, oy, radius.abs(), start_angle, end_angle);
+                    }
+                }
+
+                p1 = p2;
+                prev_bulge = v.bulge;
             }
         }
     }
