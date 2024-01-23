@@ -199,7 +199,7 @@ pub fn draw_polyline_outline(ctx: &Ctx, vertices: &[Point], miter_limit: f64, im
 
         matrix.translate(rect.width() / 2.0 + dist, rect.height() / 2.0);
 
-        dist += ((p2.0 - p1.0).powi(2) + (p2.1 - p1.1).powi(2)).sqrt();
+        dist += (p2.0 - p1.0).hypot(p2.1 - p1.1);
 
         matrix.rotate((p1.1 - p2.1).atan2(p2.0 - p1.0));
 
