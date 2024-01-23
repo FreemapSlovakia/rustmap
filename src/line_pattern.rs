@@ -1,7 +1,15 @@
-extern crate cairo;
-use cairo::Context;
+use crate::ctx::Ctx;
+use crate::draw::Projectable;
+use cairo::{Matrix, SurfacePattern};
+use core::slice::Iter;
 
 type Point = (f64, f64);
+
+pub fn draw_line_pattern(ctx: &Ctx, iter: Iter<postgis::ewkb::Point>, miter_limit: f64, image: &str) {
+    let pts: Vec<Point> = iter.map(|p| p.project(ctx)).collect();
+
+    draw_polyline_outline(ctx, &pts[..], miter_limit, image);
+}
 
 fn get_perpendicular(dx: f64, dy: f64, length: f64, stroke_width: f64) -> Point {
     (
@@ -71,20 +79,30 @@ fn compute_corners(p0: Point, p1: Point, stroke_width: f64) -> (Point, Point, Po
 
 // Assuming type Point and other functions are defined
 
-pub fn draw_polyline_outline(
-    context: &Context,
-    vertices: &[Point],
-    stroke_width: f64,
-    miter_limit: f64,
-) {
+pub fn draw_polyline_outline(ctx: &Ctx, vertices: &[Point], miter_limit: f64, image: &str) {
     if vertices.len() < 2 {
         return;
     }
 
+    let mut cache = ctx.cache.borrow_mut();
+
+    let tile = cache.get_svg(image);
+
+    let pattern = SurfacePattern::create(tile);
+
+    let rect = tile.extents().unwrap();
+
+    let stroke_width = rect.height();
+
+    let context = &ctx.context;
+
+    let mut dist = 0.0;
+
     for i in 0..vertices.len() - 1 {
         let p1 = vertices[i];
         let p2 = vertices[i + 1];
-        let (mut corner1, mut corner2, mut corner3, mut corner4) = compute_corners(p1, p2, stroke_width);
+        let (mut corner1, mut corner2, mut corner3, mut corner4) =
+            compute_corners(p1, p2, stroke_width);
         let mut extra_corner1: Option<Point> = None;
         let mut extra_corner2: Option<Point> = None;
 
@@ -176,6 +194,23 @@ pub fn draw_polyline_outline(
 
         context.line_to(corner4.0, corner4.1);
         context.close_path();
-        context.stroke().unwrap();
+
+        let mut matrix = Matrix::identity();
+
+        matrix.translate(rect.width() / 2.0 + dist, rect.height() / 2.0);
+
+        dist += ((p2.0 - p1.0).powi(2) + (p2.1 - p1.1).powi(2)).sqrt();
+
+        matrix.rotate((p1.1 - p2.1).atan2(p2.0 - p1.0));
+
+        matrix.translate(-p1.0, -p1.1);
+
+        pattern.set_matrix(matrix);
+
+        pattern.set_extend(cairo::Extend::Repeat);
+
+        context.set_source(&pattern).unwrap();
+
+        context.fill().unwrap();
     }
 }
