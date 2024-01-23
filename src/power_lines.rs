@@ -58,8 +58,8 @@ pub fn render_towers_poles(ctx: &Ctx, client: &mut Client) {
     let sql = format!(
         "SELECT geometry, type
         FROM osm_features
-        WHERE type IN ('pylon', 'tower'{}) AND geometry && make_buffered_envelope($1, $2, $3, $4, $5, 4)",
-        if zoom < 15 { "" } else { ", 'pole'" }
+        WHERE type IN ('tower'{}) AND geometry && make_buffered_envelope($1, $2, $3, $4, $5, 4)",
+        if zoom < 15 { "" } else { ", 'pylon', 'pole'" }
     );
 
     for row in &client
