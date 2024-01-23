@@ -82,8 +82,6 @@ fn compute_corners(p0: Point, p1: Point, stroke_width: f64) -> (Point, Point, Po
     )
 }
 
-// Assuming type Point and other functions are defined
-
 pub fn draw_polyline_outline(ctx: &Ctx, vertices: &[Point], miter_limit: f64, image: &str) {
     let len = vertices.len();
     if len < 2 {
@@ -186,7 +184,6 @@ pub fn draw_polyline_outline(ctx: &Ctx, vertices: &[Point], miter_limit: f64, im
             }
         }
 
-        // Drawing logic
         context.move_to(corner1.0, corner1.1);
 
         if let Some(ec) = extra_corner1 {
