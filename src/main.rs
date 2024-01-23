@@ -29,6 +29,7 @@ mod hillshading;
 mod landuse;
 mod line_pattern;
 mod power_lines;
+mod protected_areas;
 mod roads;
 mod routes;
 mod trees;
@@ -175,6 +176,10 @@ fn render<'a>(
 
         if zoom >= 14 {
             power_lines::render_towers_poles(&ctx, client);
+        }
+
+        if zoom >= 12 {
+            protected_areas::render(&ctx, client);
         }
 
         context.save().unwrap();

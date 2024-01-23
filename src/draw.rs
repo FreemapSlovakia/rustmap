@@ -4,13 +4,17 @@ use core::slice::Iter;
 use postgis::ewkb::{Geometry, GeometryT, Point, Polygon};
 
 pub fn draw_mpoly(ctx: &Ctx, geom: &GeometryT<Point>) {
+    draw_mpoly_uni(ctx, geom, &draw_line);
+}
+
+pub fn draw_mpoly_uni(ctx: &Ctx, geom: &GeometryT<Point>, dl: &dyn Fn(&Ctx, Iter<Point>) -> ()) {
     match geom {
         Geometry::Polygon(p) => {
-            draw_poly(ctx, &p);
+            draw_poly(ctx, &p, dl);
         }
         Geometry::MultiPolygon(p) => {
             for poly in &p.polygons {
-                draw_poly(ctx, poly);
+                draw_poly(ctx, poly, dl);
             }
         }
         _ => {
@@ -89,9 +93,9 @@ pub fn draw_line_off(ctx: &Ctx, iter: Iter<Point>, offset: f64) {
     }
 }
 
-fn draw_poly(ctx: &Ctx, poly: &Polygon) {
+fn draw_poly(ctx: &Ctx, poly: &Polygon, dl: &dyn Fn(&Ctx, Iter<Point>) -> ()) {
     for ring in &poly.rings {
-        draw_line(&ctx, ring.points.iter());
+        dl(&ctx, ring.points.iter());
 
         // ctx.context.close_path();
     }

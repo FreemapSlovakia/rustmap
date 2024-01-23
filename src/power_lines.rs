@@ -1,6 +1,5 @@
 use postgis::ewkb::{LineString, Point};
 use postgres::Client;
-
 use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,

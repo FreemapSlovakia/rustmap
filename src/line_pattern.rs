@@ -5,8 +5,13 @@ use core::slice::Iter;
 
 type Point = (f64, f64);
 
-pub fn draw_line_pattern(ctx: &Ctx, iter: Iter<postgis::ewkb::Point>, miter_limit: f64, image: &str) {
-    let pts: Vec<Point> = iter.map(|p| p.project(ctx)).collect();
+pub fn draw_line_pattern(
+    ctx: &Ctx,
+    iter: Iter<postgis::ewkb::Point>,
+    miter_limit: f64,
+    image: &str,
+) {
+    let pts: Vec<Point> = iter.map(|p| p.project(ctx)).rev().collect();
 
     draw_polyline_outline(ctx, &pts[..], miter_limit, image);
 }
@@ -80,7 +85,8 @@ fn compute_corners(p0: Point, p1: Point, stroke_width: f64) -> (Point, Point, Po
 // Assuming type Point and other functions are defined
 
 pub fn draw_polyline_outline(ctx: &Ctx, vertices: &[Point], miter_limit: f64, image: &str) {
-    if vertices.len() < 2 {
+    let len = vertices.len();
+    if len < 2 {
         return;
     }
 
@@ -98,7 +104,9 @@ pub fn draw_polyline_outline(ctx: &Ctx, vertices: &[Point], miter_limit: f64, im
 
     let mut dist = 0.0;
 
-    for i in 0..vertices.len() - 1 {
+    let is_closed = vertices.first() == vertices.last();
+
+    for i in 0..len - 1 {
         let p1 = vertices[i];
         let p2 = vertices[i + 1];
         let (mut corner1, mut corner2, mut corner3, mut corner4) =
@@ -106,8 +114,8 @@ pub fn draw_polyline_outline(ctx: &Ctx, vertices: &[Point], miter_limit: f64, im
         let mut extra_corner1: Option<Point> = None;
         let mut extra_corner2: Option<Point> = None;
 
-        if i > 0 {
-            let p0 = vertices[i - 1];
+        if is_closed || i > 0 {
+            let p0 = vertices[if i == 0 { len - 1 } else { i } - 1];
             let (prev_corner1, prev_corner2, prev_corner3, prev_corner4) =
                 compute_corners(p0, p1, stroke_width);
             let cp = cross_product(p0, p1, p2);
@@ -142,8 +150,8 @@ pub fn draw_polyline_outline(ctx: &Ctx, vertices: &[Point], miter_limit: f64, im
             }
         }
 
-        if i < vertices.len() - 2 {
-            let p3 = vertices[i + 2];
+        if is_closed || i < len - 2 {
+            let p3 = vertices[if i == len - 2 { 1 } else { i + 2 }];
             let (next_corner1, next_corner2, next_corner3, next_corner4) =
                 compute_corners(p2, p3, stroke_width);
             let cp = cross_product(p1, p2, p3);
