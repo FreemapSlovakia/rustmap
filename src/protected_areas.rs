@@ -1,12 +1,12 @@
 use postgis::ewkb::{Geometry, Point};
 use postgres::Client;
 use crate::{
-    ctx::Ctx, draw::draw_mpoly_uni, line_pattern::draw_line_pattern
+    ctx::Ctx, draw::{draw_mpoly, draw_mpoly_uni}, line_pattern::draw_line_pattern
 };
 use core::slice::Iter;
 
-fn ddd(ctx: &Ctx, iter: Iter<Point>) {
-    draw_line_pattern(ctx, iter, 0.5, "images/protected_area.svg");
+fn draw_protected_area_border(ctx: &Ctx, iter: Iter<Point>) {
+    draw_line_pattern(ctx, iter, 0.8, "images/protected_area.svg");
 }
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
@@ -41,7 +41,14 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         }
 
         if zoom >= 12 && (typ == "nature_reserve" || typ == "protected_area" && protect_class != "2") {
-            draw_mpoly_uni(ctx, &geom, &ddd);
+            // draw_mpoly(ctx, &geom);
+            // ctx.context.set_source_rgb(0.0, 0.0, 0.0);
+            // ctx.context.set_dash(&[], 0.0);
+            // ctx.context.set_line_width(1.0);
+
+            // ctx.context.stroke().unwrap();
+
+            draw_mpoly_uni(ctx, &geom, &draw_protected_area_border);
         }
     }
 }

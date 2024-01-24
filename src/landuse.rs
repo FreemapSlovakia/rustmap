@@ -2,10 +2,11 @@ use crate::{
     colors::{self, Color, ContextExt},
     ctx::Ctx,
     draw::draw_mpoly,
+    hatcher::hatch,
     xyz::to_absolute_pixel_coords,
 };
 use cairo::{Extend, Matrix, SurfacePattern};
-use postgis::ewkb::Geometry;
+use postgis::{ewkb::Geometry, LineString};
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
@@ -120,6 +121,15 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             }
             "forest" => {
                 colour_area(*colors::FOREST);
+
+                context.set_source_rgb(0.0, 0.0, 0.0);
+                context.set_line_width(1.0);
+
+                // if let Geometry::Polygon(polygon) = geom {
+                //     for ring in polygon.rings {
+                //         hatch(ctx, ring.points.iter());
+                //     }
+                // }
             }
             "garages" => {
                 colour_area(*colors::NONE);

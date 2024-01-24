@@ -2,8 +2,9 @@ use crate::ctx::Ctx;
 use crate::draw::Projectable;
 use cairo::{Matrix, SurfacePattern};
 use core::slice::Iter;
+use std::ops::Deref;
 
-type Point = (f64, f64);
+pub type Point = (f64, f64);
 
 pub fn draw_line_pattern(
     ctx: &Ctx,
@@ -83,7 +84,18 @@ fn compute_corners(p0: Point, p1: Point, stroke_width: f64) -> (Point, Point, Po
 }
 
 pub fn draw_polyline_outline(ctx: &Ctx, vertices: &[Point], miter_limit: f64, image: &str) {
+    draw_polyline_outline_scaled(ctx, vertices, miter_limit, image, 1.0);
+}
+
+pub fn draw_polyline_outline_scaled(
+    ctx: &Ctx,
+    vertices: &[Point],
+    miter_limit: f64,
+    image: &str,
+    scale: f64,
+) {
     let len = vertices.len();
+
     if len < 2 {
         return;
     }
@@ -96,7 +108,7 @@ pub fn draw_polyline_outline(ctx: &Ctx, vertices: &[Point], miter_limit: f64, im
 
     let rect = tile.extents().unwrap();
 
-    let stroke_width = rect.height();
+    let stroke_width = rect.height() * scale;
 
     let context = &ctx.context;
 
@@ -107,6 +119,9 @@ pub fn draw_polyline_outline(ctx: &Ctx, vertices: &[Point], miter_limit: f64, im
     for i in 0..len - 1 {
         let p1 = vertices[i];
         let p2 = vertices[i + 1];
+
+        let length = (p2.0 - p1.0).hypot(p2.1 - p1.1);
+
         let (mut corner1, mut corner2, mut corner3, mut corner4) =
             compute_corners(p1, p2, stroke_width);
         let mut extra_corner1: Option<Point> = None;
@@ -184,27 +199,50 @@ pub fn draw_polyline_outline(ctx: &Ctx, vertices: &[Point], miter_limit: f64, im
             }
         }
 
+        // println!("---------------");
+
         context.move_to(corner1.0, corner1.1);
+
+        // println!("M {:?}", corner1);
 
         if let Some(ec) = extra_corner1 {
             context.line_to(ec.0, ec.1);
+
+            // println!("L {:?}", ec);
         }
 
         context.line_to(corner2.0, corner2.1);
+
+        // println!("L {:?}", corner2);
+
         context.line_to(corner3.0, corner3.1);
+
+        // println!("L {:?}", corner3);
 
         if let Some(ec) = extra_corner2 {
             context.line_to(ec.0, ec.1);
+
+            // println!("L {:?}", ec);
         }
 
         context.line_to(corner4.0, corner4.1);
+
+        // println!("L {:?}", corner4);
+
         context.close_path();
+
+        // context.set_line_width(0.1);
+        // context.set_dash(&[], 0.0);
+        // context.set_source_rgb(0.0, 0.0, 0.0);
+        // context.stroke_preserve().unwrap();
 
         let mut matrix = Matrix::identity();
 
-        matrix.translate(rect.width() / 2.0 + dist, rect.height() / 2.0);
+        matrix.translate(rect.width() / 2.0 + dist / scale, rect.height() / 2.0);
 
-        dist += (p2.0 - p1.0).hypot(p2.1 - p1.1);
+        matrix.scale(1.0 / scale, 1.0 / scale);
+
+        dist += length;
 
         matrix.rotate((p1.1 - p2.1).atan2(p2.0 - p1.0));
 
@@ -214,8 +252,19 @@ pub fn draw_polyline_outline(ctx: &Ctx, vertices: &[Point], miter_limit: f64, im
 
         pattern.set_extend(cairo::Extend::Repeat);
 
-        context.set_source(&pattern).unwrap();
+        match context.set_source(&pattern) {
+            Ok(_) => {}
+            Err(_) => {
+                println!("EEEEEEEEEEEE1");
+                continue;
+            }
+        }
 
-        context.fill().unwrap();
+        match context.fill() {
+            Ok(_) => {}
+            Err(_) => {
+                println!("EEEEEEEEEEEE2");
+            }
+        }
     }
 }

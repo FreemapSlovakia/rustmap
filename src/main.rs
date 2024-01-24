@@ -25,6 +25,7 @@ mod colors;
 mod contours;
 mod ctx;
 mod draw;
+mod hatcher;
 mod hillshading;
 mod landuse;
 mod line_pattern;
@@ -54,8 +55,6 @@ thread_local! {
         })
     };
 }
-
-// thread_local!(static FOO: RefCell<u32> = RefCell::new(1));
 
 pub fn main() {
     let manager = r2d2_postgres::PostgresConnectionManager::new(

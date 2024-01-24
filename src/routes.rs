@@ -1,10 +1,12 @@
 use bitflags::bitflags;
+use colorsys::{Rgb, RgbRatio};
 use postgis::ewkb::MultiLineString;
 use postgres::Client;
 
 use crate::{
     ctx::Ctx,
-    draw::draw_line_off,
+    draw::{draw_line_off, offset_line},
+    line_pattern::draw_polyline_outline_scaled,
 };
 
 const COLOR_SQL: &str = r#"
@@ -31,79 +33,16 @@ const COLOR_SQL: &str = r#"
   END
 "#;
 
-const COLORS: [(&str, (f64, f64, f64)); 9] = [
-    (
-        "none",
-        (
-            0xa0 as f64 / 255.0,
-            0xa0 as f64 / 255.0,
-            0xa0 as f64 / 255.0,
-        ),
-    ),
-    (
-        "purple",
-        (
-            0xc0 as f64 / 255.0,
-            0x00 as f64 / 255.0,
-            0xc0 as f64 / 255.0,
-        ),
-    ),
-    (
-        "orange",
-        (
-            0xff as f64 / 255.0,
-            0x80 as f64 / 255.0,
-            0x00 as f64 / 255.0,
-        ),
-    ),
-    (
-        "white",
-        (
-            0xff as f64 / 255.0,
-            0xff as f64 / 255.0,
-            0xff as f64 / 255.0,
-        ),
-    ),
-    (
-        "black",
-        (
-            0x00 as f64 / 255.0,
-            0x00 as f64 / 255.0,
-            0x00 as f64 / 255.0,
-        ),
-    ),
-    (
-        "yellow",
-        (
-            0xf0 as f64 / 255.0,
-            0xf0 as f64 / 255.0,
-            0x00 as f64 / 255.0,
-        ),
-    ),
-    (
-        "green",
-        (
-            0x00 as f64 / 255.0,
-            0xa0 as f64 / 255.0,
-            0x00 as f64 / 255.0,
-        ),
-    ),
-    (
-        "blue",
-        (
-            0x50 as f64 / 255.0,
-            0x50 as f64 / 255.0,
-            0xff as f64 / 255.0,
-        ),
-    ),
-    (
-        "red",
-        (
-            0xff as f64 / 255.0,
-            0x30 as f64 / 255.0,
-            0x30 as f64 / 255.0,
-        ),
-    ),
+const COLORS: [(&str, &str); 9] = [
+    ("none", "a0a0a0"),
+    ("purple", "c000c0"),
+    ("orange", "ff8000"),
+    ("white", "ffffff"),
+    ("black", "000000"),
+    ("yellow", "f0f000"),
+    ("green", "00a000"),
+    ("blue", "5050ff"),
+    ("red", "ff3030"),
 ];
 
 bitflags! {
@@ -360,6 +299,16 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
                 if off > 0 {
                     let offset = (zo + (off as f64 - 1.0) * wf * df) + 0.5;
 
+                    for part in geom.lines.iter() {
+                        draw_polyline_outline_scaled(
+                            ctx,
+                            &offset_line(ctx, part.points.iter(), offset)[..],
+                            0.5,
+                            &format!("images/horse.svg|path {{ fill: #{} }}", color.1),
+                            wf / 2.0,
+                        );
+                    }
+
                     // <LinePatternSymbolizer
                     //   file={path.resolve(tmpdir(), `horse-${color}.svg`)}
                     //   offset={offset}
@@ -373,6 +322,16 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
 
                 if off > 0 {
                     let offset = -(zo + (off as f64 - 1.0) * wf * 2.0) - 1.0;
+
+                    for part in geom.lines.iter() {
+                        draw_polyline_outline_scaled(
+                            ctx,
+                            &offset_line(ctx, part.points.iter(), offset)[..],
+                            0.5,
+                            &format!("images/ski.svg|path {{ fill: #{} }}", color.1),
+                            wf / 2.0,
+                        );
+                    }
 
                     // <LinePatternSymbolizer
                     //   file={path.resolve(tmpdir(), `ski-${color}.svg`)}
@@ -395,10 +354,22 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
                     context.set_line_width(wf * 2.0);
                     context.set_line_join(cairo::LineJoin::Round);
                     context.set_line_cap(cairo::LineCap::Round);
-                    context.set_source_rgb(color.1 .0, color.1 .1, color.1 .2);
+
+                    let rgb: RgbRatio = Rgb::from_hex_str(color.1).unwrap().as_ratio();
+                    context.set_source_rgb(rgb.r(), rgb.g(), rgb.b());
                     context.set_dash(&[0.001, wf * 3.0], 0.0);
 
                     context.stroke().unwrap();
+
+                    // for part in geom.lines.iter() {
+                    //     draw_polyline_outline_scaled(
+                    //         ctx,
+                    //         &offset_line(ctx, part.points.iter(), 10.0)[..],
+                    //         0.5,
+                    //         &format!("images/ski.svg|path {{ fill: #{} }}", color.1),
+                    //         wf / 2.0
+                    //     );
+                    // }
                 }
             }
 
@@ -415,7 +386,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
                         context.set_line_width(wf);
                         context.set_line_join(cairo::LineJoin::Round);
                         context.set_line_cap(cairo::LineCap::Butt);
-                        context.set_source_rgb(color.1 .0, color.1 .1, color.1 .2);
+                        let rgb: RgbRatio = Rgb::from_hex_str(color.1).unwrap().as_ratio();
+                        context.set_source_rgb(rgb.r(), rgb.g(), rgb.b());
                         context.set_dash(&[], 0.0);
 
                         context.stroke().unwrap();
@@ -435,7 +407,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
                         context.set_line_width(wf);
                         context.set_line_join(cairo::LineJoin::Round);
                         context.set_line_cap(cairo::LineCap::Butt);
-                        context.set_source_rgb(color.1 .0, color.1 .1, color.1 .2);
+                        let rgb: RgbRatio = Rgb::from_hex_str(color.1).unwrap().as_ratio();
+                        context.set_source_rgb(rgb.r(), rgb.g(), rgb.b());
                         context.set_dash(&[wf * 3.0, wf], 0.0);
 
                         context.stroke().unwrap();
