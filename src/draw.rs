@@ -1,5 +1,7 @@
 use crate::ctx::Ctx;
-use cavalier_contours::polyline::{FindIntersectsOptions, PlineSource, PlineSourceMut, PlineVertex, Polyline};
+use cavalier_contours::polyline::{
+    FindIntersectsOptions, PlineSource, PlineSourceMut, PlineVertex, Polyline,
+};
 use core::slice::Iter;
 use postgis::ewkb::{Geometry, GeometryT, Point, Polygon};
 
@@ -98,7 +100,6 @@ pub fn hatch(ctx: &Ctx, iter: Iter<Point>) {
     let mut x = min_x;
 
     while x < max_x {
-
         let mut line = Polyline::new();
 
         line.add(x, min_y, 0.0);
@@ -120,7 +121,6 @@ pub fn hatch(ctx: &Ctx, iter: Iter<Point>) {
         }
 
         x += 5.0;
-
     }
 }
 
@@ -136,87 +136,12 @@ pub fn offset_line(ctx: &Ctx, iter: Iter<Point>, offset: f64) -> Vec<(f64, f64)>
     }
 
     for pc in polyline.parallel_offset(offset) {
-        let mut first = true;
-        let mut p1 = (0.0, 0.0);
-        let mut prev_bulge = 0.0;
-
-        for v in pc.vertex_data {
-            if first {
-                first = false;
-                p1 = (v.x, v.y);
-                result.push(p1);
-                prev_bulge = v.bulge;
-            } else {
-                let p2 = (v.x, v.y);
-
-                if prev_bulge == 0.0 {
-                    result.push(p2);
-                } else {
-                    let theta = 4.0 * prev_bulge.atan();
-                    let dist = ((p2.0 - p1.0).powi(2) + (p2.1 - p1.1).powi(2)).sqrt();
-                    let radius = dist / (2.0 * (theta / 2.0).sin());
-
-                    // Calculate center of the arc
-                    let mx = (p1.0 + p2.0) / 2.0;
-                    let my = (p1.1 + p2.1) / 2.0;
-                    let l = (radius.powi(2) - (dist / 2.0).powi(2)).sqrt();
-                    let direction = if prev_bulge > 0.0 { 1.0 } else { -1.0 };
-                    let ox = mx - direction * l * (p2.1 - p1.1) / dist;
-                    let oy = my + direction * l * (p2.0 - p1.0) / dist;
-
-                    // Calculate start and end angles
-                    let mut start_angle = (p1.1 - oy).atan2(p1.0 - ox) + 5.0 * std::f64::consts::PI;
-                    let mut end_angle = (p2.1 - oy).atan2(p2.0 - ox) + 5.0 * std::f64::consts::PI;
-
-                    let step = std::f64::consts::PI / 2.0; // TODO fine-tune; for some "small" cases just draw a straight line
-
-                    if prev_bulge > 0.0 {
-                        start_angle += std::f64::consts::PI;
-                        end_angle += std::f64::consts::PI;
-
-                        while end_angle < start_angle {
-                            end_angle += 2.0 * std::f64::consts::PI;
-                        }
-
-                        let mut angle = start_angle;
-
-                        loop {
-                            angle += std::f64::consts::PI / step;
-
-                            if angle >= end_angle {
-                                break;
-                            }
-
-                            result.push((ox + radius * angle.cos(), oy + radius * angle.sin()));
-                        }
-                    } else {
-                        while end_angle > start_angle {
-                            end_angle -= 2.0 * std::f64::consts::PI;
-                        }
-
-                        let mut angle = start_angle;
-
-                        loop {
-                            angle -= std::f64::consts::PI / step;
-
-                            if angle <= end_angle {
-                                break;
-                            }
-
-                            result.push((ox + radius * angle.cos(), oy + radius * angle.sin()));
-                        }
-                    }
-
-                    result.push(p2);
-                }
-
-                p1 = p2;
-                prev_bulge = v.bulge;
-            }
+        for v in pc.arcs_to_approx_lines(1.0).unwrap().vertex_data {
+            result.push((v.x, v.y));
         }
     }
 
-    return result;
+    result
 }
 
 pub fn draw_line_off(ctx: &Ctx, iter: Iter<Point>, offset: f64) {
