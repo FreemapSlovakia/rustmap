@@ -19,6 +19,7 @@ use std::time::Duration;
 use xyz::{bbox_size_in_pixels, tile_bounds_to_epsg3857};
 
 mod barrierways;
+mod bridge_areas;
 mod buildings;
 mod cache;
 mod colors;
@@ -147,6 +148,10 @@ fn render<'a>(
 
         water_areas::render(&ctx, client);
 
+        if zoom >= 15 {
+            bridge_areas::render(&ctx, client, false);
+        }
+
         if zoom >= 16 {
             trees::render(&ctx, client);
         }
@@ -155,11 +160,23 @@ fn render<'a>(
             roads::render(&ctx, client);
         }
 
+        context.push_group();
+
+        if zoom >= 15 {
+            bridge_areas::render(&ctx, client, true); // mask
+        }
+
         hillshading::render(&ctx);
 
         if zoom >= 12 {
+            context.push_group();
             contours::render(&ctx, client);
+            context.pop_group_to_source().unwrap();
+            context.paint().unwrap();
         }
+
+        context.pop_group_to_source().unwrap();
+        context.paint().unwrap();
 
         if zoom >= 13 {
             buildings::render(&ctx, client);

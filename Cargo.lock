@@ -187,8 +187,7 @@ checksum = "37b2a672a2cb129a2e41c10b1224bb368f9f37a2b16b612598138befd7b37eb5"
 [[package]]
 name = "cavalier_contours"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "375248e2ec3db2d828f8db3ae83d13084a21f4da782e2f8a7611bed1e6bdc5d8"
+source = "git+https://github.com/jbuckmccready/cavalier_contours.git?rev=78ca697770ea2d97e54122bf67de303c277a662b#78ca697770ea2d97e54122bf67de303c277a662b"
 dependencies = [
  "num-traits",
  "static_aabb2d_index",
@@ -1804,9 +1803,9 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "static_aabb2d_index"
-version = "0.7.1"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7205a33a9f0d3d62dbd4a4a29e59b30bcf0f45b58724c9ab184ebb645ded8a7f"
+checksum = "1204bd3057a2225dc60d157bd921aaeaa4d318527bd32af4678cad39e5279849"
 dependencies = [
  "num-traits",
 ]

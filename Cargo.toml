@@ -11,7 +11,7 @@ test_feature = []
 [dependencies]
 bitflags = "2.4.2"
 cairo-rs = { version = "0.18.5", features = ["png"] }
-cavalier_contours = "0.3.0"
+cavalier_contours = { git = "https://github.com/jbuckmccready/cavalier_contours.git", rev = "78ca697770ea2d97e54122bf67de303c277a662b" }
 colorsys = "0.6.7"
 gdal = { version = "0.16.0", features = ["bindgen"] }
 lazy_static = "1.4.0"
