@@ -18,6 +18,7 @@ use std::ops::Deref;
 use std::time::Duration;
 use xyz::{bbox_size_in_pixels, tile_bounds_to_epsg3857};
 
+mod aerialways;
 mod barrierways;
 mod bridge_areas;
 mod buildings;
@@ -184,6 +185,10 @@ fn render<'a>(
 
         if zoom >= 16 {
             barrierways::render(&ctx, client);
+        }
+
+        if zoom >= 12 {
+            aerialways::render(&ctx, client);
         }
 
         if zoom >= 13 {
