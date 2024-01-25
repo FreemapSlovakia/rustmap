@@ -36,6 +36,7 @@ pub fn render_lines(ctx: &Ctx, client: &mut Client) {
             0.5,
         );
 
+        context.set_dash(&[], 0.0);
         context.set_line_width(1.0);
 
         draw_line(ctx, geom.points.iter());
