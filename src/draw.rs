@@ -1,5 +1,5 @@
 use crate::ctx::Ctx;
-use cavalier_contours::polyline::{PlineSource, PlineSourceMut, PlineVertex, Polyline};
+use cavalier_contours::polyline::{FindIntersectsOptions, PlineSource, PlineSourceMut, PlineVertex, Polyline};
 use core::slice::Iter;
 use postgis::ewkb::{Geometry, GeometryT, Point, Polygon};
 
@@ -32,6 +32,95 @@ pub fn draw_line(ctx: &Ctx, iter: Iter<Point>) {
         } else {
             ctx.context.line_to(x, y);
         }
+    }
+}
+
+pub fn hatch(ctx: &Ctx, iter: Iter<Point>) {
+    let mut polyline = Polyline::new();
+
+    let mut min_x = f64::INFINITY;
+    let mut min_y = f64::INFINITY;
+    let mut max_x = f64::NEG_INFINITY;
+    let mut max_y = f64::NEG_INFINITY;
+
+    for p in iter {
+        let (x, y) = p.project(ctx);
+
+        min_x = min_x.min(x);
+        min_y = min_y.min(y);
+        max_x = max_x.max(x);
+        max_y = max_y.max(y);
+
+        polyline.add_vertex(PlineVertex::new(x, y, 0.0));
+    }
+
+    min_x -= 1.0;
+    min_y -= 1.0;
+    max_x += 1.0;
+    max_y += 1.0;
+
+    let mut options = FindIntersectsOptions::new();
+
+    let index = polyline.create_aabb_index();
+
+    options.pline1_aabb_index = Some(&index);
+
+    ctx.context.new_path();
+    ctx.context.set_source_rgb(255.0, 0.0, 0.0);
+    ctx.context.set_line_width(1.0);
+
+    let mut y = min_y;
+
+    while y < max_y {
+        y += 5.0;
+
+        let mut line = Polyline::new();
+
+        line.add(min_x, y, 0.0);
+        line.add(max_x, y + max_x - min_x, 0.0);
+
+        line.set_is_closed(true);
+
+        let intersects = polyline.find_intersects_opt(&line, &options);
+
+        for (i, int) in intersects.basic_intersects.iter().enumerate() {
+            if int.start_index2 == 0 {
+                if i % 2 == 0 {
+                    ctx.context.move_to(int.point.x, int.point.y);
+                } else {
+                    ctx.context.line_to(int.point.x, int.point.y);
+                    ctx.context.stroke().unwrap();
+                }
+            }
+        }
+    }
+
+    let mut x = min_x;
+
+    while x < max_x {
+
+        let mut line = Polyline::new();
+
+        line.add(x, min_y, 0.0);
+        line.add(x + max_y - min_y, max_y, 0.0);
+
+        line.set_is_closed(true);
+
+        let intersects = polyline.find_intersects(&line);
+
+        for (i, int) in intersects.basic_intersects.iter().enumerate() {
+            if int.start_index2 == 0 {
+                if i % 2 == 0 {
+                    ctx.context.move_to(int.point.x, int.point.y);
+                } else {
+                    ctx.context.line_to(int.point.x, int.point.y);
+                    ctx.context.stroke().unwrap();
+                }
+            }
+        }
+
+        x += 5.0;
+
     }
 }
 
