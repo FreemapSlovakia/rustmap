@@ -114,7 +114,7 @@ fn get_routes_query(
         }
     };
 
-    return format!(r#"
+  format!(r#"
 SELECT
   ST_Multi(ST_LineMerge(ST_Collect(geometry))) AS geometry,
   idx(arr1, 0) AS h_red,
@@ -254,7 +254,7 @@ GROUP BY
         gen_suffix = gen_suffix,
         color_sql = COLOR_SQL,
         where = cond
-    );
+    )
 }
 
 pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {

@@ -2,7 +2,6 @@ use crate::ctx::Ctx;
 use crate::draw::Projectable;
 use cairo::{Matrix, SurfacePattern};
 use core::slice::Iter;
-use std::ops::Deref;
 
 pub type Point = (f64, f64);
 
