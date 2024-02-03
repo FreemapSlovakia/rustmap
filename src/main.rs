@@ -22,12 +22,12 @@ mod aerialways;
 mod barrierways;
 mod bridge_areas;
 mod buildings;
+mod bounding_box;
 mod cache;
 mod colors;
 mod contours;
 mod ctx;
 mod draw;
-mod hatcher;
 mod hillshading;
 mod landuse;
 mod line_pattern;
@@ -42,7 +42,7 @@ mod xyz;
 
 thread_local! {
     static THREAD_LOCAL_DATA: RefCell<Cache> = {
-        let dataset = Dataset::open("/home/martin/14TB/hillshading/sk/final.tif");
+        let dataset = Dataset::open("/home/martin/OSM/build/final.tif");
 
         RefCell::new(Cache {
             hillshading_dataset: match dataset {
