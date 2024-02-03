@@ -23,6 +23,29 @@ fn get_perpendicular(dx: f64, dy: f64, length: f64, stroke_width: f64) -> Point 
     )
 }
 
+fn get_intersection1(p1: Point, p2: Point, p3: Point, p4: Point) -> Option<Point> {
+    let s1_x = p2.0 - p1.0;
+    let s1_y = p2.1 - p1.1;
+    let s2_x = p4.0 - p3.0;
+    let s2_y = p4.1 - p3.1;
+
+    let denom = s1_x * s2_y - s2_x * s1_y;
+
+    if denom.abs() < f64::EPSILON {
+        return None;
+    }
+
+    let s = (s1_x * (p1.1 - p3.1) - s1_y * (p1.0 - p3.0)) / denom;
+
+    let t = (s2_x * (p1.1 - p3.1) - s2_y * (p1.0 - p3.0)) / denom;
+
+    if s >= 0.0 && s <= 1.0 && t >= 0.0 && t <= 1.0 {
+        Some((p1.0 + t * s1_x, p1.1 + t * s1_y))
+    } else {
+        None
+    }
+}
+
 fn get_intersection(p1: Point, p2: Point, p3: Point, p4: Point) -> Option<Point> {
     let s1_x = p2.0 - p1.0;
     let s1_y = p2.1 - p1.1;
@@ -30,11 +53,13 @@ fn get_intersection(p1: Point, p2: Point, p3: Point, p4: Point) -> Option<Point>
     let s2_y = p4.1 - p3.1;
 
     let denom = s1_x * s2_y - s2_x * s1_y;
+
     if denom.abs() < f64::EPSILON {
         return None;
     }
 
-    let s = (-s1_y * (p1.0 - p3.0) + s1_x * (p1.1 - p3.1)) / denom;
+    let s = (s1_x * (p1.1 - p3.1) - s1_y * (p1.0 - p3.0)) / denom;
+
     Some((p3.0 + s * s2_x, p3.1 + s * s2_y))
 }
 
@@ -115,6 +140,10 @@ pub fn draw_polyline_outline_scaled(
 
     let is_closed = vertices.first() == vertices.last();
 
+    context.push_group();
+
+    // context.set_operator(cairo::Operator::Source);
+
     for i in 0..len - 1 {
         let p1 = vertices[i];
         let p2 = vertices[i + 1];
@@ -126,11 +155,19 @@ pub fn draw_polyline_outline_scaled(
         let mut extra_corner1: Option<Point> = None;
         let mut extra_corner2: Option<Point> = None;
 
+        let mut use_corner1 = true;
+        let mut use_corner2 = true;
+        let mut use_corner3 = true;
+        let mut use_corner4 = true;
+
         if is_closed || i > 0 {
             let p0 = vertices[if i == 0 { len - 1 } else { i } - 1];
+
             let (prev_corner1, prev_corner2, prev_corner3, prev_corner4) =
                 compute_corners(p0, p1, stroke_width);
+
             let cp = cross_product(p0, p1, p2);
+
             let bevel = should_use_bevel_join(p0, p1, p2, stroke_width, miter_limit);
 
             if !bevel {
@@ -147,26 +184,47 @@ pub fn draw_polyline_outline_scaled(
                 });
             }
 
-            if let Some(intersection) = (bevel || cp < 0.0)
-                .then(|| get_intersection(prev_corner2, prev_corner3, corner2, corner3))
-                .flatten()
+            if let Some(intersection) =
+                get_intersection1(corner1, corner4, prev_corner1, prev_corner2)
             {
-                corner2 = intersection;
-            }
-
-            if let Some(intersection) = (bevel || cp > 0.0)
-                .then(|| get_intersection(prev_corner1, prev_corner4, corner1, corner4))
+                corner1 = intersection;
+            } else if let Some(intersection) =
+                get_intersection1(corner3, corner4, prev_corner1, prev_corner4)
+            {
+                corner1 = intersection;
+                use_corner4 = false;
+            } else if let Some(intersection) = (bevel || cp > 0.0)
+                .then(|| get_intersection(corner1, corner4, prev_corner1, prev_corner4))
                 .flatten()
             {
                 corner1 = intersection;
+            }
+
+            if let Some(intersection) =
+                get_intersection1(corner2, corner3, prev_corner1, prev_corner2)
+            {
+                corner2 = intersection;
+            } else if let Some(intersection) =
+                get_intersection1(corner3, corner4, prev_corner2, prev_corner3)
+            {
+                corner2 = intersection;
+                use_corner3 = false;
+            } else if let Some(intersection) = (bevel || cp < 0.0)
+                .then(|| get_intersection(corner2, corner3, prev_corner2, prev_corner3))
+                .flatten()
+            {
+                corner2 = intersection;
             }
         }
 
         if is_closed || i < len - 2 {
             let p3 = vertices[if i == len - 2 { 1 } else { i + 2 }];
+
             let (next_corner1, next_corner2, next_corner3, next_corner4) =
                 compute_corners(p2, p3, stroke_width);
+
             let cp = cross_product(p1, p2, p3);
+
             let bevel = should_use_bevel_join(p1, p2, p3, stroke_width, miter_limit);
 
             if !bevel {
@@ -183,50 +241,64 @@ pub fn draw_polyline_outline_scaled(
                 });
             }
 
-            if let Some(intersection) = (bevel || cp < 0.0)
-                .then(|| get_intersection(next_corner2, next_corner3, corner2, corner3))
+            if let Some(intersection) =
+                get_intersection1(corner1, corner2, next_corner2, next_corner3)
+            {
+                use_corner2 = false;
+                corner3 = intersection;
+            } else if let Some(intersection) =
+                get_intersection1(corner2, corner3, next_corner3, next_corner4)
+            {
+                corner3 = intersection;
+            } else if let Some(intersection) = (bevel || cp < 0.0)
+                .then(|| get_intersection(corner2, corner3, next_corner2, next_corner3))
                 .flatten()
             {
                 corner3 = intersection;
             }
 
-            if let Some(intersection) = (bevel || cp > 0.0)
-                .then(|| get_intersection(next_corner1, next_corner4, corner1, corner4))
+            if let Some(intersection) =
+                get_intersection1(corner1, corner2, next_corner1, next_corner4)
+            {
+                use_corner1 = false;
+                corner4 = intersection;
+            } else if let Some(intersection) =
+                get_intersection1(corner1, corner4, next_corner3, next_corner4)
+            {
+                corner4 = intersection;
+            } else if let Some(intersection) = (bevel || cp > 0.0)
+                .then(|| get_intersection(corner1, corner4, next_corner1, next_corner4))
                 .flatten()
             {
                 corner4 = intersection;
             }
         }
 
-        // println!("---------------");
+        context.new_path();
 
-        context.move_to(corner1.0, corner1.1);
-
-        // println!("M {:?}", corner1);
+        if use_corner1 {
+            context.line_to(corner1.0, corner1.1);
+        }
 
         if let Some(ec) = extra_corner1 {
             context.line_to(ec.0, ec.1);
-
-            // println!("L {:?}", ec);
         }
 
-        context.line_to(corner2.0, corner2.1);
+        if use_corner2 {
+            context.line_to(corner2.0, corner2.1);
+        }
 
-        // println!("L {:?}", corner2);
-
-        context.line_to(corner3.0, corner3.1);
-
-        // println!("L {:?}", corner3);
+        if use_corner3 {
+            context.line_to(corner3.0, corner3.1);
+        }
 
         if let Some(ec) = extra_corner2 {
             context.line_to(ec.0, ec.1);
-
-            // println!("L {:?}", ec);
         }
 
-        context.line_to(corner4.0, corner4.1);
-
-        // println!("L {:?}", corner4);
+        if use_corner4 {
+            context.line_to(corner4.0, corner4.1);
+        }
 
         context.close_path();
 
@@ -251,19 +323,13 @@ pub fn draw_polyline_outline_scaled(
 
         pattern.set_extend(cairo::Extend::Repeat);
 
-        match context.set_source(&pattern) {
-            Ok(_) => {}
-            Err(_) => {
-                println!("EEEEEEEEEEEE1");
-                continue;
-            }
-        }
+        context.set_source(&pattern).unwrap();
 
-        match context.fill() {
-            Ok(_) => {}
-            Err(_) => {
-                println!("EEEEEEEEEEEE2");
-            }
-        }
+        context.fill().unwrap();
+
     }
+
+    context.pop_group_to_source().unwrap();
+
+    context.paint().unwrap();
 }
