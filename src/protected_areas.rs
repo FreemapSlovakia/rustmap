@@ -1,7 +1,7 @@
 use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::{draw_mpoly, draw_mpoly_uni},
+    draw::{draw_line_off, draw_mpoly, draw_mpoly_uni},
     hatch::hatch_geometry,
     line_pattern::draw_line_pattern,
 };
@@ -26,6 +26,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         "SELECT type, protect_class, geometry FROM osm_protected_areas WHERE geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)",
     );
 
+    // hatching
     for row in &client.query(sql, &[min_x, min_y, max_x, max_y]).unwrap() {
         let typ: &str = row.get("type");
         let protect_class: &str = row.get("protect_class");
@@ -52,6 +53,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         }
     }
 
+    // border
     for row in &client.query(sql, &[min_x, min_y, max_x, max_y]).unwrap() {
         let typ: &str = row.get("type");
         let protect_class: &str = row.get("protect_class");
@@ -70,4 +72,37 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             draw_mpoly_uni(&geom, |iter| draw_protected_area_border(ctx, iter));
         }
     }
+
+    ctx.context.push_group();
+
+    for row in &client.query(sql, &[min_x, min_y, max_x, max_y]).unwrap() {
+        let typ: &str = row.get("type");
+        let protect_class: &str = row.get("protect_class");
+        let geom: Geometry = row.get("geometry");
+
+        if typ == "national_park" || typ == "protected_area" && protect_class == "2" {
+            let wb = if zoom > 10 {
+                0.5 * (zoom as f64 - 10.0) + 2.0
+            } else {
+                2.0
+            };
+
+            ctx.context.set_source_color(*colors::PROTECTED);
+            ctx.context.set_dash(&[], 0.0);
+            ctx.context.set_line_width(wb * 0.75);
+            ctx.context.set_line_join(cairo::LineJoin::Round);
+            draw_mpoly(ctx, &geom);
+            ctx.context.stroke().unwrap();
+
+            ctx.context.set_line_width(wb);
+            ctx.context.set_source_color_a(*colors::PROTECTED, 0.5);
+            draw_mpoly_uni(&geom, |iter| draw_line_off(ctx, iter, wb * 0.75));
+            ctx.context.stroke().unwrap();
+        }
+
+    }
+
+    ctx.context.pop_group_to_source().unwrap();
+
+    ctx.context.paint_with_alpha(0.66).unwrap();
 }

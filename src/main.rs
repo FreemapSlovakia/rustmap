@@ -200,9 +200,9 @@ fn render<'a>(
             power_lines::render_towers_poles(&ctx, client);
         }
 
-        // if zoom >= 12 {
+        if zoom >= 8 {
             protected_areas::render(&ctx, client);
-        // }
+        }
 
         context.save().unwrap();
         routes::render(&ctx, client, &RouteTypes::all());
