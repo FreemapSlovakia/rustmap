@@ -20,6 +20,7 @@ use xyz::{bbox_size_in_pixels, tile_bounds_to_epsg3857};
 
 mod aerialways;
 mod barrierways;
+mod borders;
 mod bridge_areas;
 mod buildings;
 mod cache;
@@ -27,9 +28,12 @@ mod colors;
 mod contours;
 mod ctx;
 mod draw;
+mod hatch;
 mod hillshading;
 mod landuse;
 mod line_pattern;
+mod military_areas;
+mod point;
 mod power_lines;
 mod protected_areas;
 mod roads;
@@ -38,10 +42,6 @@ mod trees;
 mod water_areas;
 mod water_lines;
 mod xyz;
-mod point;
-mod hatch;
-mod military_areas;
-mod borders;
 
 thread_local! {
     static THREAD_LOCAL_DATA: RefCell<Cache> = {
