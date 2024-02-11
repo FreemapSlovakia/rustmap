@@ -1,7 +1,7 @@
 use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::{draw_line_off, draw_mpoly, draw_mpoly_uni},
+    draw::{draw_line_off, draw_geometry, draw_geometry_uni},
     hatch::hatch_geometry,
     line_pattern::draw_line_pattern,
 };
@@ -39,7 +39,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             if typ == "national_park" || typ == "protected_area" && protect_class == "2" {
                 ctx.context.push_group();
 
-                draw_mpoly(ctx, &geom);
+                draw_geometry(ctx, &geom);
 
                 context.clip();
 
@@ -64,7 +64,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         let geom: Geometry = row.get("geometry");
 
         if typ == "nature_reserve" || typ == "protected_area" && protect_class != "2" {
-            draw_mpoly_uni(&geom, |iter| draw_protected_area_border(ctx, iter));
+            draw_geometry_uni(&geom, &|iter| draw_protected_area_border(ctx, iter));
         }
     }
 
@@ -86,12 +86,12 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             ctx.context.set_dash(&[], 0.0);
             ctx.context.set_line_width(wb * 0.75);
             ctx.context.set_line_join(cairo::LineJoin::Round);
-            draw_mpoly(ctx, &geom);
+            draw_geometry(ctx, &geom);
             ctx.context.stroke().unwrap();
 
             ctx.context.set_line_width(wb);
             ctx.context.set_source_color_a(*colors::PROTECTED, 0.5);
-            draw_mpoly_uni(&geom, |iter| draw_line_off(ctx, iter, wb * 0.75));
+            draw_geometry_uni(&geom, &|iter| draw_line_off(ctx, iter, wb * 0.75));
             ctx.context.stroke().unwrap();
         }
     }

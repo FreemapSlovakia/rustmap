@@ -4,7 +4,7 @@ use postgres::Client;
 use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::draw_mpoly,
+    draw::draw_geometry,
 };
 
 pub fn render(ctx: &Ctx, client: &mut Client, mask: bool) {
@@ -26,10 +26,10 @@ pub fn render(ctx: &Ctx, client: &mut Client, mask: bool) {
 
         if mask {
             context.rectangle(0.0, 0.0, *width as f64, *height as f64);
-            draw_mpoly(ctx, &geom);
+            draw_geometry(ctx, &geom);
             context.clip();
         } else {
-            draw_mpoly(ctx, &geom);
+            draw_geometry(ctx, &geom);
             context.set_source_color(*colors::INDUSTRIAL);
             context.fill_preserve().unwrap();
 

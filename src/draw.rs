@@ -3,26 +3,37 @@ use cavalier_contours::polyline::{PlineSource, PlineSourceMut, PlineVertex, Poly
 use core::slice::Iter;
 use postgis::ewkb::{Geometry, Point as PgPoint, Polygon};
 
-pub fn draw_mpoly(ctx: &Ctx, geom: &Geometry) {
-    draw_mpoly_uni(geom, |iter| draw_line(ctx, iter));
+pub fn draw_geometry(ctx: &Ctx, geom: &Geometry) {
+    draw_geometry_uni(geom, &|iter| draw_line(ctx, iter));
 }
 
-pub fn draw_mpoly_uni<F>(geom: &Geometry, dl: F)
+pub fn draw_geometry_uni<F>(geom: &Geometry, dl: &F)
 where
     F: Fn(Iter<PgPoint>) -> (),
 {
     match geom {
+        Geometry::GeometryCollection(gc) => {
+            for geometry in &gc.geometries {
+                draw_geometry_uni(geometry, dl);
+            }
+        }
         Geometry::Polygon(p) => {
-            draw_poly(&p, &dl);
+            draw_poly(&p, dl);
         }
         Geometry::MultiPolygon(p) => {
             for poly in &p.polygons {
-                draw_poly(poly, &dl);
+                draw_poly(poly, dl);
             }
         }
-        _ => {
-            panic!("not a polygon");
+        Geometry::MultiLineString(p) => {
+            for line in &p.lines {
+                dl(line.points.iter());
+            }
         }
+        Geometry::LineString(p) => {
+            dl(p.points.iter());
+        }
+        _ => {}
     }
 }
 

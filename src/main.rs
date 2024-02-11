@@ -41,6 +41,7 @@ mod xyz;
 mod point;
 mod hatch;
 mod military_areas;
+mod borders;
 
 thread_local! {
     static THREAD_LOCAL_DATA: RefCell<Cache> = {
@@ -204,6 +205,8 @@ fn render<'a>(
         if zoom >= 8 {
             protected_areas::render(&ctx, client);
         }
+
+        borders::render(&ctx, client);
 
         if zoom >= 10 {
             military_areas::render(&ctx, client);

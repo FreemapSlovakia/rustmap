@@ -1,7 +1,7 @@
 use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::draw_mpoly,
+    draw::draw_geometry,
 };
 use postgis::ewkb::Geometry;
 use postgres::Client;
@@ -21,7 +21,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         context.set_source_color(*colors::WATER);
 
-        draw_mpoly(ctx, &geom);
+        draw_geometry(ctx, &geom);
 
         context.fill().unwrap();
   }

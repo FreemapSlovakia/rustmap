@@ -1,7 +1,7 @@
 use crate::{
     colors::{self, Color, ContextExt},
     ctx::Ctx,
-    draw::draw_mpoly,
+    draw::draw_geometry,
     xyz::to_absolute_pixel_coords,
 };
 use cairo::{Extend, Matrix, SurfacePattern};
@@ -38,7 +38,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         let colour_area = |color: Color| {
             context.set_source_color(color);
-            draw_mpoly(ctx, &geom);
+            draw_geometry(ctx, &geom);
             context.fill().unwrap();
         };
 
@@ -59,7 +59,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
             context.set_source(&pattern).unwrap();
 
-            draw_mpoly(ctx, &geom);
+            draw_geometry(ctx, &geom);
 
             context.fill().unwrap();
         };
@@ -135,7 +135,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
                 context.set_source_rgba(0.0, 0.0, 0.0, 0.2);
                 context.set_line_width(1.0);
-                draw_mpoly(ctx, &geom);
+                draw_geometry(ctx, &geom);
                 context.stroke().unwrap();
             }
             "grassland" => {
@@ -176,7 +176,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
                 context.set_source_color(*colors::PARKING_STROKE);
                 context.set_line_width(1.0);
-                draw_mpoly(ctx, &geom);
+                draw_geometry(ctx, &geom);
                 context.stroke().unwrap();
             }
             "pedestrian" => {
@@ -187,7 +187,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
                 context.set_source_color(*colors::PITCH_STROKE);
                 context.set_line_width(1.0);
-                draw_mpoly(ctx, &geom);
+                draw_geometry(ctx, &geom);
                 context.stroke().unwrap();
             }
             "plant_nursery" => {
@@ -220,7 +220,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
                 context.set_source_color(*colors::SILO_STROKE);
                 context.set_line_width(1.0);
-                draw_mpoly(ctx, &geom);
+                draw_geometry(ctx, &geom);
                 context.stroke().unwrap();
             }
             "school" => {

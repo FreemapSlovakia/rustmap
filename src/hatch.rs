@@ -1,6 +1,6 @@
 use crate::{
     ctx::Ctx,
-    draw::{draw_mpoly_uni, Projectable},
+    draw::{draw_geometry_uni, Projectable},
     point::Point,
     xyz::{perpendicular_distance, to_absolute_pixel_coords},
 };
@@ -9,7 +9,7 @@ use postgis::ewkb::Geometry;
 use postgis::ewkb::Point as PgPoint;
 
 pub fn hatch_geometry(ctx: &Ctx, geom: &Geometry, spacing: f64, angle: f64) {
-    draw_mpoly_uni(geom, |iter| {
+    draw_geometry_uni(geom, &|iter| {
         hatch(ctx, iter, spacing, angle);
     });
 }

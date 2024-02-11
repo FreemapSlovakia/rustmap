@@ -1,7 +1,7 @@
 use postgis::ewkb::Geometry;
 use postgres::Client;
 
-use crate::{ctx::Ctx, draw::draw_mpoly};
+use crate::{ctx::Ctx, draw::draw_geometry};
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
@@ -18,7 +18,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         context.set_source_rgb(0.5, 0.5, 0.5);
 
-        draw_mpoly(ctx, &geom);
+        draw_geometry(ctx, &geom);
 
         context.fill().unwrap();
     }

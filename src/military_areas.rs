@@ -1,7 +1,7 @@
 use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::draw_mpoly,
+    draw::draw_geometry,
     hatch::hatch_geometry,
 };
 use postgis::ewkb::Geometry;
@@ -38,7 +38,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         ctx.context.push_group();
 
-        draw_mpoly(ctx, &geom);
+        draw_geometry(ctx, &geom);
 
         context.clip();
 
@@ -66,7 +66,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         ctx.context.set_source_color(*colors::MILITARY);
         ctx.context.set_dash(&[25.0, 7.0], 0.0);
         ctx.context.set_line_width(3.0);
-        draw_mpoly(ctx, &geom);
+        draw_geometry(ctx, &geom);
         ctx.context.stroke().unwrap();
     }
 
