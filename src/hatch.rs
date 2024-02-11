@@ -8,13 +8,13 @@ use core::slice::Iter;
 use postgis::ewkb::Geometry;
 use postgis::ewkb::Point as PgPoint;
 
-pub fn hatch_geometry(ctx: &Ctx, geom: &Geometry, zoom: u32) {
+pub fn hatch_geometry(ctx: &Ctx, geom: &Geometry, spacing: f64, angle: f64) {
     draw_mpoly_uni(geom, |iter| {
-        hatch(ctx, iter, zoom, 3.0, -45.0);
+        hatch(ctx, iter, spacing, angle);
     });
 }
 
-pub fn hatch(ctx: &Ctx, iter: Iter<PgPoint>, zoom: u32, spacing: f64, angle: f64) {
+pub fn hatch(ctx: &Ctx, iter: Iter<PgPoint>, spacing: f64, angle: f64) {
     let mut merc_min_x = f64::INFINITY;
     let mut merc_max_x = f64::NEG_INFINITY;
     let mut merc_min_y = f64::INFINITY;
@@ -42,7 +42,7 @@ pub fn hatch(ctx: &Ctx, iter: Iter<PgPoint>, zoom: u32, spacing: f64, angle: f64
     let (x, y) = to_absolute_pixel_coords(
         (merc_max_x + merc_min_x) / 2.0,
         (merc_max_y + merc_min_y) / 2.0,
-        zoom as u8,
+        ctx.zoom as u8,
     );
 
     let len = (max_x - min_x).hypot(max_y - min_y) / 2.0 + 1.0;

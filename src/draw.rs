@@ -1,57 +1,7 @@
-use crate::{bounding_box::BoundingBox, ctx::Ctx, point::Point};
+use crate::{ctx::Ctx, point::Point};
 use cavalier_contours::polyline::{PlineSource, PlineSourceMut, PlineVertex, Polyline};
 use core::slice::Iter;
-use postgis::ewkb::{Geometry, LineString, Point as PgPoint, Polygon};
-
-impl BoundingBox {
-    pub fn extend_by_polygon(&mut self, polygon: &Polygon) {
-        for ring in polygon.rings.iter() {
-            for point in ring.points.iter() {
-                self.extend_by_point(point.x, point.y);
-            }
-        }
-    }
-
-    pub fn extend_by_line_string(&mut self, line_string: &LineString) {
-        for point in line_string.points.iter() {
-            self.extend_by_point(point.x, point.y);
-        }
-    }
-
-    pub fn extend_by_geometry(&mut self, geometry: &Geometry) {
-        match geometry {
-            Geometry::MultiPolygon(multipolygon) => {
-                for polygon in multipolygon.polygons.iter() {
-                    self.extend_by_polygon(polygon);
-                }
-            }
-            Geometry::Polygon(polygon) => {
-                self.extend_by_polygon(polygon);
-            }
-            Geometry::MultiLineString(multi_line_string) => {
-                for line_string in multi_line_string.lines.iter() {
-                    self.extend_by_line_string(line_string);
-                }
-            }
-            Geometry::LineString(line_string) => {
-                self.extend_by_line_string(line_string);
-            }
-            Geometry::Point(point) => {
-                self.extend_by_point(point.x, point.y);
-            }
-            Geometry::MultiPoint(multi_point) => {
-                for point in multi_point.points.iter() {
-                    self.extend_by_point(point.x, point.y);
-                }
-            }
-            Geometry::GeometryCollection(gc) => {
-                for geom in gc.geometries.iter() {
-                    self.extend_by_geometry(geom);
-                }
-            }
-        }
-    }
-}
+use postgis::ewkb::{Geometry, Point as PgPoint, Polygon};
 
 pub fn draw_mpoly(ctx: &Ctx, geom: &Geometry) {
     draw_mpoly_uni(geom, |iter| draw_line(ctx, iter));

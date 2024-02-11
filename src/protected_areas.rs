@@ -39,7 +39,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
             context.clip();
 
-            hatch_geometry(ctx, &geom, zoom);
+            hatch_geometry(ctx, &geom, 3.0, -45.0);
 
             ctx.context
                 .set_source_color_a(*colors::PROTECTED, if zoom < 11 { 0.5 } else { 0.4 });

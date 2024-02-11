@@ -22,7 +22,6 @@ mod aerialways;
 mod barrierways;
 mod bridge_areas;
 mod buildings;
-mod bounding_box;
 mod cache;
 mod colors;
 mod contours;
