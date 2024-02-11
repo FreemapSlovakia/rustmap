@@ -164,9 +164,6 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             "meadow" => {
                 colour_area(*colors::GRASSY);
             }
-            "military" => {
-                colour_area(*colors::NONE);
-            }
             "orchard" => {
                 colour_area(*colors::ORCHARD);
                 pattern_area("images/orchard.svg");

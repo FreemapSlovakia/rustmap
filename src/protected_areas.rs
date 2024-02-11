@@ -23,59 +23,54 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     let zoom = ctx.zoom;
 
     let sql = &format!(
-        "SELECT type, protect_class, geometry FROM osm_protected_areas WHERE geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)",
+        "SELECT type, protect_class, geometry FROM osm_protected_areas WHERE geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857) {}",
+        if zoom < 12 { " AND NOT (type = 'nature_reserve' OR type = 'protected_area' AND protect_class <> '2')" } else { "" }
     );
 
+    let rows = &client.query(sql, &[min_x, min_y, max_x, max_y]).unwrap();
+
     // hatching
-    for row in &client.query(sql, &[min_x, min_y, max_x, max_y]).unwrap() {
-        let typ: &str = row.get("type");
-        let protect_class: &str = row.get("protect_class");
-        let geom: Geometry = row.get("geometry");
+    if zoom <= 11 {
+        for row in rows {
+            let typ: &str = row.get("type");
+            let protect_class: &str = row.get("protect_class");
+            let geom: Geometry = row.get("geometry");
 
-        if zoom <= 11 && (typ == "national_park" || typ == "protected_area" && protect_class == "2")
-        {
-            ctx.context.push_group();
+            if typ == "national_park" || typ == "protected_area" && protect_class == "2" {
+                ctx.context.push_group();
 
-            draw_mpoly(ctx, &geom);
+                draw_mpoly(ctx, &geom);
 
-            context.clip();
+                context.clip();
 
-            hatch_geometry(ctx, &geom, 3.0, -45.0);
+                hatch_geometry(ctx, &geom, 3.0, -45.0);
 
-            ctx.context
-                .set_source_color_a(*colors::PROTECTED, if zoom < 11 { 0.5 } else { 0.4 });
-            ctx.context.set_dash(&[], 0.0);
-            ctx.context.set_line_width(0.7);
-            ctx.context.stroke().unwrap();
+                ctx.context
+                    .set_source_color_a(*colors::PROTECTED, if zoom < 11 { 0.5 } else { 0.4 });
+                ctx.context.set_dash(&[], 0.0);
+                ctx.context.set_line_width(0.7);
+                ctx.context.stroke().unwrap();
 
-            context.pop_group_to_source().unwrap();
-            context.paint().unwrap();
+                context.pop_group_to_source().unwrap();
+                context.paint().unwrap();
+            }
         }
     }
 
     // border
-    for row in &client.query(sql, &[min_x, min_y, max_x, max_y]).unwrap() {
+    for row in rows {
         let typ: &str = row.get("type");
         let protect_class: &str = row.get("protect_class");
         let geom: Geometry = row.get("geometry");
 
-        if zoom >= 12
-            && (typ == "nature_reserve" || typ == "protected_area" && protect_class != "2")
-        {
-            // draw_mpoly(ctx, &geom);
-            // ctx.context.set_source_rgb(0.0, 0.0, 0.0);
-            // ctx.context.set_dash(&[], 0.0);
-            // ctx.context.set_line_width(1.0);
-
-            // ctx.context.stroke().unwrap();
-
+        if typ == "nature_reserve" || typ == "protected_area" && protect_class != "2" {
             draw_mpoly_uni(&geom, |iter| draw_protected_area_border(ctx, iter));
         }
     }
 
     ctx.context.push_group();
 
-    for row in &client.query(sql, &[min_x, min_y, max_x, max_y]).unwrap() {
+    for row in rows {
         let typ: &str = row.get("type");
         let protect_class: &str = row.get("protect_class");
         let geom: Geometry = row.get("geometry");
@@ -99,7 +94,6 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             draw_mpoly_uni(&geom, |iter| draw_line_off(ctx, iter, wb * 0.75));
             ctx.context.stroke().unwrap();
         }
-
     }
 
     ctx.context.pop_group_to_source().unwrap();

@@ -40,6 +40,7 @@ mod water_lines;
 mod xyz;
 mod point;
 mod hatch;
+mod military_areas;
 
 thread_local! {
     static THREAD_LOCAL_DATA: RefCell<Cache> = {
@@ -202,6 +203,10 @@ fn render<'a>(
 
         if zoom >= 8 {
             protected_areas::render(&ctx, client);
+        }
+
+        if zoom >= 10 {
+            military_areas::render(&ctx, client);
         }
 
         context.save().unwrap();
