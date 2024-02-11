@@ -38,7 +38,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     context.save().unwrap();
 
-    context.translate(point.0 - scale * rect.width() / 2.0, point.1 - scale * rect.height() / 2.0);
+    context.translate(point.x - scale * rect.width() / 2.0, point.y - scale * rect.height() / 2.0);
 
     context.scale(scale, scale);
 

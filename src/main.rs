@@ -39,6 +39,8 @@ mod trees;
 mod water_areas;
 mod water_lines;
 mod xyz;
+mod point;
+mod hatch;
 
 thread_local! {
     static THREAD_LOCAL_DATA: RefCell<Cache> = {
@@ -199,13 +201,18 @@ fn render<'a>(
             power_lines::render_towers_poles(&ctx, client);
         }
 
-        if zoom >= 12 {
+        // if zoom >= 12 {
             protected_areas::render(&ctx, client);
-        }
+        // }
 
         context.save().unwrap();
         routes::render(&ctx, client, &RouteTypes::all());
         context.restore().unwrap();
+
+        // context.set_line_width(1.0);
+        // context.set_source_rgb(0.0, 0.0, 0.0);
+        // context.rectangle(0.0, 0.0, 256.0, 256.0);
+        // context.stroke().unwrap();
     };
 
     let buffer = if is_svg {

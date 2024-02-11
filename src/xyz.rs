@@ -52,3 +52,23 @@ pub fn to_absolute_pixel_coords(x: f64, y: f64, zoom: u8) -> (f64, f64) {
 
     (pixel_x, pixel_y)
 }
+
+pub fn perpendicular_distance(point1: (f64, f64), point2: (f64, f64), theta: f64) -> f64 {
+    let (x1, y1) = point1;
+    let (x2, y2) = point2;
+
+    // Convert angle to radians and calculate direction vector of the line
+    let theta_radians = theta * std::f64::consts::PI / 180.0;
+    let d = (theta_radians.cos(), theta_radians.sin());
+
+    // Vector from point1 to point2
+    let v = (x2 - x1, y2 - y1);
+
+    // Calculate the cross product magnitude (z-component of 3D cross product)
+    // Cross product in 2D (extended to 3D): a_x * b_y - a_y * b_x
+    let cross_product_z = v.0 * d.1 - v.1 * d.0;
+
+    // The distance is the magnitude of the cross product result divided by the magnitude of d,
+    // since d is a unit vector, its magnitude is 1, and we can return the cross product result directly.
+    cross_product_z
+}

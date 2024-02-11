@@ -74,11 +74,11 @@ pub fn render_towers_poles(ctx: &Ctx, client: &mut Client) {
             *colors::POWER_LINE
         });
 
-        let (x, y) = geom.project(ctx);
+        let p = geom.project(ctx);
 
         context.rectangle(
-            ((x - 1.5) * scale).round() / scale,
-            ((y - 1.5) * scale).round() / scale,
+            ((p.x - 1.5) * scale).round() / scale,
+            ((p.y - 1.5) * scale).round() / scale,
             3.0,
             3.0,
         );

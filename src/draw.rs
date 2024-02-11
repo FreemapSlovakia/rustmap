@@ -1,9 +1,7 @@
-use crate::{bounding_box::BoundingBox, ctx::Ctx, xyz::to_absolute_pixel_coords};
-use cavalier_contours::polyline::{
-    FindIntersectsOptions, PlineSource, PlineSourceMut, PlineVertex, Polyline,
-};
+use crate::{bounding_box::BoundingBox, ctx::Ctx, point::Point};
+use cavalier_contours::polyline::{PlineSource, PlineSourceMut, PlineVertex, Polyline};
 use core::slice::Iter;
-use postgis::ewkb::{Geometry, GeometryT, LineString, Point, Polygon};
+use postgis::ewkb::{Geometry, LineString, Point as PgPoint, Polygon};
 
 impl BoundingBox {
     pub fn extend_by_polygon(&mut self, polygon: &Polygon) {
@@ -55,18 +53,21 @@ impl BoundingBox {
     }
 }
 
-pub fn draw_mpoly(ctx: &Ctx, geom: &GeometryT<Point>) {
-    draw_mpoly_uni(ctx, geom, &draw_line);
+pub fn draw_mpoly(ctx: &Ctx, geom: &Geometry) {
+    draw_mpoly_uni(geom, |iter| draw_line(ctx, iter));
 }
 
-pub fn draw_mpoly_uni(ctx: &Ctx, geom: &GeometryT<Point>, dl: &dyn Fn(&Ctx, Iter<Point>) -> ()) {
+pub fn draw_mpoly_uni<F>(geom: &Geometry, dl: F)
+where
+    F: Fn(Iter<PgPoint>) -> (),
+{
     match geom {
         Geometry::Polygon(p) => {
-            draw_poly(ctx, &p, dl);
+            draw_poly(&p, &dl);
         }
         Geometry::MultiPolygon(p) => {
             for poly in &p.polygons {
-                draw_poly(ctx, poly, dl);
+                draw_poly(poly, &dl);
             }
         }
         _ => {
@@ -75,9 +76,18 @@ pub fn draw_mpoly_uni(ctx: &Ctx, geom: &GeometryT<Point>, dl: &dyn Fn(&Ctx, Iter
     }
 }
 
-pub fn draw_line(ctx: &Ctx, iter: Iter<Point>) {
+fn draw_poly<F>(poly: &Polygon, dl: &F)
+where
+    F: Fn(Iter<PgPoint>) -> (),
+{
+    for ring in &poly.rings {
+        dl(ring.points.iter());
+    }
+}
+
+pub fn draw_line(ctx: &Ctx, iter: Iter<PgPoint>) {
     for (i, p) in iter.enumerate() {
-        let (x, y) = p.project(ctx);
+        let Point { x, y } = p.project(ctx);
 
         if i == 0 {
             ctx.context.move_to(x, y);
@@ -87,201 +97,33 @@ pub fn draw_line(ctx: &Ctx, iter: Iter<Point>) {
     }
 }
 
-pub fn hatch(ctx: &Ctx, iter: Iter<Point>) {
-    let mut polyline = Polyline::new();
-
-    let mut min_x = f64::INFINITY;
-    let mut min_y = f64::INFINITY;
-    let mut max_x = f64::NEG_INFINITY;
-    let mut max_y = f64::NEG_INFINITY;
-
-    for p in iter {
-        let (x, y) = p.project(ctx);
-
-        min_x = min_x.min(x);
-        min_y = min_y.min(y);
-        max_x = max_x.max(x);
-        max_y = max_y.max(y);
-
-        polyline.add_vertex(PlineVertex::new(x, y, 0.0));
-    }
-
-    min_x -= 1.0;
-    min_y -= 1.0;
-    max_x += 1.0;
-    max_y += 1.0;
-
-    let mut options = FindIntersectsOptions::new();
-
-    let index = polyline.create_aabb_index();
-
-    options.pline1_aabb_index = Some(&index);
-
-    ctx.context.new_path();
-    ctx.context.set_source_rgb(255.0, 0.0, 0.0);
-    ctx.context.set_line_width(1.0);
-
-    let mut y = min_y;
-
-    while y < max_y {
-        y += 5.0;
-
-        let mut line = Polyline::new();
-
-        line.add(min_x, y, 0.0);
-        line.add(max_x, y + max_x - min_x, 0.0);
-
-        line.set_is_closed(true);
-
-        let intersects = polyline.find_intersects_opt(&line, &options);
-
-        for (i, int) in intersects.basic_intersects.iter().enumerate() {
-            if int.start_index2 == 0 {
-                if i % 2 == 0 {
-                    ctx.context.move_to(int.point.x, int.point.y);
-                } else {
-                    ctx.context.line_to(int.point.x, int.point.y);
-                    ctx.context.stroke().unwrap();
-                }
-            }
-        }
-    }
-
-    let mut x = min_x;
-
-    while x < max_x {
-        let mut line = Polyline::new();
-
-        line.add(x, min_y, 0.0);
-        line.add(x + max_y - min_y, max_y, 0.0);
-
-        line.set_is_closed(true);
-
-        let intersects = polyline.find_intersects(&line);
-
-        for (i, int) in intersects.basic_intersects.iter().enumerate() {
-            if int.start_index2 == 0 {
-                if i % 2 == 0 {
-                    ctx.context.move_to(int.point.x, int.point.y);
-                } else {
-                    ctx.context.line_to(int.point.x, int.point.y);
-                    ctx.context.stroke().unwrap();
-                }
-            }
-        }
-
-        x += 5.0;
-    }
-}
-
-fn perpendicular_distance(point1: (f64, f64), point2: (f64, f64), theta: f64) -> f64 {
-    let (x1, y1) = point1;
-    let (x2, y2) = point2;
-
-    // Convert angle to radians and calculate direction vector of the line
-    let theta_radians = theta * std::f64::consts::PI / 180.0;
-    let d = (theta_radians.cos(), theta_radians.sin());
-
-    // Vector from point1 to point2
-    let v = (x2 - x1, y2 - y1);
-
-    // Calculate the cross product magnitude (z-component of 3D cross product)
-    // Cross product in 2D (extended to 3D): a_x * b_y - a_y * b_x
-    let cross_product_z = v.0 * d.1 - v.1 * d.0;
-
-    // The distance is the magnitude of the cross product result divided by the magnitude of d,
-    // since d is a unit vector, its magnitude is 1, and we can return the cross product result directly.
-    cross_product_z
-}
-
-pub fn hatch2(ctx: &Ctx, iter: Iter<Point>, zoom: u32, spacing: f64, angle: f64) {
-    let mut merc_min_x = f64::INFINITY;
-    let mut merc_max_x = f64::NEG_INFINITY;
-    let mut merc_min_y = f64::INFINITY;
-    let mut merc_max_y = f64::NEG_INFINITY;
-
-    let mut min_x = f64::INFINITY;
-    let mut min_y = f64::INFINITY;
-    let mut max_x = f64::NEG_INFINITY;
-    let mut max_y = f64::NEG_INFINITY;
-
-    for p in iter {
-        merc_min_x = merc_min_x.min(p.x);
-        merc_max_x = merc_max_x.max(p.x);
-        merc_min_y = merc_min_y.min(p.y);
-        merc_max_y = merc_max_y.max(p.y);
-
-        let (x, y) = p.project(ctx);
-
-        min_x = min_x.min(x);
-        min_y = min_y.min(y);
-        max_x = max_x.max(x);
-        max_y = max_y.max(y);
-    }
-
-    let (x, y) = to_absolute_pixel_coords(
-        (merc_max_x + merc_min_x) / 2.0,
-        (merc_max_y + merc_min_y) / 2.0,
-        zoom as u8,
-    );
-
-    let len = (max_x - min_x).hypot(max_y - min_y) / 2.0 + 1.0;
-
-    println!("DDDDDDDD {}", perpendicular_distance((0.0, 0.0), (x, y), angle));
-
-    let d = perpendicular_distance((0.0, 0.0), (x, y), angle) % spacing;
-
-    ctx.context.save().unwrap();
-
-    ctx.context
-        .translate((max_x + min_x) / 2.0, (max_y + min_y) / 2.0);
-
-    ctx.context.rotate(angle.to_radians());
-
-    let mut off = 0.0;
-
-    while off < len {
-        ctx.context.move_to(-len, off + d);
-        ctx.context.line_to(len, off + d);
-
-        if off > 0.0 {
-            ctx.context.move_to(-len, -off + d);
-            ctx.context.line_to(len, -off + d);
-        }
-
-        off += spacing;
-    }
-
-    ctx.context.restore().unwrap();
-}
-
-pub fn offset_line(ctx: &Ctx, iter: Iter<Point>, offset: f64) -> Vec<(f64, f64)> {
-    let mut result = Vec::<(f64, f64)>::new();
+pub fn offset_line(ctx: &Ctx, iter: Iter<PgPoint>, offset: f64) -> Vec<Point> {
+    let mut result = Vec::<Point>::new();
 
     let mut polyline = Polyline::new();
 
     for p in iter {
-        let (x, y) = p.project(ctx);
+        let Point { x, y } = p.project(ctx);
 
         polyline.add_vertex(PlineVertex::new(x, y, 0.0));
     }
 
     for pc in polyline.parallel_offset(offset) {
         for v in pc.arcs_to_approx_lines(1.0).unwrap().vertex_data {
-            result.push((v.x, v.y));
+            result.push(Point::new(v.x, v.y));
         }
     }
 
     result
 }
 
-pub fn draw_line_off(ctx: &Ctx, iter: Iter<Point>, offset: f64) {
+pub fn draw_line_off(ctx: &Ctx, iter: Iter<PgPoint>, offset: f64) {
     let mut polyline = Polyline::new();
 
     let context = &ctx.context;
 
     for p in iter {
-        let (x, y) = p.project(ctx);
+        let Point { x, y } = p.project(ctx);
 
         polyline.add_vertex(PlineVertex::new(x, y, 0.0));
     }
@@ -363,16 +205,10 @@ pub fn draw_line_off(ctx: &Ctx, iter: Iter<Point>, offset: f64) {
     }
 }
 
-fn draw_poly(ctx: &Ctx, poly: &Polygon, dl: &dyn Fn(&Ctx, Iter<Point>) -> ()) {
-    for ring in &poly.rings {
-        dl(&ctx, ring.points.iter());
-    }
-}
-
 pub trait Projectable {
     fn get(&self) -> (f64, f64);
 
-    fn project(&self, ctx: &Ctx) -> (f64, f64) {
+    fn project(&self, ctx: &Ctx) -> Point {
         let Ctx {
             bbox: (min_x, min_y, max_x, max_y),
             size: (w_i, h_i),
@@ -388,11 +224,11 @@ pub trait Projectable {
 
         let y = h - ((py - min_y) / (max_y - min_y)) * h;
 
-        (x, y)
+        Point::new(x, y)
     }
 }
 
-impl Projectable for Point {
+impl Projectable for PgPoint {
     fn get(&self) -> (f64, f64) {
         (self.x, self.y)
     }
@@ -400,14 +236,14 @@ impl Projectable for Point {
 
 // https://github.com/ghaerr/agg-2.6/blob/master/agg-src/src/agg_vcgen_smooth_poly1.cpp
 // https://agg.sourceforge.net/antigrain.com/research/bezier_interpolation/index.html
-pub fn draw_smooth_bezier_spline(ctx: &Ctx, iter: Iter<Point>, smooth_value: f64) {
+pub fn draw_smooth_bezier_spline(ctx: &Ctx, iter: Iter<PgPoint>, smooth_value: f64) {
     if smooth_value == 0.0 {
         draw_line(ctx, iter);
 
         return;
     }
 
-    let mut points: Vec<(f64, f64)> = iter.map(|p| p.project(ctx)).collect();
+    let mut points: Vec<Point> = iter.map(|p| p.project(ctx)).collect();
 
     let mut len = points.len();
 
@@ -429,14 +265,14 @@ pub fn draw_smooth_bezier_spline(ctx: &Ctx, iter: Iter<Point>, smooth_value: f64
         return;
     }
 
-    let (x, y) = points[off];
+    let Point { x, y } = points[off];
 
     let context = &ctx.context;
 
     context.move_to(x, y);
 
     if len < 3 {
-        let (x1, y1) = points[1];
+        let Point { x: x1, y: y1 } = points[1];
 
         context.line_to(x1, y1);
 
@@ -444,17 +280,17 @@ pub fn draw_smooth_bezier_spline(ctx: &Ctx, iter: Iter<Point>, smooth_value: f64
     }
 
     for i in off..len - 1 + off * 4 {
-        let (x1, y1) = points[i % len];
-        let (x2, y2) = points[(i + 1) % len];
+        let Point { x: x1, y: y1 } = points[i % len];
+        let Point { x: x2, y: y2 } = points[(i + 1) % len];
 
         let len2 = ((x2 - x1).powi(2) + (y2 - y1).powi(2)).sqrt();
         let xc2 = (x1 + x2) / 2.0;
         let yc2 = (y1 + y2) / 2.0;
 
         let ctrl1 = if off == 0 && i == 0 {
-            (x1, y1)
+            Point::new(x1, y1)
         } else {
-            let (x0, y0) = points[(i - 1) % len];
+            let Point { x: x0, y: y0 } = points[(i - 1) % len];
             let len1 = ((x1 - x0).powi(2) + (y1 - y0).powi(2)).sqrt();
             let k1 = len1 / (len1 + len2);
             let xc1 = (x0 + x1) / 2.0;
@@ -462,16 +298,16 @@ pub fn draw_smooth_bezier_spline(ctx: &Ctx, iter: Iter<Point>, smooth_value: f64
             let xm1 = xc1 + (xc2 - xc1) * k1;
             let ym1 = yc1 + (yc2 - yc1) * k1;
 
-            (
+            Point::new(
                 xm1 + (xc2 - xm1) * smooth_value + x1 - xm1,
                 ym1 + (yc2 - ym1) * smooth_value + y1 - ym1,
             )
         };
 
         let ctrl2 = if off == 0 && i == len - 2 {
-            (x2, y2)
+            Point::new(x2, y2)
         } else {
-            let (x3, y3) = points[(i + 2) % len];
+            let Point { x: x3, y: y3 } = points[(i + 2) % len];
             let len3 = ((x3 - x2).powi(2) + (y3 - y2).powi(2)).sqrt();
             let k2 = len2 / (len2 + len3);
             let xc3 = (x2 + x3) / 2.0;
@@ -479,12 +315,12 @@ pub fn draw_smooth_bezier_spline(ctx: &Ctx, iter: Iter<Point>, smooth_value: f64
             let xm2 = xc2 + (xc3 - xc2) * k2;
             let ym2 = yc2 + (yc3 - yc2) * k2;
 
-            (
+            Point::new(
                 xm2 + (xc2 - xm2) * smooth_value + x2 - xm2,
                 ym2 + (yc2 - ym2) * smooth_value + y2 - ym2,
             )
         };
 
-        context.curve_to(ctrl1.0, ctrl1.1, ctrl2.0, ctrl2.1, x2, y2);
+        context.curve_to(ctrl1.x, ctrl1.y, ctrl2.x, ctrl2.y, x2, y2);
     }
 }
