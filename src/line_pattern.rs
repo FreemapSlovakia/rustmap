@@ -323,7 +323,7 @@ pub fn draw_polyline_outline_scaled(
 
         let mut matrix = Matrix::identity();
 
-        matrix.translate(width / 2.0 + (dist % width) / scale, height / 2.0);
+        matrix.translate(width / 2.0 + ((dist / scale) % width) , height / 2.0);
 
         matrix.scale(1.0 / scale, 1.0 / scale);
 
