@@ -1,7 +1,7 @@
 use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::draw_smooth_bezier_spline,
+    draw::smooth_line::draw_smooth_bezier_spline,
 };
 use postgis::ewkb::LineString;
 use postgres::Client;

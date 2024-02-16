@@ -1,6 +1,6 @@
 use crate::{
     ctx::Ctx,
-    draw::{draw_geometry_uni, Projectable},
+    draw::draw::{draw_geometry_uni, Projectable},
     point::Point,
     xyz::{perpendicular_distance, to_absolute_pixel_coords},
 };

@@ -4,7 +4,7 @@ use postgres::Client;
 use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::draw_line,
+    draw::draw::draw_line,
 };
 
 pub fn render(ctx: &Ctx, client: &mut Client) {

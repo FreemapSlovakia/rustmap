@@ -1,4 +1,4 @@
-use crate::{ctx::Ctx, draw::draw_line};
+use crate::{ctx::Ctx, draw::draw::draw_line};
 use postgis::ewkb::LineString;
 use postgres::Client;
 

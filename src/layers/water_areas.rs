@@ -1,7 +1,7 @@
 use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::draw_geometry,
+    draw::draw::draw_geometry,
 };
 use postgis::ewkb::Geometry;
 use postgres::Client;

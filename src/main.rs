@@ -1,7 +1,8 @@
 #[macro_use]
 extern crate lazy_static;
 
-use crate::routes::RouteTypes;
+use crate::layers::{aerialways, barrierways, borders, bridge_areas, buildings, contours, hillshading, landuse, military_areas, power_lines, protected_areas, roads, routes, trees, water_areas, water_lines};
+use crate::layers::routes::RouteTypes;
 use cache::Cache;
 use cairo::{Context, Format, ImageSurface, Surface, SvgSurface};
 use ctx::Ctx;
@@ -18,29 +19,12 @@ use std::ops::Deref;
 use std::time::Duration;
 use xyz::{bbox_size_in_pixels, tile_bounds_to_epsg3857};
 
-mod aerialways;
-mod barrierways;
-mod borders;
-mod bridge_areas;
-mod buildings;
+mod layers;
 mod cache;
 mod colors;
-mod contours;
 mod ctx;
 mod draw;
-mod hatch;
-mod hillshading;
-mod landuse;
-mod line_pattern;
-mod military_areas;
 mod point;
-mod power_lines;
-mod protected_areas;
-mod roads;
-mod routes;
-mod trees;
-mod water_areas;
-mod water_lines;
 mod xyz;
 
 thread_local! {

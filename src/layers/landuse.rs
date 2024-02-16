@@ -1,7 +1,7 @@
 use crate::{
     colors::{self, Color, ContextExt},
     ctx::Ctx,
-    draw::draw_geometry,
+    draw::draw::draw_geometry,
     xyz::to_absolute_pixel_coords,
 };
 use cairo::{Extend, Matrix, SurfacePattern};

@@ -1,5 +1,5 @@
 use crate::colors::{Color, ContextExt};
-use crate::{colors, ctx::Ctx, draw::draw_line};
+use crate::{colors, ctx::Ctx, draw::draw::draw_line};
 use postgis::ewkb::LineString;
 use postgres::Client;
 

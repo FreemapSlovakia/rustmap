@@ -5,8 +5,7 @@ use postgres::Client;
 
 use crate::{
     ctx::Ctx,
-    draw::{draw_line_off, offset_line},
-    line_pattern::draw_polyline_outline_scaled,
+    draw::{draw::draw_line_off, line_pattern::draw_polyline_outline_scaled, offset_line::offset_line},
 };
 
 const COLOR_SQL: &str = r#"

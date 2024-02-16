@@ -3,7 +3,7 @@ use postgres::Client;
 use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::{draw_line, Projectable},
+    draw::draw::{draw_line, Projectable},
 };
 
 pub fn render_lines(ctx: &Ctx, client: &mut Client) {

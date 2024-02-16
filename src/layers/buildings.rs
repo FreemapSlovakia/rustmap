@@ -1,7 +1,7 @@
 use postgis::ewkb::Geometry;
 use postgres::Client;
 
-use crate::{ctx::Ctx, draw::draw_geometry};
+use crate::{ctx::Ctx, draw::draw::draw_geometry};
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {

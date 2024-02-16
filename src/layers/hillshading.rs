@@ -1,6 +1,6 @@
 use crate::ctx::Ctx;
 use cairo::{Format, ImageSurface};
-use gdal::{errors::GdalError, Dataset};
+use gdal::Dataset;
 
 fn read_rgba_from_gdal(
     dataset: &Dataset,

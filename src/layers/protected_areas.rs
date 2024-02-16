@@ -1,9 +1,7 @@
 use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::{draw_line_off, draw_geometry, draw_geometry_uni},
-    hatch::hatch_geometry,
-    line_pattern::draw_line_pattern,
+    draw::{draw::{draw_geometry, draw_geometry_uni, draw_line_off}, hatch::hatch_geometry, line_pattern::draw_line_pattern},
 };
 use core::slice::Iter;
 use postgis::ewkb::{Geometry, Point};

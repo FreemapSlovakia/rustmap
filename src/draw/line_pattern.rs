@@ -1,5 +1,4 @@
-use crate::draw::Projectable;
-use crate::{ctx::Ctx, point::Point};
+use crate::{ctx::Ctx, draw::draw::Projectable, point::Point};
 use cairo::{Matrix, SurfacePattern};
 use core::slice::Iter;
 
