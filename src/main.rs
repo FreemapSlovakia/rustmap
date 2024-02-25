@@ -3,6 +3,7 @@ extern crate lazy_static;
 
 use crate::layers::{aerialways, barrierways, borders, bridge_areas, buildings, contours, hillshading, landuse, military_areas, place_names, power_lines, protected_areas, roads, routes, trees, water_areas, water_lines};
 use crate::layers::routes::RouteTypes;
+use crate::collision::Collision;
 use cache::Cache;
 use cairo::{Context, Format, ImageSurface, Surface, SvgSurface};
 use ctx::Ctx;
@@ -26,6 +27,7 @@ mod ctx;
 mod draw;
 mod point;
 mod xyz;
+mod collision;
 
 thread_local! {
     static THREAD_LOCAL_DATA: RefCell<Cache> = {
@@ -111,6 +113,8 @@ fn render<'a>(
     let (w, h) = bbox_size_in_pixels(bbox.0, bbox.1, bbox.2, bbox.3, zoom as f64);
 
     let is_svg = ext == "svg";
+
+    let mut collision = Collision::<f64>::new();
 
     let mut draw = |surface: &Surface| {
         let ctx = Ctx {
@@ -200,7 +204,7 @@ fn render<'a>(
         routes::render(&ctx, client, &RouteTypes::all());
         context.restore().unwrap();
 
-        place_names::render(&ctx, client);
+        place_names::render(&ctx, client, &mut collision);
 
         // context.set_line_width(1.0);
         // context.set_source_rgb(0.0, 0.0, 0.0);

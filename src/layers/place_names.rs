@@ -1,4 +1,4 @@
-use crate::{ctx::Ctx, draw::draw::Projectable};
+use crate::{collision::Collision, ctx::Ctx, draw::draw::Projectable};
 use pango::AttrInt;
 use pangocairo::{
     functions::{create_layout, layout_path},
@@ -7,7 +7,7 @@ use pangocairo::{
 use postgis::ewkb::Point;
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client) {
+pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     let Ctx {
         context,
         bbox: (min_x, min_y, max_x, max_y),
@@ -40,16 +40,18 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         let layout = create_layout(context);
 
-        let (size, uppercase) = match (zoom, typ) {
-            (6.., "city") => (1.2 * scale, true),
-            (9.., "town") => (0.8 * scale, true),
-            (11.., "village") => (0.55 * scale, true),
-            (12.., "hamlet" | "allotments" | "suburb") => (0.50 * scale, false),
-            (14.., "isolated_dwelling" | "quarter") => (0.45 * scale, false),
-            (15.., "neighbourhood") => (0.40 * scale, false),
-            (16.., "farm" | "borough" | "square") => (0.35 * scale, false),
+        let (size, uppercase, halo_width) = match (zoom, typ) {
+            (6.., "city") => (1.2 * scale, true, 2.0),
+            (9.., "town") => (0.8 * scale, true, 2.0),
+            (11.., "village") => (0.55 * scale, true, 1.5),
+            (12.., "hamlet" | "allotments" | "suburb") => (0.50 * scale, false, 1.5),
+            (14.., "isolated_dwelling" | "quarter") => (0.45 * scale, false, 1.5),
+            (15.., "neighbourhood") => (0.40 * scale, false, 1.5),
+            (16.., "farm" | "borough" | "square") => (0.35 * scale, false, 1.5),
             _ => continue,
         };
+
+        let max_width = 100.0 - 2.0 * halo_width;
 
         let mut font_description = FontDescription::new();
         font_description.set_family("PT Sans Narrow");
@@ -72,7 +74,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         layout.set_wrap(pango::WrapMode::Word);
         layout.set_alignment(pango::Alignment::Center);
         layout.set_line_spacing(0.4);
-        layout.set_width(133 * pango::SCALE);
+        layout.set_width((max_width * pango::SCALE as f64) as i32);
 
         layout.set_text(text);
 
@@ -84,9 +86,52 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         let p = geom.project(ctx);
 
-        let size = layout.pixel_size();
+        let size = layout.size();
 
-        context.move_to(p.x - 133 as f64 / 2.0, p.y - size.1 as f64 / 2.0);
+        let size = (
+            size.0 as f64 / pango::SCALE as f64,
+            size.1 as f64 / pango::SCALE as f64,
+        );
+
+        let x = p.x - max_width / 2.0;
+
+        let mut my: Option<f64> = None;
+
+        let ext = layout.pixel_extents();
+
+        for dy in [0, 3, -3, 6, -6, 9, -9 /*, 12, -12, 15, -15 */] {
+            let y = dy as f64 + p.y - size.1 as f64 / 2.0;
+
+            // let ci = ((x as i32, x as i32 + size.0), (y as i32, y as i32 + size.1));
+
+            let ci = (
+                (
+                    x - halo_width + ext.0.x() as f64,
+                    x + 2.0 * halo_width + (ext.0.x() + ext.0.width()) as f64,
+                ),
+                (
+                    y - halo_width + ext.0.y() as f64,
+                    y + 2.0 * halo_width + (ext.0.y() + ext.0.height()) as f64,
+                ),
+            );
+
+            if collision.collides(ci) {
+                continue;
+            }
+
+            collision.add(ci);
+
+            my = Some(y);
+
+            break;
+        }
+
+        let y = match my {
+            Some(y) => y,
+            None => continue,
+        };
+
+        context.move_to(x, y);
 
         layout_path(context, &layout);
 
@@ -94,7 +139,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         context.set_source_rgba(1.0, 1.0, 1.0, 0.9);
         context.set_dash(&[], 0.0);
-        context.set_line_width(3.0);
+        context.set_line_width(halo_width * 2.0);
 
         context.stroke_preserve().unwrap();
 
@@ -107,5 +152,19 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         context
             .paint_with_alpha(if zoom <= 14 { 1.0 } else { 0.5 })
             .unwrap();
+
+        // context.set_source_rgb(1.0, 0.0, 0.0);
+        // context.set_dash(&[], 0.0);
+
+        // let ext = layout.pixel_extents();
+
+        // context.rectangle(
+        //     x + ext.0.x() as f64,
+        //     y + ext.0.y() as f64,
+        //     ext.0.width() as f64,
+        //     ext.0.height() as f64,
+        // );
+        // context.set_line_width(1.0);
+        // context.stroke().unwrap();
     }
 }

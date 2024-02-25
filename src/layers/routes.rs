@@ -5,7 +5,9 @@ use postgres::Client;
 
 use crate::{
     ctx::Ctx,
-    draw::{draw::draw_line_off, line_pattern::draw_polyline_outline_scaled, offset_line::offset_line},
+    draw::{
+        draw::draw_line_off, line_pattern::draw_polyline_outline_scaled, offset_line::offset_line,
+    },
 };
 
 const COLOR_SQL: &str = r#"
@@ -68,6 +70,7 @@ fn get_routes_query(
     route_types: &RouteTypes,
     include_networks: Option<Vec<&str>>,
     gen_suffix: &str,
+    ctx: &Ctx,
 ) -> String {
     let mut lefts = Vec::<&str>::new();
 
@@ -113,7 +116,7 @@ fn get_routes_query(
         }
     };
 
-  format!(r#"
+    format!(r#"
 SELECT
   ST_Multi(ST_LineMerge(ST_Collect(geometry))) AS geometry,
   idx(arr1, 0) AS h_red,
@@ -234,7 +237,7 @@ FROM (
         END
     ))) AS arr2
   FROM osm_route_members{gen_suffix} JOIN osm_routes ON (osm_route_members{gen_suffix}.osm_id = osm_routes.osm_id AND state <> 'proposed')
-  WHERE {where}geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)
+  WHERE {where}geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), {buf})
   GROUP BY member
 ) AS aaa
 GROUP BY
@@ -252,7 +255,8 @@ GROUP BY
         bool_ski = route_types.contains(RouteTypes::SKI),
         gen_suffix = gen_suffix,
         color_sql = COLOR_SQL,
-        where = cond
+        where = cond,
+        buf = ctx.meters_per_pixel() * 512.0 // for z14+ there was 2048
     )
 }
 
@@ -266,15 +270,21 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
     let zoom = ctx.zoom;
 
     let query = match zoom {
-        9 => get_routes_query(route_types, Some(vec!["iwn", "icn"]), "_gen0"),
-        10 => get_routes_query(route_types, Some(vec!["iwn", "nwn", "icn", "ncn"]), "_gen1"),
+        9 => get_routes_query(route_types, Some(vec!["iwn", "icn"]), "_gen0", ctx),
+        10 => get_routes_query(
+            route_types,
+            Some(vec!["iwn", "nwn", "icn", "ncn"]),
+            "_gen1",
+            ctx,
+        ),
         11 => get_routes_query(
             route_types,
             Some(vec!["iwn", "nwn", "rwn", "icn", "ncn", "rcn"]),
             "_gen1",
+            ctx,
         ),
-        12..=13 => get_routes_query(route_types, None, ""),
-        14.. => get_routes_query(route_types, None, ""),
+        12..=13 => get_routes_query(route_types, None, "", ctx),
+        14.. => get_routes_query(route_types, None, "", ctx),
         _ => return,
     };
 
