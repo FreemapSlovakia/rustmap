@@ -10,14 +10,16 @@ test_feature = []
 
 [dependencies]
 bitflags = "2.4.2"
-cairo-rs = { version = "0.18.5", features = ["png"] }
-cavalier_contours = { git = "https://github.com/jbuckmccready/cavalier_contours.git", rev = "78ca697770ea2d97e54122bf67de303c277a662b" }
+cairo-rs = { version = "0.19.2", features = ["png", "svg"] }
+cavalier_contours = { version = "0.4.0" }
 colorsys = "0.6.7"
 gdal = { version = "0.16.0", features = ["bindgen"] }
 lazy_static = "1.4.0"
-librsvg = { version = "2.57.1", features = ["c-api"] }
+librsvg = { version = " 2.58.0-beta.1", features = ["c-api"] }
 lyon_path = "1.0.4"
 oxhttp = { version = "0.1.7", features = ["rayon"] }
+pango = "0.19.2"
+pangocairo = "0.19.2"
 postgis = "0.9.0"
 postgres = "0.19.7"
 r2d2 = "0.8.10"

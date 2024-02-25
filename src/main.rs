@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate lazy_static;
 
-use crate::layers::{aerialways, barrierways, borders, bridge_areas, buildings, contours, hillshading, landuse, military_areas, power_lines, protected_areas, roads, routes, trees, water_areas, water_lines};
+use crate::layers::{aerialways, barrierways, borders, bridge_areas, buildings, contours, hillshading, landuse, military_areas, place_names, power_lines, protected_areas, roads, routes, trees, water_areas, water_lines};
 use crate::layers::routes::RouteTypes;
 use cache::Cache;
 use cairo::{Context, Format, ImageSurface, Surface, SvgSurface};
@@ -199,6 +199,8 @@ fn render<'a>(
         context.save().unwrap();
         routes::render(&ctx, client, &RouteTypes::all());
         context.restore().unwrap();
+
+        place_names::render(&ctx, client);
 
         // context.set_line_width(1.0);
         // context.set_source_rgb(0.0, 0.0, 0.0);

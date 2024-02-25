@@ -87,7 +87,6 @@ pub fn draw_line(ctx: &Ctx, iter: Iter<PgPoint>) {
     }
 }
 
-
 pub fn draw_line_off(ctx: &Ctx, iter: Iter<PgPoint>, offset: f64) {
     let mut polyline = Polyline::new();
 

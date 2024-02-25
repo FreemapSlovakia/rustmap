@@ -14,3 +14,4 @@ pub mod routes;
 pub mod trees;
 pub mod water_areas;
 pub mod water_lines;
+pub mod place_names;
