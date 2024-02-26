@@ -28,12 +28,10 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         .query(sql, &[min_x, min_y, max_x, max_y, &buffer])
         .unwrap()
     {
-        let geom: Point = row.get("geometry");
-
         draw_text(
             context,
             collision,
-            geom.project(ctx),
+            row.get::<_, Point>("geometry").project(ctx),
             row.get("name"),
             &TextOptions {
                 size: 11.0,

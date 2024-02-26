@@ -40,26 +40,24 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         .query(sql, &[min_x, min_y, max_x, max_y, &buffer])
         .unwrap()
     {
-        let geom: Point = row.get("geometry");
-
         let (size, uppercase, halo_width) = match (zoom, row.get("type")) {
-            (6.., "city") => (1.2 * scale, true, 2.0),
-            (9.., "town") => (0.8 * scale, true, 2.0),
-            (11.., "village") => (0.55 * scale, true, 1.5),
-            (12.., "hamlet" | "allotments" | "suburb") => (0.50 * scale, false, 1.5),
-            (14.., "isolated_dwelling" | "quarter") => (0.45 * scale, false, 1.5),
-            (15.., "neighbourhood") => (0.40 * scale, false, 1.5),
-            (16.., "farm" | "borough" | "square") => (0.35 * scale, false, 1.5),
+            (6.., "city") => (1.2, true, 2.0),
+            (9.., "town") => (0.8, true, 2.0),
+            (11.., "village") => (0.55, true, 1.5),
+            (12.., "hamlet" | "allotments" | "suburb") => (0.50, false, 1.5),
+            (14.., "isolated_dwelling" | "quarter") => (0.45, false, 1.5),
+            (15.., "neighbourhood") => (0.40, false, 1.5),
+            (16.., "farm" | "borough" | "square") => (0.35, false, 1.5),
             _ => continue,
         };
 
         draw_text(
             context,
             collision,
-            geom.project(ctx),
+            row.get::<_, Point>("geometry").project(ctx),
             row.get("name"),
             &TextOptions {
-                size,
+                size: size * scale,
                 halo_width,
                 halo_opacity: 0.9,
                 uppercase,
