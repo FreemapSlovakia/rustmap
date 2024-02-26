@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate lazy_static;
 
-use crate::layers::{aerialways, barrierways, borders, bridge_areas, buildings, contours, hillshading, housenumbers, landuse, locality_names, military_areas, place_names, power_lines, protected_areas, roads, routes, trees, water_area_names, water_areas, water_lines};
+use crate::layers::{aerialways, barrierways, borders, bridge_areas, building_names, buildings, contours, hillshading, housenumbers, landuse, locality_names, military_areas, place_names, power_lines, protected_area_names, protected_areas, roads, routes, trees, water_area_names, water_areas, water_lines};
 use crate::layers::routes::RouteTypes;
 use crate::collision::Collision;
 use cache::Cache;
@@ -208,6 +208,16 @@ fn render<'a>(
 
         if zoom >= 10 {
             water_area_names::render(&ctx, client, &mut collision);
+        }
+
+        // TODO national_park_border_names
+
+        if zoom >= 12 {
+            protected_area_names::render(&ctx, client, &mut collision);
+        }
+
+        if zoom >= 17 {
+            building_names::render(&ctx, client, &mut collision);
         }
 
         if zoom >= 15 {

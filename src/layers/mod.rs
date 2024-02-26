@@ -18,3 +18,5 @@ pub mod place_names;
 pub mod water_area_names;
 pub mod housenumbers;
 pub mod locality_names;
+pub mod protected_area_names;
+pub mod building_names;
