@@ -1,8 +1,10 @@
-use crate::{collision::Collision, ctx::Ctx, draw::draw::Projectable};
-use pango::AttrInt;
-use pangocairo::{
-    functions::{create_layout, layout_path},
-    pango::{AttrList, FontDescription},
+use crate::{
+    collision::Collision,
+    ctx::Ctx,
+    draw::{
+        draw::Projectable,
+        text::{draw_text, TextOptions},
+    },
 };
 use postgis::ewkb::Point;
 use postgres::Client;
@@ -31,16 +33,12 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         ctx.meters_per_pixel() * 100.0
     );
 
-    let scale = 2.5 / 1.333 * 1.2f64.powf(zoom as f64);
+    let scale = 2.5 * 1.2f64.powf(zoom as f64);
 
     for row in &client.query(sql, &[min_x, min_y, max_x, max_y]).unwrap() {
         let geom: Point = row.get("geometry");
 
-        let typ: &str = row.get("type");
-
-        let layout = create_layout(context);
-
-        let (size, uppercase, halo_width) = match (zoom, typ) {
+        let (size, uppercase, halo_width) = match (zoom, row.get("type")) {
             (6.., "city") => (1.2 * scale, true, 2.0),
             (9.., "town") => (0.8 * scale, true, 2.0),
             (11.., "village") => (0.55 * scale, true, 1.5),
@@ -51,120 +49,22 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
             _ => continue,
         };
 
-        let max_width = 100.0 - 2.0 * halo_width;
-
-        let mut font_description = FontDescription::new();
-        font_description.set_family("PT Sans Narrow");
-        font_description.set_weight(pango::Weight::Bold);
-        font_description.set_size((pango::SCALE as f64 * size) as i32);
-
-        layout.set_font_description(Some(&font_description));
-
-        let original_text: &str = row.get("name");
-
-        let uppercase_text;
-
-        let text = if uppercase {
-            uppercase_text = original_text.to_uppercase();
-            &uppercase_text
-        } else {
-            original_text
-        };
-
-        layout.set_wrap(pango::WrapMode::Word);
-        layout.set_alignment(pango::Alignment::Center);
-        layout.set_line_spacing(0.4);
-        layout.set_width((max_width * pango::SCALE as f64) as i32);
-
-        layout.set_text(text);
-
-        let attr_list = AttrList::new();
-
-        attr_list.insert(AttrInt::new_letter_spacing(pango::SCALE));
-
-        layout.set_attributes(Some(&attr_list));
-
-        let p = geom.project(ctx);
-
-        let size = layout.size();
-
-        let size = (
-            size.0 as f64 / pango::SCALE as f64,
-            size.1 as f64 / pango::SCALE as f64,
+        draw_text(
+            context,
+            collision,
+            geom.project(ctx),
+            row.get("name"),
+            &TextOptions {
+                size,
+                halo_width,
+                halo_opacity: 0.9,
+                uppercase,
+                narrow: true,
+                alpha: if zoom <= 14 { 1.0 } else { 0.5 },
+                weight: pango::Weight::Bold,
+                letter_spacing: 1.0,
+                ..TextOptions::default()
+            },
         );
-
-        let x = p.x - max_width / 2.0;
-
-        let mut my: Option<f64> = None;
-
-        let ext = layout.pixel_extents();
-
-        for dy in [0, 3, -3, 6, -6, 9, -9 /*, 12, -12, 15, -15 */] {
-            let y = dy as f64 + p.y - size.1 as f64 / 2.0;
-
-            // let ci = ((x as i32, x as i32 + size.0), (y as i32, y as i32 + size.1));
-
-            let ci = (
-                (
-                    x - halo_width + ext.0.x() as f64,
-                    x + 2.0 * halo_width + (ext.0.x() + ext.0.width()) as f64,
-                ),
-                (
-                    y - halo_width + ext.0.y() as f64,
-                    y + 2.0 * halo_width + (ext.0.y() + ext.0.height()) as f64,
-                ),
-            );
-
-            if collision.collides(ci) {
-                continue;
-            }
-
-            collision.add(ci);
-
-            my = Some(y);
-
-            break;
-        }
-
-        let y = match my {
-            Some(y) => y,
-            None => continue,
-        };
-
-        context.move_to(x, y);
-
-        layout_path(context, &layout);
-
-        context.push_group();
-
-        context.set_source_rgba(1.0, 1.0, 1.0, 0.9);
-        context.set_dash(&[], 0.0);
-        context.set_line_width(halo_width * 2.0);
-
-        context.stroke_preserve().unwrap();
-
-        context.set_source_rgb(0.0, 0.0, 0.0);
-
-        context.fill().unwrap();
-
-        context.pop_group_to_source().unwrap();
-
-        context
-            .paint_with_alpha(if zoom <= 14 { 1.0 } else { 0.5 })
-            .unwrap();
-
-        // context.set_source_rgb(1.0, 0.0, 0.0);
-        // context.set_dash(&[], 0.0);
-
-        // let ext = layout.pixel_extents();
-
-        // context.rectangle(
-        //     x + ext.0.x() as f64,
-        //     y + ext.0.y() as f64,
-        //     ext.0.width() as f64,
-        //     ext.0.height() as f64,
-        // );
-        // context.set_line_width(1.0);
-        // context.stroke().unwrap();
     }
 }
