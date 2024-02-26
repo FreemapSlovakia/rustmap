@@ -4,7 +4,7 @@ use crate::{
     ctx::Ctx,
     draw::{
         draw::Projectable,
-        text::{draw_text, TextOptions},
+        text::{self, draw_text, TextOptions},
     },
 };
 use postgis::ewkb::Point;
@@ -48,6 +48,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
                 color: *colors::WATER_LABEL,
                 halo_color: *colors::WATER_LABEL_HALO,
                 style: pango::Style::Italic,
+                placements: text::DEFAULT_PLACEMENTS,
                 ..TextOptions::default()
             },
         );

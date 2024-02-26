@@ -3,7 +3,7 @@ use crate::{
     ctx::Ctx,
     draw::{
         draw::Projectable,
-        text::{draw_text, TextOptions},
+        text::{self, draw_text, TextOptions},
     },
 };
 use postgis::ewkb::Point;
@@ -63,6 +63,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
                 alpha: if zoom <= 14 { 1.0 } else { 0.5 },
                 weight: pango::Weight::Bold,
                 letter_spacing: 1.0,
+                placements: text::DEFAULT_PLACEMENTS,
                 ..TextOptions::default()
             },
         );

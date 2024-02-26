@@ -10,7 +10,7 @@ use pangocairo::{
     pango::{AttrList, FontDescription},
 };
 
-pub struct TextOptions {
+pub struct TextOptions<'a> {
     pub alpha: f64,
     pub color: Color,
     pub halo_color: Color,
@@ -19,13 +19,16 @@ pub struct TextOptions {
     pub letter_spacing: f64,
     pub max_width: f64,
     pub narrow: bool,
+    pub placements: &'a [f64],
     pub size: f64,
     pub style: pango::Style,
     pub uppercase: bool,
     pub weight: pango::Weight,
 }
 
-impl Default for TextOptions {
+pub static DEFAULT_PLACEMENTS: &[f64] = &[0.0, 3.0, -3.0, 6.0, -6.0, 9.0, -9.0];
+
+impl Default for TextOptions<'_> {
     fn default() -> Self {
         TextOptions {
             alpha: 1.0,
@@ -36,6 +39,7 @@ impl Default for TextOptions {
             letter_spacing: 0.0,
             max_width: 100.0,
             narrow: false,
+            placements: &[0.0],
             size: 12.0,
             style: pango::Style::Normal,
             uppercase: false,
@@ -60,6 +64,7 @@ pub fn draw_text(
         letter_spacing,
         max_width,
         narrow,
+        placements,
         size,
         style,
         uppercase,
@@ -117,8 +122,8 @@ pub fn draw_text(
 
     let ext = layout.pixel_extents();
 
-    for dy in [0, 3, -3, 6, -6, 9, -9 /*, 12, -12, 15, -15 */] {
-        let y = dy as f64 + p.y - size.1 as f64 / 2.0;
+    for dy in *placements {
+        let y = *dy + p.y - size.1 as f64 / 2.0;
 
         let ci = (
             (
