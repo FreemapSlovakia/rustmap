@@ -105,6 +105,7 @@ lazy_static! {
     pub static ref RAIL: Color = hsl_to_rgb(0, 0, 0);
     pub static ref CONSTRUCTION_ROAD_1: Color = hsl_to_rgb(60, 100, 50);
     pub static ref CONSTRUCTION_ROAD_2: Color = hsl_to_rgb(0, 0, 40);
+    pub static ref LOCALITY_LABEL: Color = hsl_to_rgb(0, 0, 40);
     pub static ref BARRIERWAY: Color = hsl_to_rgb(0, 100, 50);
     pub static ref BLACK: Color = hsl_to_rgb(0, 0, 0);
     pub static ref WHITE: Color = hsl_to_rgb(0, 100, 100);

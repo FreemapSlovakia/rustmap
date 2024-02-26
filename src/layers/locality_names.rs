@@ -17,14 +17,12 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         ..
     } = ctx;
 
-    let sql = r#"
-        SELECT
-            COALESCE(NULLIF("addr:streetnumber", ''), NULLIF("addr:housenumber", ''), NULLIF("addr:conscriptionnumber", '')) AS housenumber,
-            geometry
-        FROM osm_housenumbers
-        WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)"#;
+    let sql = "SELECT name, geometry
+        FROM osm_places
+        WHERE type IN ('locality', 'city_block', 'plot') AND geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
+        ORDER BY z_order DESC, population DESC, osm_id";
 
-    let buffer = ctx.meters_per_pixel() * 256.0;
+    let buffer = ctx.meters_per_pixel() * 1024.0;
 
     for row in &client
         .query(sql, &[min_x, min_y, max_x, max_y, &buffer])
@@ -36,11 +34,11 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
             context,
             collision,
             geom.project(ctx),
-            row.get("housenumber"),
+            row.get("name"),
             &TextOptions {
-                size: 8.0,
-                halo_opacity: 0.5,
-                color: *colors::AREA_LABEL,
+                size: 11.0,
+                halo_opacity: 0.2,
+                color: *colors::LOCALITY_LABEL,
                 ..TextOptions::default()
             },
         );

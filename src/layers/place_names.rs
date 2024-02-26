@@ -21,7 +21,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     let sql = &format!(
         "SELECT name, type, geometry
             FROM osm_places
-            WHERE {} AND geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), {})
+            WHERE {} AND geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
             ORDER BY z_order DESC, population DESC, osm_id",
         match zoom {
             8 => "type = 'city'",
@@ -29,13 +29,17 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
             11 => "(type = 'city' OR type = 'town' OR type = 'village')",
             12.. => "type <> 'locality'",
             _ => panic!("unsupported zoom"),
-        },
-        ctx.meters_per_pixel() * 100.0
+        }
     );
 
     let scale = 2.5 * 1.2f64.powf(zoom as f64);
 
-    for row in &client.query(sql, &[min_x, min_y, max_x, max_y]).unwrap() {
+    let buffer = ctx.meters_per_pixel() * 1024.0;
+
+    for row in &client
+        .query(sql, &[min_x, min_y, max_x, max_y, &buffer])
+        .unwrap()
+    {
         let geom: Point = row.get("geometry");
 
         let (size, uppercase, halo_width) = match (zoom, row.get("type")) {
