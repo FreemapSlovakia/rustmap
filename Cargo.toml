@@ -16,7 +16,6 @@ colorsys = "0.6.7"
 gdal = { version = "0.16.0", features = ["bindgen"] }
 lazy_static = "1.4.0"
 librsvg = { version = " 2.58.0-beta.1", features = ["c-api"] }
-lyon_path = "1.0.4"
 oxhttp = { version = "0.1.7", features = ["rayon"] }
 pango = "0.19.2"
 pangocairo = "0.19.2"

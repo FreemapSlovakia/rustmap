@@ -1,7 +1,7 @@
 use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::smooth_line::draw_smooth_bezier_spline,
+    draw::{markers_on_path::draw_markers_on_path, smooth_line::draw_smooth_bezier_spline},
 };
 use postgis::ewkb::LineString;
 use postgres::Client;
@@ -30,6 +30,13 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     );
 
     let rows = &client.query(sql, &[min_x, min_y, max_x, max_y]).unwrap();
+
+    let mut cache = ctx.cache.borrow_mut();
+
+    // TODO lazy
+    let arrow = cache.get_svg("images/waterway-arrow.svg");
+
+    let rect = arrow.extents().unwrap();
 
     for pass in 0..=1 {
         let glow = pass == 0;
@@ -81,7 +88,20 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
                 draw_smooth_bezier_spline(ctx, geom.points.iter(), smooth);
 
+                let path = context.copy_path_flat().unwrap();
+
                 context.stroke().unwrap();
+
+                draw_markers_on_path(&path, 150.0, 300.0, &|x, y, angle| {
+                    context.save().unwrap();
+                    context.translate(x, y);
+                    context.rotate(angle);
+                    context
+                        .set_source_surface(arrow, -rect.width() / 2.0, -rect.height() / 2.0)
+                        .unwrap();
+                    context.paint().unwrap();
+                    context.restore().unwrap();
+                });
             }
         }
     }
