@@ -5,8 +5,7 @@ use crate::{
     xyz::{perpendicular_distance, to_absolute_pixel_coords},
 };
 use core::slice::Iter;
-use postgis::ewkb::Geometry;
-use postgis::ewkb::Point as PgPoint;
+use postgis::ewkb::{Geometry, Point as PgPoint};
 
 pub fn hatch_geometry(ctx: &Ctx, geom: &Geometry, spacing: f64, angle: f64) {
     draw_geometry_uni(geom, &|iter| {
