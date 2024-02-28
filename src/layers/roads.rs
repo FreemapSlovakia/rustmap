@@ -1,4 +1,5 @@
 use crate::colors::{Color, ContextExt};
+use crate::draw::markers_on_path::draw_markers_on_path;
 use crate::{colors, ctx::Ctx, draw::draw::draw_line};
 use postgis::ewkb::LineString;
 use postgres::Client;
@@ -51,6 +52,13 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         14.. => 1.00,
         _ => 0.00,
     };
+
+    let mut cache = ctx.cache.borrow_mut();
+
+    // TODO lazy
+    let arrow = cache.get_svg("images/highway-arrow.svg");
+
+    let rect = arrow.extents().unwrap();
 
     for row in rows {
         let geom: LineString = row.get("geometry");
@@ -513,5 +521,26 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             // </RuleEx>
             _ => (),
         };
+
+        let oneway = row.get::<_, i16>("oneway");
+
+        if zoom >= 14 && oneway != 0 {
+            draw_line(&ctx, geom.points.iter());
+
+            let path = context.copy_path().unwrap();
+
+            context.new_path();
+
+            draw_markers_on_path(&path, 50.0, 100.0, &|x, y, angle| {
+                context.save().unwrap();
+                context.translate(x, y);
+                context.rotate(angle + if oneway < 0 { 180.0 } else { 0.0 });
+                context
+                    .set_source_surface(arrow, -rect.width() / 2.0, -rect.height() / 2.0)
+                    .unwrap();
+                context.paint().unwrap();
+                context.restore().unwrap();
+            });
+        }
     }
 }

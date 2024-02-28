@@ -1,33 +1,38 @@
 #[macro_use]
 extern crate lazy_static;
 
-use crate::layers::{aerialways, barrierways, borders, bridge_areas, building_names, buildings, contours, hillshading, housenumbers, landuse, locality_names, military_areas, place_names, power_lines, protected_area_names, protected_areas, roads, routes, trees, water_area_names, water_areas, water_lines};
-use crate::layers::routes::RouteTypes;
-use crate::collision::Collision;
+use crate::{
+    collision::Collision,
+    layers::{
+        aerialways, barrierways, borders, bridge_areas, building_names, buildings, contours,
+        hillshading, housenumbers, landuse, locality_names, military_areas, place_names,
+        power_lines, protected_area_names, protected_areas, road_access_restrictions, roads,
+        routes, trees, water_area_names, water_areas, water_lines,
+    },
+};
 use cache::Cache;
 use cairo::{Context, Format, ImageSurface, Surface, SvgSurface};
 use ctx::Ctx;
 use gdal::Dataset;
-use oxhttp::model::{Request, Response, Status};
-use oxhttp::Server;
+use oxhttp::{
+    model::{Request, Response, Status},
+    Server,
+};
 use postgres::{Config, NoTls};
 use r2d2::PooledConnection;
 use r2d2_postgres::PostgresConnectionManager;
 use regex::Regex;
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::ops::Deref;
-use std::time::Duration;
+use std::{cell::RefCell, collections::HashMap, ops::Deref, time::Duration};
 use xyz::{bbox_size_in_pixels, tile_bounds_to_epsg3857};
 
-mod layers;
 mod cache;
+mod collision;
 mod colors;
 mod ctx;
 mod draw;
+mod layers;
 mod point;
 mod xyz;
-mod collision;
 
 thread_local! {
     static THREAD_LOCAL_DATA: RefCell<Cache> = {
@@ -152,6 +157,10 @@ fn render<'a>(
             roads::render(&ctx, client);
         }
 
+        if zoom >= 14 {
+            road_access_restrictions::render(&ctx, client);
+        }
+
         context.push_group();
 
         if zoom >= 15 {
@@ -201,7 +210,7 @@ fn render<'a>(
         }
 
         context.save().unwrap();
-        routes::render(&ctx, client, &RouteTypes::all());
+        routes::render(&ctx, client, &routes::RouteTypes::all());
         context.restore().unwrap();
 
         place_names::render(&ctx, client, &mut collision);
