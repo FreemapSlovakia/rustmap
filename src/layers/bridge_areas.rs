@@ -30,12 +30,12 @@ pub fn render(ctx: &Ctx, client: &mut Client, mask: bool) {
             context.clip();
         } else {
             draw_geometry(ctx, &geom);
-            context.set_source_color(*colors::INDUSTRIAL);
+            context.set_source_color(colors::INDUSTRIAL);
             context.fill_preserve().unwrap();
 
             context.set_line_width(1.0);
             context.set_dash(&[], 0.0);
-            context.set_source_color(*colors::BUILDING);
+            context.set_source_color(colors::BUILDING);
             context.stroke().unwrap();
         }
     }

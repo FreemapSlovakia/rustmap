@@ -43,7 +43,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         hatch_geometry(ctx, &geom, 10.0, -45.0);
 
-        ctx.context.set_source_color(*colors::MILITARY);
+        ctx.context.set_source_color(colors::MILITARY);
         ctx.context.set_dash(&[], 0.0);
         ctx.context.set_line_width(1.5);
         ctx.context.stroke().unwrap();
@@ -62,7 +62,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     for row in rows {
         let geom: Geometry = row.get("geometry");
 
-        ctx.context.set_source_color(*colors::MILITARY);
+        ctx.context.set_source_color(colors::MILITARY);
         ctx.context.set_dash(&[25.0, 7.0], 0.0);
         ctx.context.set_line_width(3.0);
         draw_geometry(ctx, &geom);

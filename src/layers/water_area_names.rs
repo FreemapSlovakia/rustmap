@@ -45,8 +45,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
             row.get::<_, Point>("geometry").project(ctx),
             row.get("name"),
             &TextOptions {
-                color: *colors::WATER_LABEL,
-                halo_color: *colors::WATER_LABEL_HALO,
+                color: colors::WATER_LABEL,
+                halo_color: colors::WATER_LABEL_HALO,
                 style: pango::Style::Italic,
                 placements: text::DEFAULT_PLACEMENTS,
                 ..TextOptions::default()

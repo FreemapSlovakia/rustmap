@@ -19,7 +19,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     ).unwrap() {
         let geom: Geometry = row.get("geometry");
 
-        context.set_source_color(*colors::WATER);
+        context.set_source_color(colors::WATER);
 
         draw_geometry(ctx, &geom);
 

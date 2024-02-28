@@ -30,13 +30,13 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     let apply_highway_defaults = |width: f64| {
         context.set_dash(&[], 0.0);
-        context.set_source_color(*colors::TRACK);
+        context.set_source_color(colors::TRACK);
         context.set_line_join(cairo::LineJoin::Round);
         context.set_line_width(width);
     };
 
     let apply_glow_defaults = |width: f64| {
-        context.set_source_color(*colors::GLOW);
+        context.set_source_color(colors::GLOW);
         context.set_dash(&[], 0.0);
         context.set_line_join(cairo::LineJoin::Round);
         context.set_line_width(width);
@@ -116,7 +116,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 if typ == "raceway" || (typ == "track" && class == "leisure") =>
             {
                 apply_glow_defaults(1.2);
-                context.set_source_color(*colors::BRIDLEWAY2);
+                context.set_source_color(colors::BRIDLEWAY2);
                 // strokeOpacity="[trail_visibility]"
                 draw();
             }
@@ -143,7 +143,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             (14.., "highway", "piste") => {
                 apply_highway_defaults(2.2);
                 context.set_dash(&[6.0, 2.0], 0.0);
-                context.set_source_color(*colors::PISTE2);
+                context.set_source_color(colors::PISTE2);
                 draw();
             }
             _ => (),
@@ -230,7 +230,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
                 let sgw = sleeper_weight + glow_width * 2.0;
 
-                context.set_source_color(*colors::RAIL_GLOW);
+                context.set_source_color(colors::RAIL_GLOW);
                 context.set_dash(&[], 0.0);
                 context.set_line_width(gw);
                 draw_line(ctx, geom.points.iter());
@@ -269,29 +269,29 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 draw();
             }
             (12.., "railway", "rail") if ["main", ""].contains(&service) => {
-                draw_rail(*colors::RAIL, 1.5, 5.0, 9.5, 1.0);
+                draw_rail(colors::RAIL, 1.5, 5.0, 9.5, 1.0);
             }
             (13.., "railway", _)
                 if ["light_rail", "tram"].contains(&typ)
                     || typ == "rail" && service != "main" && service != "" =>
             {
-                draw_rail(*colors::TRAM, 1.0, 4.5, 9.5, 1.0);
+                draw_rail(colors::TRAM, 1.0, 4.5, 9.5, 1.0);
             }
             (
                 13..,
                 "railway",
                 "miniature" | "monorail" | "funicular" | "narrow_gauge" | "subway",
             ) => {
-                draw_rail(*colors::TRAM, 1.0, 4.5, 7.5, 1.0);
+                draw_rail(colors::TRAM, 1.0, 4.5, 7.5, 1.0);
             }
             (14.., "railway", "construction" | "disused" | "preserved") => {
-                draw_rail(*colors::RAILWAY_DISUSED, 1.0, 4.5, 7.5, 1.0);
+                draw_rail(colors::RAILWAY_DISUSED, 1.0, 4.5, 7.5, 1.0);
             }
             (8..=11, "railway", "rail") if ["main", ""].contains(&service) => {
                 let koef = 0.8 * 1.15f64.powf((zoom - 8) as f64);
 
                 draw_rail(
-                    *colors::RAIL,
+                    colors::RAIL,
                     koef,
                     10.0 / 3.0 * koef,
                     9.5 / 1.5 * koef,
@@ -316,45 +316,45 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             }
             (12.., "highway", "motorway" | "trunk") => {
                 apply_highway_defaults(2.5);
-                context.set_source_color(*colors::SUPERROAD);
+                context.set_source_color(colors::SUPERROAD);
                 draw();
 
                 draw_bridges_tunnels(2.5 + 1.0);
             }
             (12.., "highway", "motorway_link" | "trunk_link") => {
                 apply_highway_defaults(1.5 + 2.0 / 3.0);
-                context.set_source_color(*colors::SUPERROAD);
+                context.set_source_color(colors::SUPERROAD);
                 draw();
 
                 draw_bridges_tunnels(1.5 + 2.0 / 3.0 + 1.0);
             }
             (12.., "highway", "primary") => {
                 apply_highway_defaults(1.5 + 2.0 / 3.0);
-                context.set_source_color(*colors::ROAD);
+                context.set_source_color(colors::ROAD);
                 draw();
 
                 draw_bridges_tunnels(1.5 + 2.0 / 3.0 + 1.0);
             }
             (12.., "highway", "primary_link" | "secondary") => {
                 apply_highway_defaults(1.5 + 1.0 / 3.0);
-                context.set_source_color(*colors::ROAD);
+                context.set_source_color(colors::ROAD);
                 draw();
 
                 draw_bridges_tunnels(1.5 + 1.0 / 3.0 + 1.0);
             }
             (12.., "highway", "construction") => {
                 apply_highway_defaults(1.5 + 1.0 / 3.0);
-                context.set_source_color(*colors::CONSTRUCTION_ROAD_1);
+                context.set_source_color(colors::CONSTRUCTION_ROAD_1);
                 context.set_dash(&[5.0, 5.0], 0.0);
                 draw();
 
-                context.set_source_color(*colors::CONSTRUCTION_ROAD_2);
+                context.set_source_color(colors::CONSTRUCTION_ROAD_2);
                 context.set_dash(&[5.0, 5.0], 5.0);
                 draw();
             }
             (12.., "highway", "secondary_link" | "tertiary" | "tertiary_link") => {
                 apply_highway_defaults(1.5);
-                context.set_source_color(*colors::ROAD);
+                context.set_source_color(colors::ROAD);
                 draw();
 
                 draw_bridges_tunnels(1.5 + 1.0 / 3.0 + 1.0);
@@ -367,14 +367,14 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             }
             (14.., "highway", "living_street" | "residential" | "unclassified" | "road") => {
                 apply_highway_defaults(1.0);
-                context.set_source_color(*colors::ROAD);
+                context.set_source_color(colors::ROAD);
                 draw();
 
                 draw_bridges_tunnels(1.0 + 1.0);
             }
             (14.., "highway", "water_slide") => {
                 apply_highway_defaults(1.5);
-                context.set_source_color(*colors::WATER_SLIDE);
+                context.set_source_color(colors::WATER_SLIDE);
                 draw();
 
                 draw_bridges_tunnels(1.5 + 1.0);
@@ -394,7 +394,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             }
             (14.., "highway", "piste") => {
                 apply_highway_defaults(1.2);
-                context.set_source_color(*colors::PISTE);
+                context.set_source_color(colors::PISTE);
                 context.set_dash(&[9.5, 1.5], 0.0);
                 draw();
 
@@ -432,7 +432,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
                 apply_highway_defaults(width);
                 context.set_dash(&[4.0, 2.0], 0.0);
-                context.set_source_color_a(*colors::CYCLEWAY, row.get("trail_visibility"));
+                context.set_source_color_a(colors::CYCLEWAY, row.get("trail_visibility"));
                 draw();
 
                 draw_bridges_tunnels(width + 1.0);
@@ -448,7 +448,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
                 apply_highway_defaults(width);
                 context.set_dash(&[6.0, 3.0], 0.0);
-                context.set_source_color_a(*colors::CYCLEWAY, row.get("trail_visibility"));
+                context.set_source_color_a(colors::CYCLEWAY, row.get("trail_visibility"));
                 draw();
 
                 draw_bridges_tunnels(width + 1.0);
@@ -462,7 +462,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
                 apply_highway_defaults(width);
                 context.set_dash(&[3.0, 3.0], 0.0);
-                context.set_source_color_a(*colors::TRACK, row.get("trail_visibility"));
+                context.set_source_color_a(colors::TRACK, row.get("trail_visibility"));
                 draw();
 
                 draw_bridges_tunnels(width + 1.0);
@@ -472,7 +472,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
                 apply_highway_defaults(width);
                 context.set_dash(&[6.0, 3.0], 0.0);
-                context.set_source_color_a(*colors::BRIDLEWAY, row.get("trail_visibility"));
+                context.set_source_color_a(colors::BRIDLEWAY, row.get("trail_visibility"));
                 draw();
 
                 draw_bridges_tunnels(width + 1.0);
@@ -505,7 +505,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                     },
                     0.0,
                 );
-                context.set_source_color_a(*colors::TRACK, row.get("trail_visibility"));
+                context.set_source_color_a(colors::TRACK, row.get("trail_visibility"));
                 draw();
 
                 draw_bridges_tunnels(width + 1.0);

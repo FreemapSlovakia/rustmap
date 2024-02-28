@@ -68,10 +68,10 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         match typ {
             "allotments" => {
-                colour_area(*colors::ALLOTMENTS);
+                colour_area(colors::ALLOTMENTS);
             }
             "cemetery" => {
-                colour_area(*colors::GRASSY);
+                colour_area(colors::GRASSY);
                 pattern_area("images/grave.svg");
             }
             "clearcut" => {
@@ -81,57 +81,57 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 pattern_area("images/bare_rock.svg");
             }
             "beach" => {
-                colour_area(*colors::BEACH);
+                colour_area(colors::BEACH);
                 pattern_area("images/sand.svg");
             }
             "brownfield" => {
-                colour_area(*colors::BROWNFIELD);
+                colour_area(colors::BROWNFIELD);
             }
             "bog" => {
-                colour_area(*colors::GRASSY);
+                colour_area(colors::GRASSY);
                 pattern_area("images/wetland.svg");
                 pattern_area("images/bog.svg");
             }
             "college" => {
-                colour_area(*colors::COLLEGE);
+                colour_area(colors::COLLEGE);
             }
             "commercial" => {
-                colour_area(*colors::COMMERCIAL);
+                colour_area(colors::COMMERCIAL);
             }
             "dam" => {
-                colour_area(*colors::DAM);
+                colour_area(colors::DAM);
             }
             "farmland" => {
-                colour_area(*colors::FARMLAND);
+                colour_area(colors::FARMLAND);
             }
             "farmyard" => {
-                colour_area(*colors::FARMYARD);
+                colour_area(colors::FARMYARD);
             }
             "fell" => {
-                colour_area(*colors::GRASSY);
+                colour_area(colors::GRASSY);
             }
             "marsh" | "wet_meadow" | "fen" => {
-                colour_area(*colors::GRASSY);
+                colour_area(colors::GRASSY);
                 pattern_area("images/wetland.svg");
                 pattern_area("images/marsh.svg");
             }
             "footway" => {
-                colour_area(*colors::NONE);
+                colour_area(colors::NONE);
             }
             "forest" => {
-                colour_area(*colors::FOREST);
+                colour_area(colors::FOREST);
 
                 context.set_source_rgb(0.0, 0.0, 0.0);
                 context.set_line_width(1.0);
             }
             "garages" => {
-                colour_area(*colors::NONE);
+                colour_area(colors::NONE);
             }
             "grass" => {
-                colour_area(*colors::GRASSY);
+                colour_area(colors::GRASSY);
             }
             "garden" => {
-                colour_area(*colors::ORCHARD);
+                colour_area(colors::ORCHARD);
 
                 context.set_source_rgba(0.0, 0.0, 0.0, 0.2);
                 context.set_line_width(1.0);
@@ -139,127 +139,127 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 context.stroke().unwrap();
             }
             "grassland" => {
-                colour_area(*colors::GRASSY);
+                colour_area(colors::GRASSY);
             }
             "heath" => {
-                colour_area(*colors::HEATH);
+                colour_area(colors::HEATH);
             }
             "hospital" => {
-                colour_area(*colors::HOSPITAL);
+                colour_area(colors::HOSPITAL);
             }
             "industrial" => {
-                colour_area(*colors::INDUSTRIAL);
+                colour_area(colors::INDUSTRIAL);
             }
             "landfill" => {
-                colour_area(*colors::LANDFILL);
+                colour_area(colors::LANDFILL);
             }
             "living_street" => {
-                colour_area(*colors::RESIDENTIAL);
+                colour_area(colors::RESIDENTIAL);
             }
             "mangrove" => {
-                colour_area(*colors::GRASSY);
+                colour_area(colors::GRASSY);
                 pattern_area("images/wetland.svg");
                 pattern_area("images/mangrove.svg");
             }
             "meadow" => {
-                colour_area(*colors::GRASSY);
+                colour_area(colors::GRASSY);
             }
             "orchard" => {
-                colour_area(*colors::ORCHARD);
+                colour_area(colors::ORCHARD);
                 pattern_area("images/orchard.svg");
             }
             "park" => {
-                colour_area(*colors::GRASSY);
+                colour_area(colors::GRASSY);
             }
             "parking" => {
-                colour_area(*colors::PARKING);
+                colour_area(colors::PARKING);
 
-                context.set_source_color(*colors::PARKING_STROKE);
+                context.set_source_color(colors::PARKING_STROKE);
                 context.set_line_width(1.0);
                 draw_geometry(ctx, &geom);
                 context.stroke().unwrap();
             }
             "pedestrian" => {
-                colour_area(*colors::NONE);
+                colour_area(colors::NONE);
             }
             "pitch" | "playground" | "golf_course" | "track" => {
-                colour_area(*colors::PITCH);
+                colour_area(colors::PITCH);
 
-                context.set_source_color(*colors::PITCH_STROKE);
+                context.set_source_color(colors::PITCH_STROKE);
                 context.set_line_width(1.0);
                 draw_geometry(ctx, &geom);
                 context.stroke().unwrap();
             }
             "plant_nursery" => {
-                colour_area(*colors::SCRUB);
+                colour_area(colors::SCRUB);
                 pattern_area("images/plant_nursery.svg");
             }
             "quarry" => {
-                colour_area(*colors::QUARRY);
+                colour_area(colors::QUARRY);
                 pattern_area("images/quarry.svg");
             }
             "railway" => {
-                colour_area(*colors::NONE);
+                colour_area(colors::NONE);
             }
             "reedbed" => {
-                colour_area(*colors::GRASSY);
+                colour_area(colors::GRASSY);
                 pattern_area("images/wetland.svg");
                 pattern_area("images/reedbed.svg");
             }
             "recreation_ground" => {
-                colour_area(*colors::NONE);
+                colour_area(colors::NONE);
             }
             "residential" => {
-                colour_area(*colors::RESIDENTIAL);
+                colour_area(colors::RESIDENTIAL);
             }
             "retail" => {
-                colour_area(*colors::COMMERCIAL);
+                colour_area(colors::COMMERCIAL);
             }
             "silo" => {
-                colour_area(*colors::SILO);
+                colour_area(colors::SILO);
 
-                context.set_source_color(*colors::SILO_STROKE);
+                context.set_source_color(colors::SILO_STROKE);
                 context.set_line_width(1.0);
                 draw_geometry(ctx, &geom);
                 context.stroke().unwrap();
             }
             "school" => {
-                colour_area(*colors::COLLEGE);
+                colour_area(colors::COLLEGE);
             }
             "scree" => {
-                colour_area(*colors::SCREE);
+                colour_area(colors::SCREE);
                 pattern_area("images/scree.svg");
             }
             "scrub" => {
-                colour_area(*colors::SCRUB);
+                colour_area(colors::SCRUB);
                 pattern_area("images/scrub.svg");
             }
             "swamp" => {
-                colour_area(*colors::GRASSY);
+                colour_area(colors::GRASSY);
                 pattern_area("images/wetland.svg");
                 pattern_area("images/swamp.svg");
             }
             "university" => {
-                colour_area(*colors::COLLEGE);
+                colour_area(colors::COLLEGE);
             }
             "village_green" => {
-                colour_area(*colors::GRASSY);
+                colour_area(colors::GRASSY);
             }
             "vineyard" => {
-                colour_area(*colors::ORCHARD);
+                colour_area(colors::ORCHARD);
                 pattern_area("images/grapes.svg");
             }
             "wastewater_plant" => {
-                colour_area(*colors::INDUSTRIAL);
+                colour_area(colors::INDUSTRIAL);
             }
             "weir" => {
-                colour_area(*colors::DAM);
+                colour_area(colors::DAM);
             }
             "wetland" => {
                 pattern_area("images/wetland.svg");
             }
             "wood" => {
-                colour_area(*colors::FOREST);
+                colour_area(colors::FOREST);
             }
             _ => (),
         }

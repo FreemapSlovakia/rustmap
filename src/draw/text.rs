@@ -32,8 +32,8 @@ impl Default for TextOptions<'_> {
     fn default() -> Self {
         TextOptions {
             alpha: 1.0,
-            color: *colors::BLACK,
-            halo_color: *colors::WHITE,
+            color: colors::BLACK,
+            halo_color: colors::WHITE,
             halo_opacity: 0.75,
             halo_width: 1.5,
             letter_spacing: 0.0,

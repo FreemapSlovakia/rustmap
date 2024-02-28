@@ -17,6 +17,7 @@ pub mod protected_areas;
 pub mod roads;
 pub mod road_access_restrictions;
 pub mod routes;
+pub mod solar_power_plants;
 pub mod trees;
 pub mod water_area_names;
 pub mod water_areas;

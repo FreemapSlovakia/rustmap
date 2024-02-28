@@ -1,7 +1,11 @@
 use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::{draw::{draw_geometry, draw_geometry_uni, draw_line_off}, hatch::hatch_geometry, line_pattern::draw_line_pattern},
+    draw::{
+        draw::{draw_geometry, draw_geometry_uni, draw_line_off},
+        hatch::hatch_geometry,
+        line_pattern::draw_line_pattern,
+    },
 };
 use core::slice::Iter;
 use postgis::ewkb::{Geometry, Point};
@@ -35,7 +39,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             let geom: Geometry = row.get("geometry");
 
             if typ == "national_park" || typ == "protected_area" && protect_class == "2" {
-                ctx.context.push_group();
+                context.push_group();
 
                 draw_geometry(ctx, &geom);
 
@@ -43,11 +47,10 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
                 hatch_geometry(ctx, &geom, 3.0, -45.0);
 
-                ctx.context
-                    .set_source_color_a(*colors::PROTECTED, if zoom < 11 { 0.5 } else { 0.4 });
-                ctx.context.set_dash(&[], 0.0);
-                ctx.context.set_line_width(0.7);
-                ctx.context.stroke().unwrap();
+                context.set_source_color_a(colors::PROTECTED, if zoom < 11 { 0.5 } else { 0.4 });
+                context.set_dash(&[], 0.0);
+                context.set_line_width(0.7);
+                context.stroke().unwrap();
 
                 context.pop_group_to_source().unwrap();
                 context.paint().unwrap();
@@ -80,7 +83,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 2.0
             };
 
-            ctx.context.set_source_color(*colors::PROTECTED);
+            ctx.context.set_source_color(colors::PROTECTED);
             ctx.context.set_dash(&[], 0.0);
             ctx.context.set_line_width(wb * 0.75);
             ctx.context.set_line_join(cairo::LineJoin::Round);
@@ -88,7 +91,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             ctx.context.stroke().unwrap();
 
             ctx.context.set_line_width(wb);
-            ctx.context.set_source_color_a(*colors::PROTECTED, 0.5);
+            ctx.context.set_source_color_a(colors::PROTECTED, 0.5);
             draw_geometry_uni(&geom, &|iter| draw_line_off(ctx, iter, wb * 0.75));
             ctx.context.stroke().unwrap();
         }

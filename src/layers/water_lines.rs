@@ -59,7 +59,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
             if glow {
                 if *zoom >= 12 {
-                    context.set_source_color(*colors::WATER);
+                    context.set_source_color(colors::WATER);
 
                     context.set_source_rgba(
                         1.0,
@@ -82,7 +82,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 }
             } else {
                 context
-                    .set_source_color_a(*colors::WATER, if row.get("tunnel") { 0.33 } else { 1.0 });
+                    .set_source_color_a(colors::WATER, if row.get("tunnel") { 0.33 } else { 1.0 });
 
                 context.set_line_width(width);
 

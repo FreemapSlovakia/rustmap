@@ -29,9 +29,9 @@ pub fn render_lines(ctx: &Ctx, client: &mut Client) {
 
         context.set_source_color_a(
             if row.get::<_, &str>("type") == "line" {
-                *colors::POWER_LINE
+                colors::POWER_LINE
             } else {
-                *colors::POWER_LINE_MINOR
+                colors::POWER_LINE_MINOR
             },
             0.5,
         );
@@ -69,9 +69,9 @@ pub fn render_towers_poles(ctx: &Ctx, client: &mut Client) {
         let geom: Point = row.get("geometry");
 
         context.set_source_color(if row.get::<_, &str>("type") == "pole" {
-            *colors::POWER_LINE_MINOR
+            colors::POWER_LINE_MINOR
         } else {
-            *colors::POWER_LINE
+            colors::POWER_LINE
         });
 
         let p = geom.project(ctx);

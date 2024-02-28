@@ -23,11 +23,11 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         match row.get("type") {
             "city_wall" => {
                 context.set_dash(&[], 0.0);
-                context.set_source_color(*colors::BUILDING);
+                context.set_source_color(colors::BUILDING);
                 context.set_line_width(2.0);
             }
             "hedge" => {
-                context.set_source_color(*colors::PITCH);
+                context.set_source_color(colors::PITCH);
                 context.set_line_width(*zoom as f64 - 14.0);
                 context.set_dash(&[0.01, *zoom as f64 - 14.0], 0.0);
                 context.set_line_join(cairo::LineJoin::Round);
@@ -36,7 +36,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             _ => {
                 context.set_dash(&[2.0, 1.0], 0.0);
                 context.set_line_width(1.0);
-                context.set_source_color(*colors::BARRIERWAY);
+                context.set_source_color(colors::BARRIERWAY);
             }
         }
 

@@ -52,7 +52,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         context.set_line_width(width);
 
-        context.set_source_color_a(*colors::CONTOUR, 1.0 / 3.0);
+        context.set_source_color_a(colors::CONTOUR, 1.0 / 3.0);
 
         // draw_line(&ctx, geom.points.iter());
 

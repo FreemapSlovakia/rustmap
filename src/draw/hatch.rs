@@ -47,7 +47,7 @@ pub fn hatch(ctx: &Ctx, iter: Iter<PgPoint>, spacing: f64, angle: f64) {
 
     let len = (max_x - min_x).hypot(max_y - min_y) / 2.0 + 1.0;
 
-    let d = perpendicular_distance((0.0, 0.0), (x, y), angle) % spacing;
+    let d = perpendicular_distance((0.0, 0.0), (x, y), angle) % spacing + 0.5;
 
     ctx.context.save().unwrap();
 
