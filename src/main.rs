@@ -4,7 +4,7 @@ extern crate lazy_static;
 use crate::{
     collision::Collision,
     layers::{
-        aerialways, barrierways, borders, bridge_areas, building_names, buildings, contours, hillshading, housenumbers, landuse, locality_names, military_areas, pipelines, place_names, power_lines, protected_area_names, protected_areas, road_access_restrictions, roads, routes, solar_power_plants, trees, water_area_names, water_areas, water_lines
+        aerialways, aeroways, barrierways, borders, bridge_areas, building_names, buildings, contours, hillshading, housenumbers, landuse, locality_names, military_areas, pipelines, place_names, power_lines, protected_area_names, protected_areas, road_access_restrictions, roads, routes, solar_power_plants, trees, water_area_names, water_areas, water_lines
     },
 };
 use cache::Cache;
@@ -150,7 +150,7 @@ fn render<'a>(
             trees::render(&ctx, client);
         }
 
-        if zoom >= 11 {
+        if zoom >= 12 {
             pipelines::render(&ctx, client);
         }
 
@@ -180,12 +180,16 @@ fn render<'a>(
         context.pop_group_to_source().unwrap();
         context.paint().unwrap();
 
-        if zoom >= 13 {
-            buildings::render(&ctx, client);
+        if zoom >= 11 {
+            aeroways::render(&ctx, client);
         }
 
         if zoom >= 12 {
             solar_power_plants::render(&ctx, client);
+        }
+
+        if zoom >= 13 {
+            buildings::render(&ctx, client);
         }
 
         if zoom >= 16 {

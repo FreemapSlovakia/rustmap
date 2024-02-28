@@ -1,4 +1,5 @@
 pub mod aerialways;
+pub mod aeroways;
 pub mod barrierways;
 pub mod borders;
 pub mod bridge_areas;
