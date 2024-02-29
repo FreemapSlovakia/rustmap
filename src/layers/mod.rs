@@ -6,6 +6,7 @@ pub mod bridge_areas;
 pub mod building_names;
 pub mod buildings;
 pub mod contours;
+pub mod cutlines;
 pub mod hillshading;
 pub mod housenumbers;
 pub mod landuse;
