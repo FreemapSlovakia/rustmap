@@ -1,12 +1,12 @@
 use postgis::ewkb::Geometry;
 use postgres::Client;
 
-use crate::{ctx::Ctx, draw::draw::draw_geometry};
+use crate::{bbox::BBox, ctx::Ctx, draw::draw::draw_geometry};
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
         context,
-        bbox: (min_x, min_y, max_x, max_y),
+        bbox: BBox { min_x, min_y, max_x, max_y },
         ..
     } = ctx;
 

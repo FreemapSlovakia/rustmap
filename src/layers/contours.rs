@@ -1,4 +1,5 @@
 use crate::{
+    bbox::BBox,
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::smooth_line::draw_smooth_bezier_spline,
@@ -8,7 +9,13 @@ use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
-        bbox: (min_x, min_y, max_x, max_y),
+        bbox:
+            BBox {
+                min_x,
+                min_y,
+                max_x,
+                max_y,
+            },
         context,
         zoom,
         ..

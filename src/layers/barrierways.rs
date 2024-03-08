@@ -2,6 +2,7 @@ use postgis::ewkb::LineString;
 use postgres::Client;
 
 use crate::{
+    bbox::BBox,
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::draw::draw_line,
@@ -10,7 +11,13 @@ use crate::{
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
         context,
-        bbox: (min_x, min_y, max_x, max_y),
+        bbox:
+            BBox {
+                min_x,
+                min_y,
+                max_x,
+                max_y,
+            },
         zoom,
         ..
     } = ctx;

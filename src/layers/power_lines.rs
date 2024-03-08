@@ -1,15 +1,13 @@
 use postgis::ewkb::{LineString, Point};
 use postgres::Client;
 use crate::{
-    colors::{self, ContextExt},
-    ctx::Ctx,
-    draw::draw::{draw_line, Projectable},
+    bbox::BBox, colors::{self, ContextExt}, ctx::Ctx, draw::draw::{draw_line, Projectable}
 };
 
 pub fn render_lines(ctx: &Ctx, client: &mut Client) {
     let Ctx {
         context,
-        bbox: (min_x, min_y, max_x, max_y),
+        bbox: BBox { min_x, min_y, max_x, max_y },
         ..
     } = ctx;
 
@@ -48,7 +46,7 @@ pub fn render_lines(ctx: &Ctx, client: &mut Client) {
 pub fn render_towers_poles(ctx: &Ctx, client: &mut Client) {
     let Ctx {
         context,
-        bbox: (min_x, min_y, max_x, max_y),
+        bbox: BBox { min_x, min_y, max_x, max_y },
         scale,
         ..
     } = ctx;

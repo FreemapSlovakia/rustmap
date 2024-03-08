@@ -3,6 +3,7 @@ extern crate lazy_static;
 
 use crate::{
     collision::Collision,
+    draw::text_on_path::draw_text_on_path,
     layers::{
         aerialways, aeroways, barrierways, borders, bridge_areas, building_names, buildings,
         contours, cutlines, hillshading, housenumbers, landuse, locality_names, military_areas,
@@ -26,6 +27,7 @@ use regex::Regex;
 use std::{cell::RefCell, collections::HashMap, ops::Deref, time::Duration};
 use xyz::{bbox_size_in_pixels, tile_bounds_to_epsg3857};
 
+mod bbox;
 mod cache;
 mod collision;
 mod colors;
@@ -33,6 +35,7 @@ mod ctx;
 mod draw;
 mod layers;
 mod point;
+mod size;
 mod xyz;
 
 thread_local! {
@@ -116,17 +119,17 @@ fn render<'a>(
 
     let bbox = tile_bounds_to_epsg3857(x, y, zoom, 256);
 
-    let (w, h) = bbox_size_in_pixels(bbox.0, bbox.1, bbox.2, bbox.3, zoom as f64);
-
     let is_svg = ext == "svg";
 
     let mut collision = Collision::<f64>::new();
+
+    let size = bbox_size_in_pixels(bbox, zoom as f64);
 
     let mut draw = |surface: &Surface| {
         let ctx = Ctx {
             context: Context::new(surface).unwrap(),
             bbox,
-            size: (w, h),
+            size,
             zoom,
             scale,
             cache,
@@ -139,6 +142,12 @@ fn render<'a>(
         context.set_source_rgb(1.0, 1.0, 1.0);
 
         context.paint().unwrap();
+
+        let path = context.copy_path_flat().unwrap();
+
+        draw_text_on_path(context, &path, "fimip");
+
+        // TODO sea
 
         landuse::render(&ctx, client);
 
@@ -161,6 +170,12 @@ fn render<'a>(
         if zoom >= 12 {
             pipelines::render(&ctx, client);
         }
+
+        // TODO feature lines
+
+        // TODO feature lines maskable
+
+        // TODO embankments
 
         if zoom >= 8 {
             roads::render(&ctx, client);
@@ -230,7 +245,11 @@ fn render<'a>(
         routes::render(&ctx, client, &routes::RouteTypes::all());
         context.restore().unwrap();
 
+        // TODO geonames
+
         place_names::render(&ctx, client, &mut collision);
+
+        // TODO <Features /> <FeatureNames />
 
         if zoom >= 10 {
             water_area_names::render(&ctx, client, &mut collision);
@@ -246,6 +265,10 @@ fn render<'a>(
             building_names::render(&ctx, client, &mut collision);
         }
 
+        // TODO <ProtectedAreaNames />
+
+        // TODO <LandcoverNames />
+
         if zoom >= 15 {
             locality_names::render(&ctx, client, &mut collision);
         }
@@ -254,15 +277,33 @@ fn render<'a>(
             housenumbers::render(&ctx, client, &mut collision);
         }
 
+        // <HighwayNames />
+
+        // <RouteNames {...routeProps} />
+
+        // <AerialwayNames />
+
+        // <WaterLineNames />
+
+        // <Fixmes />
+
+        // <ValleysRidges />
+
+        // <PlaceNames2 />
+
+        // <CountryNames />
+
         // context.set_line_width(1.0);
         // context.set_source_rgb(0.0, 0.0, 0.0);
         // context.rectangle(0.0, 0.0, 256.0, 256.0);
         // context.stroke().unwrap();
     };
 
+    let w = size.width as f64 * scale;
+    let h = size.height as f64 * scale;
+
     let buffer = if is_svg {
-        let surface =
-            SvgSurface::for_stream(w as f64 * scale, h as f64 * scale, Vec::new()).unwrap();
+        let surface = SvgSurface::for_stream(w, h, Vec::new()).unwrap();
 
         draw(surface.deref());
 
@@ -274,12 +315,7 @@ fn render<'a>(
     } else {
         let mut buffer = Vec::new();
 
-        let surface = ImageSurface::create(
-            Format::ARgb32,
-            (w as f64 * scale) as i32,
-            (h as f64 * scale) as i32,
-        )
-        .unwrap();
+        let surface = ImageSurface::create(Format::ARgb32, w as i32, h as i32).unwrap();
 
         draw(surface.deref());
 

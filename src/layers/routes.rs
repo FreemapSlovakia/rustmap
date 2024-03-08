@@ -4,10 +4,9 @@ use postgis::ewkb::MultiLineString;
 use postgres::Client;
 
 use crate::{
-    ctx::Ctx,
-    draw::{
+    bbox::BBox, ctx::Ctx, draw::{
         draw::draw_line_off, line_pattern::draw_polyline_outline_scaled, offset_line::offset_line,
-    },
+    }
 };
 
 const COLOR_SQL: &str = r#"
@@ -263,7 +262,7 @@ GROUP BY
 pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
     let Ctx {
         context,
-        bbox: (min_x, min_y, max_x, max_y),
+        bbox: BBox { min_x, min_y, max_x, max_y },
         ..
     } = ctx;
 

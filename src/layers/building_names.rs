@@ -1,4 +1,5 @@
 use crate::{
+    bbox::BBox,
     collision::Collision,
     ctx::Ctx,
     draw::{
@@ -12,7 +13,13 @@ use postgres::Client;
 pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     let Ctx {
         context,
-        bbox: (min_x, min_y, max_x, max_y),
+        bbox:
+            BBox {
+                min_x,
+                min_y,
+                max_x,
+                max_y,
+            },
         ..
     } = ctx;
 

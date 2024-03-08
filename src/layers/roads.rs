@@ -1,3 +1,4 @@
+use crate::bbox::BBox;
 use crate::colors::{Color, ContextExt};
 use crate::draw::markers_on_path::draw_markers_on_path;
 use crate::{colors, ctx::Ctx, draw::draw::draw_line};
@@ -6,7 +7,7 @@ use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
-        bbox: (min_x, min_y, max_x, max_y),
+        bbox: BBox { min_x, min_y, max_x, max_y },
         context,
         ..
     } = ctx;
@@ -266,6 +267,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         match (zoom, class, typ) {
             (14.., _, "pier") => {
                 apply_highway_defaults(2.0);
+                context.set_source_color(colors::PIER);
                 draw();
             }
             (12.., "railway", "rail") if ["main", ""].contains(&service) => {

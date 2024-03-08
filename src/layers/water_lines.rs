@@ -1,14 +1,12 @@
 use crate::{
-    colors::{self, ContextExt},
-    ctx::Ctx,
-    draw::{markers_on_path::draw_markers_on_path, smooth_line::draw_smooth_bezier_spline},
+    bbox::BBox, colors::{self, ContextExt}, ctx::Ctx, draw::{markers_on_path::draw_markers_on_path, smooth_line::draw_smooth_bezier_spline}
 };
 use postgis::ewkb::LineString;
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
-        bbox: (min_x, min_y, max_x, max_y),
+        bbox: BBox { min_x, min_y, max_x, max_y },
         context,
         zoom,
         ..

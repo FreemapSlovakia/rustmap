@@ -1,11 +1,11 @@
-use crate::{ctx::Ctx, draw::draw::draw_line};
+use crate::{ctx::Ctx, draw::draw::draw_line, bbox::BBox};
 use postgis::ewkb::LineString;
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
         context,
-        bbox: (min_x, min_y, max_x, max_y),
+        bbox: BBox {min_x, min_y, max_x, max_y},
         ..
     } = ctx;
 

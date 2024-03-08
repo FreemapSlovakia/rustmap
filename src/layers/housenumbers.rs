@@ -1,11 +1,8 @@
 use crate::{
-    collision::Collision,
-    colors,
-    ctx::Ctx,
-    draw::{
+    bbox::BBox, collision::Collision, colors, ctx::Ctx, draw::{
         draw::Projectable,
         text::{draw_text, TextOptions},
-    },
+    }
 };
 use postgis::ewkb::Point;
 use postgres::Client;
@@ -13,7 +10,7 @@ use postgres::Client;
 pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     let Ctx {
         context,
-        bbox: (min_x, min_y, max_x, max_y),
+        bbox: BBox { min_x, min_y, max_x, max_y },
         ..
     } = ctx;
 

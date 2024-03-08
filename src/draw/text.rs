@@ -1,4 +1,5 @@
 use crate::{
+    bbox::BBox,
     collision::Collision,
     colors::{self, Color, ContextExt},
     point::Point,
@@ -76,13 +77,17 @@ pub fn draw_text(
     let max_width = max_width - 2.0 * halo_width;
 
     let mut font_description = FontDescription::new();
+
     font_description.set_family(if *narrow {
         "PT Sans Narrow,Fira Sans Extra Condensed,Noto Sans"
     } else {
         "PT Sans,Fira Sans Condensed,Noto Sans"
     });
+
     font_description.set_weight(*weight);
+
     font_description.set_size((pango::SCALE as f64 * size * 0.75) as i32);
+
     font_description.set_style(*style);
 
     layout.set_font_description(Some(&font_description));
@@ -105,7 +110,9 @@ pub fn draw_text(
 
     let attr_list = AttrList::new();
 
-    attr_list.insert(AttrInt::new_letter_spacing((pango::SCALE as f64 * *letter_spacing) as i32));
+    attr_list.insert(AttrInt::new_letter_spacing(
+        (pango::SCALE as f64 * *letter_spacing) as i32,
+    ));
 
     layout.set_attributes(Some(&attr_list));
 
@@ -125,15 +132,11 @@ pub fn draw_text(
     for dy in *placements {
         let y = *dy + p.y - size.1 as f64 / 2.0;
 
-        let ci = (
-            (
-                x - halo_width + ext.0.x() as f64,
-                x + 2.0 * halo_width + (ext.0.x() + ext.0.width()) as f64,
-            ),
-            (
-                y - halo_width + ext.0.y() as f64,
-                y + 2.0 * halo_width + (ext.0.y() + ext.0.height()) as f64,
-            ),
+        let ci = BBox::new(
+            x - halo_width + ext.0.x() as f64,
+            y - halo_width + ext.0.y() as f64,
+            x + 2.0 * halo_width + (ext.0.x() + ext.0.width()) as f64,
+            y + 2.0 * halo_width + (ext.0.y() + ext.0.height()) as f64,
         );
 
         if collision.collides(ci) {
@@ -141,6 +144,11 @@ pub fn draw_text(
         }
 
         collision.add(ci);
+
+        context.rectangle(ci.min_x, ci.min_y, ci.get_width(), ci.get_height());
+        context.set_line_width(1.0);
+        context.set_source_rgb(1.0, 0.0, 0.0);
+        context.stroke().unwrap();
 
         my = Some(y);
 

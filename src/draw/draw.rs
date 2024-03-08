@@ -4,31 +4,28 @@ use core::slice::Iter;
 use postgis::ewkb::{Geometry, Point as PgPoint, Polygon};
 
 pub trait Projectable {
-    fn get(&self) -> (f64, f64);
+    fn get(&self) -> Point;
 
     fn project(&self, ctx: &Ctx) -> Point {
         let Ctx {
-            bbox: (min_x, min_y, max_x, max_y),
-            size: (w_i, h_i),
+            bbox,
+            size,
             ..
         } = ctx;
 
-        let w = *w_i as f64;
-        let h = *h_i as f64;
+        let point = self.get();
 
-        let (px, py) = self.get();
+        let x = ((point.x - bbox.min_x) / bbox.get_width()) * size.width as f64;
 
-        let x = ((px - min_x) / (max_x - min_x)) * w;
-
-        let y = h - ((py - min_y) / (max_y - min_y)) * h;
+        let y = (1.0 - ((point.y - bbox.min_y) / bbox.get_height())) * size.height as f64;
 
         Point::new(x, y)
     }
 }
 
 impl Projectable for PgPoint {
-    fn get(&self) -> (f64, f64) {
-        (self.x, self.y)
+    fn get(&self) -> Point {
+        Point::new(self.x, self.y)
     }
 }
 

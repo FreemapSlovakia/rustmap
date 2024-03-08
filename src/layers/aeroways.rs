@@ -1,4 +1,5 @@
 use crate::{
+    bbox::BBox,
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::draw::draw_line,
@@ -9,7 +10,13 @@ use postgres::Client;
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
         context,
-        bbox: (min_x, min_y, max_x, max_y),
+        bbox:
+            BBox {
+                min_x,
+                min_y,
+                max_x,
+                max_y,
+            },
         ..
     } = ctx;
 

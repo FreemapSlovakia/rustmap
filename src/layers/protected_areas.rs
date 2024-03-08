@@ -1,11 +1,9 @@
 use crate::{
-    colors::{self, ContextExt},
-    ctx::Ctx,
-    draw::{
+    bbox::BBox, colors::{self, ContextExt}, ctx::Ctx, draw::{
         draw::{draw_geometry, draw_geometry_uni, draw_line_off},
         hatch::hatch_geometry,
         line_pattern::draw_line_pattern,
-    },
+    }
 };
 use core::slice::Iter;
 use postgis::ewkb::{Geometry, Point};
@@ -18,7 +16,7 @@ fn draw_protected_area_border(ctx: &Ctx, iter: Iter<Point>) {
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
         context,
-        bbox: (min_x, min_y, max_x, max_y),
+        bbox: BBox { min_x, min_y, max_x, max_y },
         ..
     } = ctx;
 

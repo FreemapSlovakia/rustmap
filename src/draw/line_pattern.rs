@@ -149,8 +149,8 @@ pub fn draw_polyline_outline_scaled(
 
         let min_x = -width * 10.0;
         let min_y = -height * 10.0;
-        let max_x = ctx.size.0 as f64 + width * 10.0;
-        let max_y = ctx.size.1 as f64 + height * 10.0;
+        let max_x = ctx.size.width as f64 + width * 10.0;
+        let max_y = ctx.size.height as f64 + height * 10.0;
 
         if p1.x < min_x && p2.x < min_x
             || p1.y < min_y && p2.y < min_y

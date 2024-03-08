@@ -1,4 +1,4 @@
-use crate::ctx::Ctx;
+use crate::{bbox::BBox, ctx::Ctx};
 use cairo::{Format, ImageSurface};
 use gdal::Dataset;
 
@@ -12,8 +12,8 @@ fn read_rgba_from_gdal(
     scale: f64,
 ) -> Vec<u8> {
     let Ctx {
-        bbox: (min_x, min_y, max_x, max_y),
-        size: (w, h),
+        bbox: BBox { min_x, min_y, max_x, max_y },
+        size,
         ..
     } = ctx;
 
@@ -28,9 +28,9 @@ fn read_rgba_from_gdal(
     let source_width = (pixel_max_x - pixel_min_x) as usize;
     let source_height = (pixel_max_y - pixel_min_y) as usize;
 
-    let w_scaled = (*w as f64 * scale) as usize;
+    let w_scaled = (size.width as f64 * scale) as usize;
 
-    let h_scaled = (*h as f64 * scale) as usize;
+    let h_scaled = (size.height as f64 * scale) as usize;
 
     let band_size = (w_scaled * h_scaled) as usize;
 
@@ -111,7 +111,7 @@ fn read_rgba_from_gdal(
 pub fn render(ctx: &Ctx) {
     let Ctx {
         context,
-        size: (w, h),
+        size,
         cache,
         zoom,
         scale,
@@ -141,9 +141,9 @@ pub fn render(ctx: &Ctx) {
     let surface = ImageSurface::create_for_data(
         rgba_data.to_vec(),
         Format::ARgb32,
-        (*w as f64 * scale) as i32,
-        (*h as f64 * scale) as i32,
-        (*w as f64 * scale) as i32 * 4,
+        (size.width as f64 * scale) as i32,
+        (size.height as f64 * scale) as i32,
+        (size.width as f64 * scale) as i32 * 4,
     )
     .unwrap();
 

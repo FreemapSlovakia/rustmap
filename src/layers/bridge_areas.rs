@@ -2,16 +2,14 @@ use postgis::ewkb::Geometry;
 use postgres::Client;
 
 use crate::{
-    colors::{self, ContextExt},
-    ctx::Ctx,
-    draw::draw::draw_geometry,
+    bbox::BBox, colors::{self, ContextExt}, ctx::Ctx, draw::draw::draw_geometry
 };
 
 pub fn render(ctx: &Ctx, client: &mut Client, mask: bool) {
     let Ctx {
-        bbox: (min_x, min_y, max_x, max_y),
+        bbox: BBox {min_x, min_y, max_x, max_y},
         context,
-        size: (width, height),
+        size,
         ..
     } = ctx;
 
@@ -25,7 +23,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, mask: bool) {
         let geom: Geometry = row.get("geometry");
 
         if mask {
-            context.rectangle(0.0, 0.0, *width as f64, *height as f64);
+            context.rectangle(0.0, 0.0, size.width as f64, size.height as f64);
             draw_geometry(ctx, &geom);
             context.clip();
         } else {

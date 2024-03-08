@@ -3,14 +3,13 @@ use postgres::Client;
 use std::cell::Cell;
 
 use crate::{
-    ctx::Ctx,
-    draw::{draw::draw_geometry, markers_on_path::draw_markers_on_path},
+    bbox::BBox, ctx::Ctx, draw::{draw::draw_geometry, markers_on_path::draw_markers_on_path}
 };
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
         context,
-        bbox: (min_x, min_y, max_x, max_y),
+        bbox: BBox { min_x, min_y, max_x, max_y },
         ..
     } = ctx;
 

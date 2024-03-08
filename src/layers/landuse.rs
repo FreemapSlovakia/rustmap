@@ -1,8 +1,5 @@
 use crate::{
-    colors::{self, Color, ContextExt},
-    ctx::Ctx,
-    draw::draw::draw_geometry,
-    xyz::to_absolute_pixel_coords,
+    bbox::BBox, colors::{self, Color, ContextExt}, ctx::Ctx, draw::draw::draw_geometry, xyz::to_absolute_pixel_coords
 };
 use cairo::{Extend, Matrix, SurfacePattern};
 use postgis::ewkb::Geometry;
@@ -10,7 +7,7 @@ use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
-        bbox: (min_x, min_y, max_x, max_y),
+        bbox: BBox { min_x, min_y, max_x, max_y },
         zoom,
         context,
         ..
