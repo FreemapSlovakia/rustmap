@@ -4,6 +4,7 @@ use crate::{
         text::{self, draw_text, TextOptions},
     }
 };
+use pangocairo::pango::Weight;
 use postgis::ewkb::Point;
 use postgres::Client;
 
@@ -61,7 +62,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
                 uppercase,
                 narrow: true,
                 alpha: if zoom <= 14 { 1.0 } else { 0.5 },
-                weight: pango::Weight::Bold,
+                weight: Weight::Bold,
                 letter_spacing: 1.0,
                 placements: text::DEFAULT_PLACEMENTS,
                 ..TextOptions::default()

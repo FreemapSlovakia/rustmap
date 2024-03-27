@@ -35,20 +35,17 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     for row in rows {
         let geom: Option<Geometry> = row.get("geometry");
 
-        match geom {
-            Some(geometry) => {
-                ctx.context.set_dash(&[], 0.0);
-                ctx.context.set_source_color(colors::ADMIN_BORDER);
-                ctx.context.set_line_width(if zoom <= 10 {
-                    0.5 + 6.0 * 1.4f64.powf(zoom as f64 - 11.0)
-                } else {
-                    6.0
-                });
-                ctx.context.set_line_join(cairo::LineJoin::Round);
-                draw_geometry(ctx, &geometry);
-                ctx.context.stroke().unwrap();
-            }
-            None => {}
+        if let Some(geometry) = geom {
+            ctx.context.set_dash(&[], 0.0);
+            ctx.context.set_source_color(colors::ADMIN_BORDER);
+            ctx.context.set_line_width(if zoom <= 10 {
+                0.5 + 6.0 * 1.4f64.powf(zoom as f64 - 11.0)
+            } else {
+                6.0
+            });
+            ctx.context.set_line_join(cairo::LineJoin::Round);
+            draw_geometry(ctx, &geometry);
+            ctx.context.stroke().unwrap();
         }
     }
 

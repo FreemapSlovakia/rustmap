@@ -69,7 +69,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         let class: &str = row.get("class");
 
         let draw = || {
-            draw_line(&ctx, geom.points.iter());
+            draw_line(ctx, geom.points.iter());
 
             context.stroke().unwrap();
         };
@@ -161,7 +161,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         let service: &str = row.get("service");
 
         let draw = || {
-            draw_line(&ctx, geom.points.iter());
+            draw_line(ctx, geom.points.iter());
 
             context.stroke().unwrap();
         };
@@ -275,7 +275,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             }
             (13.., "railway", _)
                 if ["light_rail", "tram"].contains(&typ)
-                    || typ == "rail" && service != "main" && service != "" =>
+                    || typ == "rail" && service != "main" && !service.is_empty() =>
             {
                 draw_rail(colors::TRAM, 1.0, 4.5, 9.5, 1.0);
             }
@@ -527,7 +527,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         let oneway = row.get::<_, i16>("oneway");
 
         if zoom >= 14 && oneway != 0 {
-            draw_line(&ctx, geom.points.iter());
+            draw_line(ctx, geom.points.iter());
 
             let path = context.copy_path().unwrap();
 

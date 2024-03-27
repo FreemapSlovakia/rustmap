@@ -15,7 +15,7 @@ impl Cache {
         let maybe_cached = svg_map.get(key);
 
         if maybe_cached.is_none() {
-            let (path, stylesheet) = key.split_once("|").unwrap_or((key, ""));
+            let (path, stylesheet) = key.split_once('|').unwrap_or((key, ""));
 
             let mut handle = Loader::new().read_path(path).unwrap();
 

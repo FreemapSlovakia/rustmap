@@ -3,7 +3,6 @@ extern crate lazy_static;
 
 use crate::{
     collision::Collision,
-    draw::text_on_path::draw_text_on_path,
     layers::{
         aerialways, aeroways, barrierways, borders, bridge_areas, building_names, buildings,
         contours, cutlines, hillshading, housenumbers, landuse, locality_names, military_areas,
@@ -24,7 +23,13 @@ use postgres::{Config, NoTls};
 use r2d2::PooledConnection;
 use r2d2_postgres::PostgresConnectionManager;
 use regex::Regex;
-use std::{cell::RefCell, collections::HashMap, ops::Deref, time::Duration};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    net::Ipv4Addr,
+    ops::Deref,
+    time::Duration,
+};
 use xyz::{bbox_size_in_pixels, tile_bounds_to_epsg3857};
 
 mod bbox;
@@ -68,21 +73,21 @@ pub fn main() {
 
     let pool = r2d2::Pool::builder().max_size(24).build(manager).unwrap();
 
-    let mut server = Server::new(move |request| {
+    Server::new(move |request| {
         let mut conn = pool.get().unwrap();
 
         THREAD_LOCAL_DATA.with(|f| render(request, &mut conn, f))
-    });
-
-    server.set_num_threads(128);
-
-    // Raise a timeout error if the client does not respond after 10s.
-    server.set_global_timeout(Duration::from_secs(10));
-
-    server.listen(("localhost", 3050)).unwrap();
+    })
+    .with_max_concurrent_connections(128)
+    .with_global_timeout(Duration::from_secs(10))
+    .bind((Ipv4Addr::LOCALHOST, 8080))
+    .spawn()
+    .unwrap()
+    .join()
+    .unwrap();
 }
 
-fn render<'a>(
+fn render(
     request: &mut Request,
     client: &mut PooledConnection<PostgresConnectionManager<NoTls>>,
     cache: &RefCell<Cache>,
@@ -126,7 +131,7 @@ fn render<'a>(
     let size = bbox_size_in_pixels(bbox, zoom as f64);
 
     let mut draw = |surface: &Surface| {
-        let ctx = Ctx {
+        let ctx = &Ctx {
             context: Context::new(surface).unwrap(),
             bbox,
             size,
@@ -137,38 +142,40 @@ fn render<'a>(
 
         let context = &ctx.context;
 
+        let ctx = &ctx;
+
         context.scale(scale, scale);
 
         context.set_source_rgb(1.0, 1.0, 1.0);
 
         context.paint().unwrap();
 
-        let path = context.copy_path_flat().unwrap();
+        // let path = context.copy_path_flat().unwrap();
 
-        draw_text_on_path(context, &path, "fimip");
+        // draw_text_on_path(context, &path, "fimip");
 
         // TODO sea
 
-        landuse::render(&ctx, client);
+        landuse::render(ctx, client);
 
         if zoom >= 13 {
-            cutlines::render(&ctx, client);
+            cutlines::render(ctx, client);
         }
 
-        water_lines::render(&ctx, client);
+        water_lines::render(ctx, client);
 
-        water_areas::render(&ctx, client);
+        water_areas::render(ctx, client);
 
         if zoom >= 15 {
-            bridge_areas::render(&ctx, client, false);
+            bridge_areas::render(ctx, client, false);
         }
 
         if zoom >= 16 {
-            trees::render(&ctx, client);
+            trees::render(ctx, client);
         }
 
         if zoom >= 12 {
-            pipelines::render(&ctx, client);
+            pipelines::render(ctx, client);
         }
 
         // TODO feature lines
@@ -178,24 +185,24 @@ fn render<'a>(
         // TODO embankments
 
         if zoom >= 8 {
-            roads::render(&ctx, client);
+            roads::render(ctx, client);
         }
 
         if zoom >= 14 {
-            road_access_restrictions::render(&ctx, client);
+            road_access_restrictions::render(ctx, client);
         }
 
         context.push_group();
 
         if zoom >= 15 {
-            bridge_areas::render(&ctx, client, true); // mask
+            bridge_areas::render(ctx, client, true); // mask
         }
 
-        hillshading::render(&ctx);
+        hillshading::render(ctx);
 
         if zoom >= 12 {
             context.push_group();
-            contours::render(&ctx, client);
+            contours::render(ctx, client);
             context.pop_group_to_source().unwrap();
             context.paint().unwrap();
         }
@@ -204,65 +211,65 @@ fn render<'a>(
         context.paint().unwrap();
 
         if zoom >= 11 {
-            aeroways::render(&ctx, client);
+            aeroways::render(ctx, client);
         }
 
         if zoom >= 12 {
-            solar_power_plants::render(&ctx, client);
+            solar_power_plants::render(ctx, client);
         }
 
         if zoom >= 13 {
-            buildings::render(&ctx, client);
+            buildings::render(ctx, client);
         }
 
         if zoom >= 16 {
-            barrierways::render(&ctx, client);
+            barrierways::render(ctx, client);
         }
 
         if zoom >= 12 {
-            aerialways::render(&ctx, client);
+            aerialways::render(ctx, client);
         }
 
         if zoom >= 13 {
-            power_lines::render_lines(&ctx, client);
+            power_lines::render_lines(ctx, client);
         }
 
         if zoom >= 14 {
-            power_lines::render_towers_poles(&ctx, client);
+            power_lines::render_towers_poles(ctx, client);
         }
 
         if zoom >= 8 {
-            protected_areas::render(&ctx, client);
+            protected_areas::render(ctx, client);
         }
 
-        borders::render(&ctx, client);
+        borders::render(ctx, client);
 
         if zoom >= 10 {
-            military_areas::render(&ctx, client);
+            military_areas::render(ctx, client);
         }
 
         context.save().unwrap();
-        routes::render(&ctx, client, &routes::RouteTypes::all());
+        routes::render(ctx, client, &routes::RouteTypes::all());
         context.restore().unwrap();
 
         // TODO geonames
 
-        place_names::render(&ctx, client, &mut collision);
+        place_names::render(ctx, client, &mut collision);
 
         // TODO <Features /> <FeatureNames />
 
         if zoom >= 10 {
-            water_area_names::render(&ctx, client, &mut collision);
+            water_area_names::render(ctx, client, &mut collision);
         }
 
         // TODO national_park_border_names
 
         if zoom >= 12 {
-            protected_area_names::render(&ctx, client, &mut collision);
+            protected_area_names::render(ctx, client, &mut collision);
         }
 
         if zoom >= 17 {
-            building_names::render(&ctx, client, &mut collision);
+            building_names::render(ctx, client, &mut collision);
         }
 
         // TODO <ProtectedAreaNames />
@@ -270,11 +277,11 @@ fn render<'a>(
         // TODO <LandcoverNames />
 
         if zoom >= 15 {
-            locality_names::render(&ctx, client, &mut collision);
+            locality_names::render(ctx, client, &mut collision);
         }
 
         if zoom >= 18 {
-            housenumbers::render(&ctx, client, &mut collision);
+            housenumbers::render(ctx, client, &mut collision);
         }
 
         // <HighwayNames />

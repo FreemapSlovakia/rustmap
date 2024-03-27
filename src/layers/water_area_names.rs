@@ -4,6 +4,7 @@ use crate::{
         text::{self, draw_text, TextOptions},
     }
 };
+use pangocairo::pango::Style;
 use postgis::ewkb::Point;
 use postgres::Client;
 
@@ -44,7 +45,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
             &TextOptions {
                 color: colors::WATER_LABEL,
                 halo_color: colors::WATER_LABEL_HALO,
-                style: pango::Style::Italic,
+                style: Style::Italic,
                 placements: text::DEFAULT_PLACEMENTS,
                 ..TextOptions::default()
             },

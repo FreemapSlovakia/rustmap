@@ -29,6 +29,6 @@ where
     }
 
     pub fn get_height(&self) -> T {
-        self.max_x - self.min_x
+        self.max_y - self.min_y
     }
 }

@@ -37,7 +37,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         WHERE wkb_geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)
         GROUP BY height",
         &[min_x, min_y, max_x, max_y, &simplify_factor]
-    ).unwrap_or(Vec::new()) {
+    ).unwrap_or_default() {
         let height: f64 = row.get("height");
 
         let width = match zoom {
@@ -61,11 +61,11 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         context.set_source_color_a(colors::CONTOUR, 1.0 / 3.0);
 
-        // draw_line(&ctx, geom.points.iter());
+        // draw_line(ctx, geom.points.iter());
 
         // context.stroke().unwrap();
 
-        draw_smooth_bezier_spline(&ctx, geom.points.iter(), 1.0);
+        draw_smooth_bezier_spline(ctx, geom.points.iter(), 1.0);
 
         context.stroke().unwrap();
     }

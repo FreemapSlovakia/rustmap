@@ -27,7 +27,7 @@ pub fn bbox_size_in_pixels(bbox: BBox<f64>, zoom: f64) -> Size<u32> {
     let height_meters = bbox.max_y - bbox.min_y;
 
     let total_span_meters = 2.0 * HALF_CIRCUMFERENCE;
-    let resolution = total_span_meters / (256.0 * 2f64.powf(zoom as f64));
+    let resolution = total_span_meters / (256.0 * 2f64.powf(zoom));
 
     let width_pixels = (width_meters / resolution).round() as u32;
     let height_pixels = (height_meters / resolution).round() as u32;
@@ -67,9 +67,5 @@ pub fn perpendicular_distance(point1: (f64, f64), point2: (f64, f64), theta: f64
 
     // Calculate the cross product magnitude (z-component of 3D cross product)
     // Cross product in 2D (extended to 3D): a_x * b_y - a_y * b_x
-    let cross_product_z = v.0 * d.1 - v.1 * d.0;
-
-    // The distance is the magnitude of the cross product result divided by the magnitude of d,
-    // since d is a unit vector, its magnitude is 1, and we can return the cross product result directly.
-    cross_product_z
+    v.0 * d.1 - v.1 * d.0
 }

@@ -35,7 +35,7 @@ pub fn draw_geometry(ctx: &Ctx, geom: &Geometry) {
 
 pub fn draw_geometry_uni<F>(geom: &Geometry, dl: &F)
 where
-    F: Fn(Iter<PgPoint>) -> (),
+    F: Fn(Iter<PgPoint>),
 {
     match geom {
         Geometry::GeometryCollection(gc) => {
@@ -44,7 +44,7 @@ where
             }
         }
         Geometry::Polygon(p) => {
-            draw_poly(&p, dl);
+            draw_poly(p, dl);
         }
         Geometry::MultiPolygon(p) => {
             for poly in &p.polygons {
@@ -65,7 +65,7 @@ where
 
 fn draw_poly<F>(poly: &Polygon, dl: &F)
 where
-    F: Fn(Iter<PgPoint>) -> (),
+    F: Fn(Iter<PgPoint>),
 {
     for ring in &poly.rings {
         dl(ring.points.iter());
@@ -142,8 +142,6 @@ pub fn draw_line_off(ctx: &Ctx, iter: Iter<PgPoint>, offset: f64) {
                             angle += std::f64::consts::PI / 10.0;
 
                             context.line_to(ox + radius * angle.cos(), oy + radius * angle.sin());
-
-                            break;
                         }
                     } else {
                         while end_angle > start_angle {

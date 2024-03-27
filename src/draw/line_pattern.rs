@@ -36,7 +36,7 @@ fn get_intersection1(p1: Point, p2: Point, p3: Point, p4: Point) -> Option<Point
 
     let t = (s2_x * (p1.y - p3.y) - s2_y * (p1.x - p3.x)) / denom;
 
-    if s >= 0.0 && s <= 1.0 && t >= 0.0 && t <= 1.0 {
+    if (0.0..=1.0).contains(&s) && (0.0..=1.0).contains(&t) {
         Some(Point::new(p1.x + t * s1_x, p1.y + t * s1_y))
     } else {
         None

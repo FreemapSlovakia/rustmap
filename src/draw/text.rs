@@ -1,3 +1,5 @@
+use std::f64::consts::PI;
+
 use crate::{
     bbox::BBox,
     collision::Collision,
@@ -5,10 +7,12 @@ use crate::{
     point::Point,
 };
 use cairo::Context;
-use pango::AttrInt;
 use pangocairo::{
-    functions::{create_layout, layout_path},
-    pango::{AttrList, FontDescription},
+    functions::{create_layout, glyph_string_path, layout_path},
+    pango::{
+        ffi::{pango_glyph_string_new, PangoGlyphString},
+        Alignment, AttrInt, AttrList, FontDescription, GlyphString, Style, Weight, WrapMode, SCALE,
+    },
 };
 
 pub struct TextOptions<'a> {
@@ -22,9 +26,9 @@ pub struct TextOptions<'a> {
     pub narrow: bool,
     pub placements: &'a [f64],
     pub size: f64,
-    pub style: pango::Style,
+    pub style: Style,
     pub uppercase: bool,
-    pub weight: pango::Weight,
+    pub weight: Weight,
 }
 
 pub static DEFAULT_PLACEMENTS: &[f64] = &[0.0, 3.0, -3.0, 6.0, -6.0, 9.0, -9.0];
@@ -42,9 +46,9 @@ impl Default for TextOptions<'_> {
             narrow: false,
             placements: &[0.0],
             size: 12.0,
-            style: pango::Style::Normal,
+            style: Style::Normal,
             uppercase: false,
-            weight: pango::Weight::Normal,
+            weight: Weight::Normal,
         }
     }
 }
@@ -52,10 +56,14 @@ impl Default for TextOptions<'_> {
 pub fn draw_text(
     context: &Context,
     collision: &mut Collision<f64>,
-    p: Point,
+    point: Point,
     original_text: &str,
     options: &TextOptions,
 ) {
+    if original_text.is_empty() {
+        return;
+    }
+
     let TextOptions {
         alpha,
         color,
@@ -86,7 +94,7 @@ pub fn draw_text(
 
     font_description.set_weight(*weight);
 
-    font_description.set_size((pango::SCALE as f64 * size * 0.75) as i32);
+    font_description.set_size((SCALE as f64 * size * 0.75) as i32);
 
     font_description.set_style(*style);
 
@@ -101,54 +109,157 @@ pub fn draw_text(
         original_text
     };
 
-    layout.set_wrap(pango::WrapMode::Word);
-    layout.set_alignment(pango::Alignment::Center);
+    // let text = "الله";
+
+    layout.set_wrap(WrapMode::Word);
+    layout.set_alignment(Alignment::Center);
     layout.set_line_spacing(0.4);
-    layout.set_width((max_width * pango::SCALE as f64) as i32);
+    layout.set_width((max_width * SCALE as f64) as i32);
 
     layout.set_text(text);
+    // layout.set_markup(r#"<span font_features="liga=1">fi</span>"#);
 
-    let attr_list = AttrList::new();
+    // let letter_spacing = &16.0;
 
-    attr_list.insert(AttrInt::new_letter_spacing(
-        (pango::SCALE as f64 * *letter_spacing) as i32,
-    ));
+    if *letter_spacing != 1.0 {
+        let attr_list = AttrList::new();
 
-    layout.set_attributes(Some(&attr_list));
+        attr_list.insert(AttrInt::new_letter_spacing(
+            (SCALE as f64 * *letter_spacing) as i32,
+        ));
 
-    let size = layout.size();
+        layout.set_attributes(Some(&attr_list));
+    }
 
-    let size = (
-        size.0 as f64 / pango::SCALE as f64,
-        size.1 as f64 / pango::SCALE as f64,
-    );
-
-    let x = p.x - max_width / 2.0;
+    let x = point.x - max_width / 2.0;
 
     let mut my: Option<f64> = None;
 
-    let ext = layout.pixel_extents();
+    let (ext, _) = layout.extents();
 
-    for dy in *placements {
-        let y = *dy + p.y - size.1 as f64 / 2.0;
+    // let layout_x = ext.x() as f64 / SCALE as f64;
 
-        let ci = BBox::new(
-            x - halo_width + ext.0.x() as f64,
-            y - halo_width + ext.0.y() as f64,
-            x + 2.0 * halo_width + (ext.0.x() + ext.0.width()) as f64,
-            y + 2.0 * halo_width + (ext.0.y() + ext.0.height()) as f64,
-        );
+    // let layout_y = ext.y() as f64 / SCALE as f64;
 
-        if collision.collides(ci) {
-            continue;
+    // let layout_width = ext.width() as f64 / SCALE as f64;
+
+    let layout_height = ext.height() as f64 / SCALE as f64;
+
+    'outer: for dy in *placements {
+        let y = *dy + point.y - layout_height / 2.0;
+
+        // let ci = BBox::new(
+        //     x - halo_width + layout_x,
+        //     y - halo_width + layout_y,
+        //     x + 2.0 * halo_width + layout_x + layout_width,
+        //     y + 2.0 * halo_width + layout_y + layout_height,
+        // );
+
+        // if collision.collides(ci) {
+        //     continue;
+        // }
+
+        // collision.add(ci);
+
+        // context.rectangle(ci.min_x, ci.min_y, ci.get_width(), ci.get_height());
+        // context.set_line_width(1.0);
+        // context.set_source_rgb(0.0, 0.0, 1.0);
+        // context.stroke().unwrap();
+
+        let mut items = Vec::new();
+
+        let mut li = layout.iter();
+
+        let t = layout.text();
+
+        // println!("==================");
+
+        let mut n = 0;
+
+        loop {
+            let (ext, _) = li.cluster_extents();
+
+            let char_x = ext.x() as f64 / SCALE as f64;
+
+            let char_y = ext.y() as f64 / SCALE as f64;
+
+            let char_width = ext.width() as f64 / SCALE as f64;
+
+            let char_height = ext.height() as f64 / SCALE as f64;
+
+            let ci = BBox::new(
+                x - halo_width + char_x,
+                y - halo_width + char_y,
+                x + 2.0 * halo_width + char_x + char_width,
+                y + 2.0 * halo_width + char_y + char_height,
+            );
+
+            context.rectangle(ci.min_x - 0.5, ci.min_y, ci.get_width(), ci.get_height());
+            context.set_line_width(1.0);
+            if n % 2 == 0 {
+                context.set_source_rgb(0.0, 1.0, 0.0);
+            } else {
+                context.set_source_rgb(0.0, 0.0, 1.0);
+            }
+
+            n += 1;
+
+            context.stroke().unwrap();
+
+            let i = li.index() as usize;
+
+            let has_next = li.next_cluster();
+
+            let ni = li.index() as usize;
+
+            let t = t.get(i..ni).unwrap(); // .chars().next().unwrap();
+            println!("II {} {}", i, t);
+
+            if !has_next {
+
+                println!("XX {}", ni);
+
+                break;
+            }
         }
 
-        collision.add(ci);
+        loop {
+            let (ext, _) = li.line_extents();
 
-        context.rectangle(ci.min_x, ci.min_y, ci.get_width(), ci.get_height());
-        context.set_line_width(1.0);
-        context.set_source_rgb(1.0, 0.0, 0.0);
-        context.stroke().unwrap();
+            let line_x = ext.x() as f64 / SCALE as f64;
+
+            let line_y = ext.y() as f64 / SCALE as f64;
+
+            let line_width = ext.width() as f64 / SCALE as f64;
+
+            let line_height = ext.height() as f64 / SCALE as f64;
+
+            let ci = BBox::new(
+                x - halo_width + line_x,
+                y - halo_width + line_y,
+                x + 2.0 * halo_width + line_x + line_width,
+                y + 2.0 * halo_width + line_y + line_height,
+            );
+
+            if collision.collides(ci) {
+                continue 'outer;
+            }
+
+            items.push(ci);
+
+            // context.rectangle(ci.min_x, ci.min_y, ci.get_width(), ci.get_height());
+            // context.set_line_width(1.0);
+            // context.set_source_rgb(1.0, 0.0, 0.0);
+            // context.stroke().unwrap();
+
+            if !li.next_line() {
+                break;
+            }
+        }
+
+        for item in items {
+            collision.add(item);
+        }
 
         my = Some(y);
 
@@ -179,18 +290,4 @@ pub fn draw_text(
     context.pop_group_to_source().unwrap();
 
     context.paint_with_alpha(*alpha).unwrap();
-
-    // context.set_source_rgb(1.0, 0.0, 0.0);
-    // context.set_dash(&[], 0.0);
-
-    // let ext = layout.pixel_extents();
-
-    // context.rectangle(
-    //     x + ext.0.x() as f64,
-    //     y + ext.0.y() as f64,
-    //     ext.0.width() as f64,
-    //     ext.0.height() as f64,
-    // );
-    // context.set_line_width(1.0);
-    // context.stroke().unwrap();
 }

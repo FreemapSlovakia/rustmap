@@ -2,7 +2,7 @@ use cairo::{Path, PathSegment};
 
 pub fn draw_markers_on_path<F>(path: &Path, offset: f64, spacing: f64, draw_maker: &F)
 where
-    F: Fn(f64, f64, f64) -> (),
+    F: Fn(f64, f64, f64),
 {
     let mut m = offset;
     let mut px = 0.0;

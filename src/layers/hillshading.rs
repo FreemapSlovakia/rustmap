@@ -32,7 +32,7 @@ fn read_rgba_from_gdal(
 
     let h_scaled = (size.height as f64 * scale) as usize;
 
-    let band_size = (w_scaled * h_scaled) as usize;
+    let band_size = w_scaled * h_scaled;
 
     let mut rgba_data = vec![0u8; band_size * 4];
 
@@ -55,7 +55,7 @@ fn read_rgba_from_gdal(
 
     let mut data = vec![0u8; hh * ww];
 
-    for band_index in 0..4 as usize {
+    for band_index in 0..4 {
         let band = dataset.rasterband(band_index as isize + 1).unwrap();
 
         band.read_into_slice::<u8>(
@@ -129,7 +129,7 @@ pub fn render(ctx: &Ctx) {
         hillshading_dataset.geo_transform().unwrap();
 
     let rgba_data = read_rgba_from_gdal(
-        &hillshading_dataset,
+        hillshading_dataset,
         ctx,
         gt_x_off,
         gt_x_width,

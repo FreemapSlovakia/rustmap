@@ -54,7 +54,7 @@ bitflags! {
   }
 }
 
-fn format_vec(vec: &Vec<&str>) -> String {
+fn format_vec(vec: &[&str]) -> String {
     if vec.is_empty() {
         "'_x_'".to_string()
     } else {
