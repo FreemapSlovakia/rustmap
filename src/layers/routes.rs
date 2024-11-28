@@ -4,9 +4,11 @@ use postgis::ewkb::MultiLineString;
 use postgres::Client;
 
 use crate::{
-    bbox::BBox, ctx::Ctx, draw::{
+    bbox::BBox,
+    ctx::Ctx,
+    draw::{
         draw::draw_line_off, line_pattern::draw_polyline_outline_scaled, offset_line::offset_line,
-    }
+    },
 };
 
 const COLOR_SQL: &str = r#"
@@ -47,10 +49,10 @@ const COLORS: [(&str, &str); 9] = [
 
 bitflags! {
   pub struct RouteTypes: u32 {
-      const HIKING = 0b00000001;
-      const HORSE = 0b00000010;
-      const BICYCLE = 0b00000100;
-      const SKI = 0b00001000;
+      const HIKING = 0b0000_0001;
+      const HORSE = 0b0000_0010;
+      const BICYCLE = 0b0000_0100;
+      const SKI = 0b0000_1000;
   }
 }
 
@@ -262,7 +264,13 @@ GROUP BY
 pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
     let Ctx {
         context,
-        bbox: BBox { min_x, min_y, max_x, max_y },
+        bbox:
+            BBox {
+                min_x,
+                min_y,
+                max_x,
+                max_y,
+            },
         ..
     } = ctx;
 

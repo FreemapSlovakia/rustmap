@@ -2,7 +2,7 @@ use cairo::Context;
 
 pub type Color = (i64, i64, i64);
 
-const M: i64 = 1000000;
+const M: i64 = 1_000_000;
 
 pub const fn hsl_to_rgb(h: u16, s: u8, l: u8) -> Color {
     let h = h as i64 * M / 360; // Convert to range [0, 1]
@@ -119,10 +119,19 @@ pub trait ContextExt {
 
 impl ContextExt for Context {
     fn set_source_color(&self, color: Color) {
-        self.set_source_rgb(color.0 as f64 / 255.0, color.1 as f64 / 255.0, color.2 as f64 / 255.0);
+        self.set_source_rgb(
+            color.0 as f64 / 255.0,
+            color.1 as f64 / 255.0,
+            color.2 as f64 / 255.0,
+        );
     }
 
     fn set_source_color_a(&self, color: Color, alpha: f64) {
-        self.set_source_rgba(color.0 as f64 / 255.0, color.1 as f64 / 255.0, color.2 as f64 / 255.0, alpha);
+        self.set_source_rgba(
+            color.0 as f64 / 255.0,
+            color.1 as f64 / 255.0,
+            color.2 as f64 / 255.0,
+            alpha,
+        );
     }
 }

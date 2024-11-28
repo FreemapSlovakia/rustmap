@@ -15,7 +15,7 @@ impl<T> BBox<T>
 where
     T: Sub<Output = T> + PartialOrd + Copy,
 {
-    pub fn new(min_x: T, min_y: T, max_x: T, max_y: T) -> Self {
+    pub const fn new(min_x: T, min_y: T, max_x: T, max_y: T) -> Self {
         Self {
             min_x,
             min_y,

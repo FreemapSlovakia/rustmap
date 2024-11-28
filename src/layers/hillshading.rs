@@ -56,7 +56,7 @@ fn read_rgba_from_gdal(
     let mut data = vec![0u8; hh * ww];
 
     for band_index in 0..4 {
-        let band = dataset.rasterband(band_index as isize + 1).unwrap();
+        let band = dataset.rasterband(band_index + 1).unwrap();
 
         band.read_into_slice::<u8>(
             (adj_window_x, adj_window_y),

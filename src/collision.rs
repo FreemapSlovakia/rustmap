@@ -12,8 +12,8 @@ impl<T> Collision<T>
 where
     T: PartialOrd + Sub<Output = T> + Copy,
 {
-    pub fn new() -> Self {
-        Collision { items: vec![] }
+    pub const fn new() -> Self {
+        Self { items: vec![] }
     }
 
     pub fn add(&mut self, item: BBox<T>) {
@@ -30,7 +30,7 @@ where
             min_y,
             max_x,
             max_y,
-        } in self.items.iter()
+        } in &self.items
         {
             if Self::overlaps(item.min_x, item.max_x, *min_x, *max_x)
                 && Self::overlaps(item.min_y, item.max_y, *min_y, *max_y)

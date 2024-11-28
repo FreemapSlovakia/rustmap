@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate lazy_static;
-
 use crate::{
     collision::Collision,
     layers::{
@@ -24,11 +21,7 @@ use r2d2::PooledConnection;
 use r2d2_postgres::PostgresConnectionManager;
 use regex::Regex;
 use std::{
-    cell::RefCell,
-    collections::HashMap,
-    net::Ipv4Addr,
-    ops::Deref,
-    time::Duration,
+    cell::RefCell, collections::HashMap, net::Ipv4Addr, ops::Deref, sync::LazyLock, time::Duration,
 };
 use xyz::{bbox_size_in_pixels, tile_bounds_to_epsg3857};
 
@@ -45,7 +38,7 @@ mod xyz;
 
 thread_local! {
     static THREAD_LOCAL_DATA: RefCell<Cache> = {
-        let dataset = Dataset::open("/home/martin/OSM/build/final.tif");
+        let dataset = Dataset::open("/home/martin/14TB/hillshading/sk/final.tif");
 
         RefCell::new(Cache {
             hillshading_dataset: match dataset {
@@ -65,7 +58,7 @@ pub fn main() {
     let manager = r2d2_postgres::PostgresConnectionManager::new(
         Config::new()
             .user("martin")
-            .password("b0n0")
+            .password("martin")
             .host("localhost")
             .to_owned(),
         NoTls,
@@ -80,7 +73,7 @@ pub fn main() {
     })
     .with_max_concurrent_connections(128)
     .with_global_timeout(Duration::from_secs(10))
-    .bind((Ipv4Addr::LOCALHOST, 8080))
+    .bind((Ipv4Addr::LOCALHOST, 3050))
     .spawn()
     .unwrap()
     .join()
@@ -88,17 +81,15 @@ pub fn main() {
 }
 
 fn render(
-    request: &mut Request,
+    request: &Request,
     client: &mut PooledConnection<PostgresConnectionManager<NoTls>>,
     cache: &RefCell<Cache>,
 ) -> Response {
     let path = request.url().path();
 
-    lazy_static! {
-        static ref URL_PATH_REGEXP: Regex =
-            Regex::new(r"/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)(?:@(?P<scale>\d+(?:\.\d*)?)x)?(?:\.(?P<ext>jpg|png|svg))?")
-                .unwrap();
-    }
+    static URL_PATH_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r"/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)(?:@(?P<scale>\d+(?:\.\d*)?)x)?(?:\.(?P<ext>jpg|png|svg))?").unwrap()
+    });
 
     let x: u32;
     let y: u32;
@@ -109,13 +100,16 @@ fn render(
     match URL_PATH_REGEXP.captures(path) {
         Some(m) => {
             x = m.name("x").unwrap().as_str().parse::<u32>().unwrap();
+
             y = m.name("y").unwrap().as_str().parse::<u32>().unwrap();
+
             zoom = m.name("zoom").unwrap().as_str().parse::<u32>().unwrap();
+
             scale = m
                 .name("scale")
-                .map(|m| m.as_str().parse::<f64>().unwrap())
-                .unwrap_or(1f64);
-            ext = m.name("ext").map(|m| m.as_str()).unwrap_or("png");
+                .map_or(1f64, |m| m.as_str().parse::<f64>().unwrap());
+
+            ext = m.name("ext").map_or("png", |m| m.as_str());
         }
         None => {
             return Response::builder(Status::BAD_REQUEST).build();
