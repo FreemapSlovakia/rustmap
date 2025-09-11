@@ -13,8 +13,8 @@ use cairo::{Context, Format, ImageSurface, Surface, SvgSurface};
 use ctx::Ctx;
 use gdal::Dataset;
 use oxhttp::{
-    model::{Request, Response, Status},
     Server,
+    model::{Body, Request, Response, StatusCode},
 };
 use postgres::{Config, NoTls};
 use r2d2::PooledConnection;
@@ -58,7 +58,7 @@ pub fn main() {
     let manager = r2d2_postgres::PostgresConnectionManager::new(
         Config::new()
             .user("martin")
-            .password("martin")
+            .password("b0n0")
             .host("localhost")
             .to_owned(),
         NoTls,
@@ -81,11 +81,11 @@ pub fn main() {
 }
 
 fn render(
-    request: &Request,
+    request: &Request<Body>,
     client: &mut PooledConnection<PostgresConnectionManager<NoTls>>,
     cache: &RefCell<Cache>,
-) -> Response {
-    let path = request.url().path();
+) -> Response<Body> {
+    let path = request.uri().path();
 
     static URL_PATH_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
         Regex::new(r"/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)(?:@(?P<scale>\d+(?:\.\d*)?)x)?(?:\.(?P<ext>jpg|png|svg))?").unwrap()
@@ -112,7 +112,10 @@ fn render(
             ext = m.name("ext").map_or("png", |m| m.as_str());
         }
         None => {
-            return Response::builder(Status::BAD_REQUEST).build();
+            return Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .body(Body::empty())
+                .expect("body should be built");
         }
     }
 
@@ -325,11 +328,12 @@ fn render(
         buffer
     };
 
-    Response::builder(Status::OK)
-        .with_header(
+    Response::builder()
+        .status(StatusCode::OK)
+        .header(
             "Content-Type",
             if is_svg { "image/svg+xml" } else { "image/png" },
         )
-        .unwrap()
-        .with_body(buffer)
+        .body(Body::from(buffer))
+        .expect("body should be built")
 }
