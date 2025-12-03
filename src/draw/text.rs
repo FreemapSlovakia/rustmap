@@ -10,8 +10,8 @@ use cairo::Context;
 use pangocairo::{
     functions::{create_layout, glyph_string_path, layout_path},
     pango::{
-        ffi::{pango_glyph_string_new, PangoGlyphString},
-        Alignment, AttrInt, AttrList, FontDescription, GlyphString, Style, Weight, WrapMode, SCALE,
+        Alignment, AttrInt, AttrList, FontDescription, GlyphString, SCALE, Style, Weight, WrapMode,
+        ffi::{PangoGlyphString, pango_glyph_string_new},
     },
 };
 
@@ -213,11 +213,10 @@ pub fn draw_text(
             let ni = li.index() as usize;
 
             let t = t.get(i..ni).unwrap(); // .chars().next().unwrap();
-            println!("II {} {}", i, t);
+            // println!("II {} {}", i, t);
 
             if !has_next {
-
-                println!("XX {}", ni);
+                // println!("XX {}", ni);
 
                 break;
             }

@@ -38,19 +38,40 @@ mod xyz;
 
 thread_local! {
     static THREAD_LOCAL_DATA: RefCell<Cache> = {
-        let dataset = Dataset::open("/home/martin/14TB/hillshading/sk/final.tif");
+        let datasets = [
+            (String::from("sk"), "/home/martin/14TB/hillshading/sk/final.tif"),
+            (String::from("sk-mask"), "/home/martin/14TB/hillshading/sk/mask.tif"),
+            (String::from("cz"), "/home/martin/14TB/hillshading/cz/final.tif"),
+            (String::from("cz-mask"), "/home/martin/14TB/hillshading/cz/mask.tif"),
+            (String::from("at"), "/home/martin/14TB/hillshading/at/final.tif"),
+            (String::from("at-mask"), "/home/martin/14TB/hillshading/at/mask.tif"),
+            (String::from("pl"), "/home/martin/14TB/hillshading/pl/final.tif"),
+            (String::from("pl-mask"), "/home/martin/14TB/hillshading/pl/mask.tif"),
+            (String::from("it"), "/home/martin/14TB/hillshading/it/final.tif"),
+            (String::from("it-mask"), "/home/martin/14TB/hillshading/it/mask.tif"),
+            (String::from("ch"), "/home/martin/14TB/hillshading/ch/final.tif"),
+            (String::from("ch-mask"), "/home/martin/14TB/hillshading/ch/mask.tif"),
+            (String::from("si"), "/home/martin/14TB/hillshading/si/final.tif"),
+            (String::from("si-mask"), "/home/martin/14TB/hillshading/si/mask.tif"),
+            (String::from("fr"), "/home/martin/14TB/hillshading/fr/final.tif"),
+            (String::from("fr-mask"), "/home/martin/14TB/hillshading/fr/mask.tif"),
+            (String::from("_"), "/home/martin/14TB/hillshading/final.tiff"),
+        ];
 
-        RefCell::new(Cache {
-            hillshading_dataset: match dataset {
-                Ok(dataset) => Some(dataset),
-                _ => {
-                    eprintln!("Error opening hillshading geotiff");
+        let mut hillshading_datasets = HashMap::new();
 
-                    None
-                },
-            },
-            svg_map: HashMap::new()
-        })
+        for (name, path) in datasets {
+            match Dataset::open(path) {
+                Ok(dataset) => {
+                    hillshading_datasets.insert(name.clone(), dataset);
+                }
+                Err(err) => {
+                    eprintln!("Error opening hillshading geotiff {}: {}", path, err);
+                }
+            }
+        }
+
+        RefCell::new(Cache { hillshading_datasets, svg_map: HashMap::new() })
     };
 }
 
@@ -189,22 +210,57 @@ fn render(
             road_access_restrictions::render(ctx, client);
         }
 
-        context.push_group();
+        context.push_group(); // top
 
         if zoom >= 15 {
             bridge_areas::render(ctx, client, true); // mask
         }
 
-        hillshading::render(ctx);
+        // CC = (mask, (contours-$cc, final-$cc):src-in, mask-$cut1:dst-out, mask-$cut2:dst-out, ...):src-over
 
-        if zoom >= 12 {
-            context.push_group();
-            contours::render(ctx, client);
-            context.pop_group_to_source().unwrap();
+        // (CC, CC, CC, (mask-$cc, mask-$cc, mask-$cc, (fallback_contours, fallback_final):src-out):src-over)
+
+        for (country, ccs) in vec![
+            ("at", vec!["sk", "si", "cz"]),
+            ("it", vec!["at", "ch", "si", "fr"]),
+            ("ch", vec!["at", "fr"]),
+            ("si", vec![]),
+            ("cz", vec!["sk", "pl"]),
+            ("pl", vec!["sk"]),
+            ("sk", vec![]),
+            ("fr", vec![]),
+        ] {
+            context.push_group(); // country-contours-and-shading
+
+            hillshading::render(ctx, &format!("{}-mask", country));
+
+            context.push_group(); // contours-and-shading
+
+            if zoom >= 12 {
+                context.push_group(); // contours
+                contours::render(ctx, client, country);
+                context.pop_group_to_source().unwrap(); // contours
+                context.paint().unwrap();
+            }
+
+            hillshading::render(ctx, country);
+
+            context.pop_group_to_source().unwrap(); // contours-and-shading
+            context.set_operator(cairo::Operator::In);
+            context.paint().unwrap();
+
+            for cc in ccs {
+                context.set_operator(cairo::Operator::DestOut);
+                hillshading::render(ctx, &format!("{}-mask", cc));
+            }
+
+            context.pop_group_to_source().unwrap(); // // country-contours-and-shading
+            context.set_operator(cairo::Operator::Over);
             context.paint().unwrap();
         }
 
-        context.pop_group_to_source().unwrap();
+        context.pop_group_to_source().unwrap(); // top
+        context.set_operator(cairo::Operator::Over);
         context.paint().unwrap();
 
         if zoom >= 11 {

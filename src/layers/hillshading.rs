@@ -10,9 +10,15 @@ fn read_rgba_from_gdal(
     gt_y_off: f64,
     gt_y_width: f64,
     scale: f64,
-) -> Vec<u8> {
+) -> ImageSurface {
     let Ctx {
-        bbox: BBox { min_x, min_y, max_x, max_y },
+        bbox:
+            BBox {
+                min_x,
+                min_y,
+                max_x,
+                max_y,
+            },
         size,
         ..
     } = ctx;
@@ -33,6 +39,8 @@ fn read_rgba_from_gdal(
     let h_scaled = (size.height as f64 * scale) as usize;
 
     let band_size = w_scaled * h_scaled;
+
+    let count = dataset.raster_count();
 
     let mut rgba_data = vec![0u8; band_size * 4];
 
@@ -55,8 +63,10 @@ fn read_rgba_from_gdal(
 
     let mut data = vec![0u8; hh * ww];
 
-    for band_index in 0..4 {
+    for band_index in 0..count {
         let band = dataset.rasterband(band_index + 1).unwrap();
+
+        let no_data = band.no_data_value();
 
         band.read_into_slice::<u8>(
             (adj_window_x, adj_window_y),
@@ -86,9 +96,38 @@ fn read_rgba_from_gdal(
                     w_scaled - ww
                 };
 
-                let rgba_index = ((y + off_y) * w_scaled + (x + off_x)) * 4 + band_index;
+                let rgba_index = ((y + off_y) * w_scaled + (x + off_x)) * 4;
 
-                rgba_data[rgba_index] = data[data_index];
+                let value = data[data_index];
+
+                match (count, band_index) {
+                    (1, _) => {
+                        rgba_data[rgba_index] = value;
+                        rgba_data[rgba_index + 1] = value;
+                        rgba_data[rgba_index + 2] = value;
+                        rgba_data[rgba_index + 3] = no_data
+                            .map_or(255u8, |nd| if (nd as u8) == value { 0u8 } else { 255u8 });
+                    }
+                    (2, 0) => {
+                        rgba_data[rgba_index] = value;
+                        rgba_data[rgba_index + 1] = value;
+                        rgba_data[rgba_index + 2] = value;
+                    }
+                    (2, _) => {
+                        // alpha
+                        rgba_data[rgba_index + 3] = value;
+                    }
+                    (3, _) => {
+                        if band_index == 0 {
+                            rgba_data[rgba_index + 3] = 255;
+                        }
+                        rgba_data[rgba_index + band_index] = value;
+                    }
+                    (4, _) => {
+                        rgba_data[rgba_index + band_index] = value;
+                    }
+                    _ => panic!("unsupported band count"),
+                }
             }
         }
     }
@@ -105,39 +144,6 @@ fn read_rgba_from_gdal(
         rgba_data[i + 2] = r;
     }
 
-    rgba_data
-}
-
-pub fn render(ctx: &Ctx) {
-    let Ctx {
-        context,
-        size,
-        cache,
-        zoom,
-        scale,
-        ..
-    } = ctx;
-
-    let cache = &cache.borrow_mut();
-
-    let hillshading_dataset = match &cache.hillshading_dataset {
-        Some(v) => v,
-        None => return,
-    };
-
-    let [gt_x_off, gt_x_width, _, gt_y_off, _, gt_y_width] =
-        hillshading_dataset.geo_transform().unwrap();
-
-    let rgba_data = read_rgba_from_gdal(
-        hillshading_dataset,
-        ctx,
-        gt_x_off,
-        gt_x_width,
-        gt_y_off,
-        gt_y_width,
-        *scale,
-    );
-
     let surface = ImageSurface::create_for_data(
         rgba_data.to_vec(),
         Format::ARgb32,
@@ -146,6 +152,38 @@ pub fn render(ctx: &Ctx) {
         (size.width as f64 * scale) as i32 * 4,
     )
     .unwrap();
+
+    surface
+}
+
+pub fn render(ctx: &Ctx, country: &str) {
+    let Ctx {
+        context,
+        cache,
+        zoom,
+        scale,
+        ..
+    } = ctx;
+
+    let cache = &cache.borrow_mut();
+
+    let hillshading_dataset = match cache.hillshading_datasets.get(country) {
+        Some(v) => v,
+        None => return,
+    };
+
+    let [gt_x_off, gt_x_width, _, gt_y_off, _, gt_y_width] =
+        hillshading_dataset.geo_transform().unwrap();
+
+    let surface = read_rgba_from_gdal(
+        hillshading_dataset,
+        ctx,
+        gt_x_off,
+        gt_x_width,
+        gt_y_off,
+        gt_y_width,
+        *scale,
+    );
 
     context.save().unwrap();
 

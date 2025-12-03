@@ -4,7 +4,7 @@ use rsvg::Loader;
 use std::collections::HashMap;
 
 pub struct Cache {
-    pub hillshading_dataset: Option<Dataset>,
+    pub hillshading_datasets: HashMap<String, Dataset>,
     pub svg_map: HashMap<String, RecordingSurface>,
 }
 

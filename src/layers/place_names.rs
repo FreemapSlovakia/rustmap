@@ -1,8 +1,11 @@
 use crate::{
-    bbox::BBox, collision::Collision, ctx::Ctx, draw::{
+    bbox::BBox,
+    collision::Collision,
+    ctx::Ctx,
+    draw::{
         draw::Projectable,
-        text::{self, draw_text, TextOptions},
-    }
+        text::{self, TextOptions, draw_text},
+    },
 };
 use pangocairo::pango::Weight;
 use postgis::ewkb::Point;
@@ -11,7 +14,13 @@ use postgres::Client;
 pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     let Ctx {
         context,
-        bbox: BBox { min_x, min_y, max_x, max_y },
+        bbox:
+            BBox {
+                min_x,
+                min_y,
+                max_x,
+                max_y,
+            },
         ..
     } = ctx;
 
@@ -27,7 +36,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
             9..=10 => "(type = 'city' OR type = 'town')",
             11 => "(type = 'city' OR type = 'town' OR type = 'village')",
             12.. => "type <> 'locality'",
-            _ => panic!("unsupported zoom"),
+            _ => return,
         }
     );
 
