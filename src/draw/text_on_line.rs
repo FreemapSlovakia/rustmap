@@ -1,234 +1,495 @@
 use crate::{ctx::Ctx, draw::draw::Projectable, point::Point};
 use core::slice::Iter;
-use swash::{scale::ScaleContext, shape::ShapeContext, text::Script, zeno::Verb, FontRef};
+use pangocairo::{
+    functions::{create_layout, glyph_string_path},
+    pango::{
+        Alignment, Font, FontDescription, GlyphItem, GlyphItemIter, GlyphString, Layout, SCALE,
+        WrapMode,
+    },
+};
+use postgis::ewkb::Point as PgPoint;
+use std::f64::consts::PI;
 
-struct Segment {
-    points: Vec<Point>,
+const MAX_CURVATURE_DEGREES: f64 = 60.0;
+const CONCAVE_SPACING_FACTOR: f64 = 1.0;
+
+#[derive(Copy, Clone)]
+pub enum Upright {
+    Left,
+    Right,
+    Auto,
 }
 
-impl Segment {
-    fn average_position(&self) -> Point {
-        if self.points.len() < 2 {
-            return self.points[0];
-        }
+#[derive(Copy, Clone)]
+pub enum Align {
+    Left,
+    Center,
+    Right,
+}
 
-        let mut total_x = 0.0;
-        let mut total_y = 0.0;
-        let mut total_length = 0.0;
-
-        for i in 0..self.points.len() - 1 {
-            let p1 = self.points[i];
-            let p2 = self.points[i + 1];
-            let mid_point = p1.interpolate(&p2, 0.5);
-            let segment_length = p1.distance_to(&p2);
-
-            total_x += mid_point.x * segment_length;
-            total_y += mid_point.y * segment_length;
-            total_length += segment_length;
-        }
-
-        if total_length > 0.0 {
-            Point {
-                x: total_x / total_length,
-                y: total_y / total_length,
-            }
-        } else {
-            Point::new(0.0, 0.0)
-        }
+fn normalize(v: Point) -> Point {
+    let len = v.x.hypot(v.y);
+    if len == 0.0 {
+        Point::new(0.0, 0.0)
+    } else {
+        Point::new(v.x / len, v.y / len)
     }
+}
 
-    fn average_normal(&self) -> Point {
-        if self.points.len() < 2 {
-            return Point::new(0.0, 0.0);
-        }
+fn angle_between(a: Point, b: Point) -> f64 {
+    let dot = a.x * b.x + a.y * b.y;
+    let det = a.x * b.y - a.y * b.x;
+    det.atan2(dot).abs().to_degrees()
+}
 
-        let mut total_normal = Point::new(0.0, 0.0);
-        let mut total_length = 0.0;
+fn normalize_angle(mut a: f64) -> f64 {
+    if a > PI {
+        a -= 2.0 * PI;
+    } else if a <= -PI {
+        a += 2.0 * PI;
+    }
+    a
+}
 
-        for i in 0..self.points.len() - 1 {
-            let p1 = self.points[i];
-            let p2 = self.points[i + 1];
-            let edge_vector = Point {
-                x: p2.x - p1.x,
-                y: p2.y - p1.y,
-            };
-            let edge_length = p1.distance_to(&p2);
-            let edge_normal = Point {
-                x: -edge_vector.y,
-                y: edge_vector.x,
-            };
+fn adjust_upright_angle(angle: f64, upright: Upright) -> f64 {
+    let a = normalize_angle(angle);
 
-            total_normal.x += edge_normal.x * edge_length;
-            total_normal.y += edge_normal.y * edge_length;
-            total_length += edge_length;
-        }
-
-        if total_length > 0.0 {
-            Point {
-                x: total_normal.x / total_length,
-                y: total_normal.y / total_length,
+    match upright {
+        Upright::Left => normalize_angle(a + PI),
+        Upright::Right => a,
+        Upright::Auto => {
+            if a.abs() > PI / 2.0 {
+                normalize_angle(a + PI)
+            } else {
+                a
             }
-        } else {
-            Point::new(0.0, 0.0)
         }
     }
 }
 
-pub fn text_on_line(ctx: &Ctx, iter: Iter<postgis::ewkb::Point>, text: &str) {
-    let pts: Vec<Point> = iter.map(|p| p.project(ctx)).rev().collect();
+fn weighted_tangent_for_span(
+    pts: &[Point],
+    cum: &[f64],
+    span_start: f64,
+    span_end: f64,
+) -> Option<Point> {
+    if pts.len() < 2 {
+        return None;
+    }
 
-    let font_data = std::fs::read("/home/martin/.fonts/NotoSans-Regular.ttf").unwrap();
+    let mut accum = Point::new(0.0, 0.0);
+    let mut total = 0.0;
 
-    let font = FontRef::from_index(&font_data, 0).unwrap();
+    for i in 0..pts.len() - 1 {
+        let seg_start = cum[i];
+        let seg_end = cum[i + 1];
 
-    let mut context = ShapeContext::new();
+        let overlap_start = span_start.max(seg_start);
+        let overlap_end = span_end.min(seg_end);
 
-    let mut shaper = context
-        .builder(font)
-        .script(Script::Latin)
-        .size(16.)
-        .build();
+        if overlap_end <= overlap_start {
+            continue;
+        }
 
-    shaper.add_str(text);
+        let weight = overlap_end - overlap_start;
+        let tangent = normalize(Point {
+            x: pts[i + 1].x - pts[i].x,
+            y: pts[i + 1].y - pts[i].y,
+        });
 
-    let mut context = ScaleContext::new();
+        accum.x += tangent.x * weight;
+        accum.y += tangent.y * weight;
+        total += weight;
+    }
 
-    let mut scaler = context.builder(font).size(16.).hint(true).build();
+    if total == 0.0 {
+        None
+    } else {
+        Some(normalize(Point::new(accum.x, accum.y)))
+    }
+}
+
+fn tangents_for_span(pts: &[Point], cum: &[f64], span_start: f64, span_end: f64) -> Vec<Point> {
+    let mut result = Vec::new();
+
+    for i in 0..pts.len() - 1 {
+        let seg_start = cum[i];
+        let seg_end = cum[i + 1];
+
+        let overlap_start = span_start.max(seg_start);
+        let overlap_end = span_end.min(seg_end);
+
+        if overlap_end <= overlap_start {
+            continue;
+        }
+
+        let tangent = normalize(Point {
+            x: pts[i + 1].x - pts[i].x,
+            y: pts[i + 1].y - pts[i].y,
+        });
+
+        result.push(tangent);
+    }
+
+    result
+}
+
+fn cumulative_lengths(pts: &[Point]) -> Vec<f64> {
+    let mut result = Vec::with_capacity(pts.len());
+    let mut total = 0.0;
+    result.push(0.0);
+    for window in pts.windows(2) {
+        total += window[0].distance_to(&window[1]);
+        result.push(total);
+    }
+    result
+}
+
+fn position_at(pts: &[Point], cum: &[f64], dist: f64) -> Option<(Point, Point)> {
+    if pts.len() < 2 {
+        return None;
+    }
+
+    if dist <= 0.0 {
+        let tangent = normalize(Point {
+            x: pts[1].x - pts[0].x,
+            y: pts[1].y - pts[0].y,
+        });
+        return Some((pts[0], tangent));
+    }
+
+    if let Some(total) = cum.last() {
+        if dist >= *total {
+            let len = pts.len();
+            let tangent = normalize(Point {
+                x: pts[len - 1].x - pts[len - 2].x,
+                y: pts[len - 1].y - pts[len - 2].y,
+            });
+            return Some((pts[len - 1], tangent));
+        }
+    }
+
+    let mut idx = 0;
+    while idx + 1 < cum.len() && cum[idx + 1] < dist {
+        idx += 1;
+    }
+
+    let seg_len = cum[idx + 1] - cum[idx];
+    if seg_len == 0.0 {
+        return None;
+    }
+
+    let t = (dist - cum[idx]) / seg_len;
+    let p1 = pts[idx];
+    let p2 = pts[idx + 1];
+    let pos = p1.interpolate(&p2, t);
+    let tangent = normalize(Point {
+        x: p2.x - p1.x,
+        y: p2.y - p1.y,
+    });
+
+    Some((pos, tangent))
+}
+
+fn make_font_description() -> FontDescription {
+    let mut font_description = FontDescription::new();
+    font_description.set_family("PT Sans,Fira Sans Condensed,Noto Sans");
+    font_description.set_size((SCALE as f64 * 12.0) as i32);
+    font_description
+}
+
+fn make_cluster_glyph_string(
+    glyph_item: &GlyphItem,
+    start_glyph: i32,
+    end_glyph: i32,
+) -> GlyphString {
+    let src = glyph_item.glyph_string();
+    let count = (end_glyph - start_glyph) as usize;
+    let mut dst = GlyphString::new();
+    dst.set_size(count as i32);
+
+    for i in 0..count {
+        let src_info = &src.glyph_info()[start_glyph as usize + i];
+        let dst_info = &mut dst.glyph_info_mut()[i];
+
+        dst_info.set_glyph(src_info.glyph());
+
+        let src_geom = src_info.geometry();
+        let dst_geom = dst_info.geometry_mut();
+
+        dst_geom.set_width(src_geom.width());
+        dst_geom.set_x_offset(src_geom.x_offset());
+        dst_geom.set_y_offset(src_geom.y_offset());
+
+        dst.log_clusters_mut()[i] = i as i32;
+    }
+
+    dst
+}
+
+fn collect_clusters(layout: &Layout, _text: &str) -> Vec<(f64, GlyphString, Font)> {
+    let mut result = Vec::new();
+    let ps = 1.0 / SCALE as f64;
+
+    for line_idx in 0..layout.line_count() {
+        let Some(line) = layout.line(line_idx) else {
+            continue;
+        };
+
+        for run in line.runs() {
+            let font = run.item().analysis().font();
+            let glyphs = run.glyph_string();
+            let infos = glyphs.glyph_info();
+            let clusters = glyphs.log_clusters();
+
+            if infos.is_empty() || clusters.is_empty() || infos.len() != clusters.len() {
+                continue;
+            }
+
+            let mut start = 0usize;
+            while start < infos.len() {
+                let cluster_id = clusters[start];
+                let mut end = start + 1;
+                while end < infos.len() && clusters[end] == cluster_id {
+                    end += 1;
+                }
+
+                let glyph_string = make_cluster_glyph_string(&run, start as i32, end as i32);
+                let advance = glyph_string.glyph_info()[..]
+                    .iter()
+                    .map(|g| g.geometry().width() as f64 * ps)
+                    .sum();
+
+                result.push((advance, glyph_string, font.clone()));
+
+                start = end;
+            }
+        }
+    }
+
+    result
+}
+
+fn draw_cluster(
+    cr: &cairo::Context,
+    glyph_string: &mut GlyphString,
+    font: &Font,
+    pos: Point,
+    angle: f64,
+) {
+    let ps = 1.0 / SCALE as f64;
+
+    // Rotate around the glyph's centroid (center of logical bbox).
+    let (_, logical) = glyph_string.extents(font);
+    let cx = (logical.x() as f64 + logical.width() as f64 / 2.0) * ps;
+    let cy = (logical.y() as f64 + logical.height() as f64 / 2.0) * ps;
+
+    cr.save().unwrap();
+    cr.translate(pos.x, pos.y);
+    cr.rotate(angle);
+    cr.translate(-cx, -cy);
+
+    glyph_string_path(cr, font, glyph_string);
+    cr.fill().unwrap();
+
+    cr.restore().unwrap();
+}
+
+fn label_offsets(
+    total_length: f64,
+    total_advance: f64,
+    spacing: f64,
+    repeat_distance: Option<f64>,
+    align: Align,
+) -> Vec<f64> {
+    if total_length < total_advance {
+        return Vec::new();
+    }
+
+    // Step between label starts: either requested repeat distance or just "one label".
+    let step = repeat_distance
+        .map(|d| d.max(total_advance + spacing))
+        .unwrap_or(total_length + spacing);
+
+    // How many full labels can we fit.
+    let count = if repeat_distance.is_some() {
+        ((total_length - total_advance) / step).floor() as usize + 1
+    } else {
+        1
+    };
+
+    let total_span = if count > 0 {
+        total_advance + step * (count.saturating_sub(1)) as f64
+    } else {
+        0.0
+    };
+
+    let start = match align {
+        Align::Left => 0.0,
+        Align::Center => ((total_length - total_span) / 2.0).max(0.0),
+        Align::Right => (total_length - total_span).max(0.0),
+    };
+
+    (0..count).map(|i| start + i as f64 * step).collect()
+}
+
+pub fn text_on_line(
+    ctx: &Ctx,
+    iter: Iter<PgPoint>,
+    text: &str,
+    upright: Upright,
+    align: Align,
+    repeat_distance: Option<f64>,
+    spacing: f64,
+) {
+    let mut pts: Vec<Point> = iter.map(|p| p.project(ctx)).rev().collect();
+
+    pts.dedup_by(|a, b| a == b);
+
+    if pts.len() < 2 {
+        return;
+    }
+
+    let cum = cumulative_lengths(&pts);
+    let total_length = *cum.last().unwrap_or(&0.0);
+
+    if total_length == 0.0 {
+        return;
+    }
+
+    let layout = create_layout(&ctx.context);
+
+    layout.set_text(text);
+    layout.set_width(-1); // no width constraint, so no wrapping happens at all
+    layout.set_font_description(Some(&make_font_description()));
+
+    let clusters = collect_clusters(&layout, text);
+    if clusters.is_empty() {
+        return;
+    }
+
+    let total_advance: f64 = clusters.iter().map(|c| c.0).sum();
+    if total_advance == 0.0 {
+        return;
+    }
+
+    let offsets = label_offsets(total_length, total_advance, spacing, repeat_distance, align);
+    if offsets.is_empty() {
+        return;
+    }
+
+    let mut placements = Vec::new();
+
+    for start in offsets {
+        // Decide per-repeat if we need to flip to stay upright.
+        let overall_span_start = start;
+        let overall_span_end = start + total_advance;
+        let overall_tangent =
+            weighted_tangent_for_span(&pts, &cum, overall_span_start, overall_span_end)
+                .unwrap_or(Point::new(1.0, 0.0));
+
+        let base_angle = overall_tangent.y.atan2(overall_tangent.x);
+        let adjusted_angle = adjust_upright_angle(base_angle, upright);
+        let flip_needed = (normalize_angle(adjusted_angle - base_angle)).abs() > PI / 2.0;
+        let flip_offset = if flip_needed {
+            0.0
+        } else {
+            normalize_angle(adjusted_angle - base_angle)
+        };
+
+        let mut pts_use = pts.clone();
+        if flip_needed {
+            pts_use.reverse();
+        }
+        let cum_use = cumulative_lengths(&pts_use);
+        let start_use = if flip_needed {
+            (total_length - total_advance - start).max(0.0)
+        } else {
+            start
+        };
+
+        let mut offset = start_use;
+        let mut label_placements = Vec::new();
+        let mut failed = false;
+
+        for (advance, glyph_string, font) in clusters.iter() {
+            let span_start = offset;
+            let span_end = offset + *advance;
+            if span_end > total_length {
+                failed = true;
+                break;
+            }
+
+            let (_, tangent) = match position_at(&pts_use, &cum_use, span_start + *advance / 2.0) {
+                Some(v) => v,
+                None => {
+                    failed = true;
+                    break;
+                }
+            };
+
+            let weighted_tangent =
+                weighted_tangent_for_span(&pts_use, &cum_use, span_start, span_end)
+                    .unwrap_or(tangent);
+
+            let tangent_before = position_at(&pts_use, &cum_use, span_start.max(0.0))
+                .map(|(_, t)| t)
+                .unwrap_or(weighted_tangent);
+
+            let tangent_after = position_at(&pts_use, &cum_use, span_end.min(total_length))
+                .map(|(_, t)| t)
+                .unwrap_or(weighted_tangent);
+
+            let mut max_bend = angle_between(tangent_before, tangent_after);
+
+            for pair in tangents_for_span(&pts_use, &cum_use, span_start, span_end).windows(2) {
+                max_bend = max_bend.max(angle_between(pair[0], pair[1]));
+            }
+
+            if max_bend > MAX_CURVATURE_DEGREES {
+                failed = true;
+                break;
+            }
+
+            // Extra space proportional to curvature to avoid glyph tops touching on bends.
+            let ratio = (max_bend / 180.0).clamp(0.0, 1.0);
+            let concave_spacing = *advance * CONCAVE_SPACING_FACTOR * ratio;
+
+            let shifted_start = span_start + concave_spacing;
+            let shifted_end = shifted_start + *advance;
+            let shifted_center = shifted_start + *advance / 2.0;
+
+            if shifted_end > total_length {
+                failed = true;
+                break;
+            }
+
+            let (pos, _) = match position_at(&pts_use, &cum_use, shifted_center) {
+                Some(v) => v,
+                None => {
+                    failed = true;
+                    break;
+                }
+            };
+
+            let weighted_tangent =
+                weighted_tangent_for_span(&pts_use, &cum_use, shifted_start, shifted_end)
+                    .unwrap_or(weighted_tangent);
+
+            let angle = normalize_angle(weighted_tangent.y.atan2(weighted_tangent.x) + flip_offset);
+
+            label_placements.push((glyph_string.clone(), font.clone(), pos, angle));
+
+            offset += *advance + concave_spacing;
+        }
+
+        if !failed {
+            placements.extend(label_placements);
+        }
+    }
 
     let cr = &ctx.context;
-
-    let mut current_index = 0;
-    let mut accumulated_length = 0.0;
-    let mut segment_start_point = pts[0];
-
-    shaper.shape_with(|gc| {
-        for glyph in gc.glyphs {
-            let outline = scaler.scale_outline(glyph.id).unwrap();
-
-            let bounds = outline.bounds();
-
-            cr.rectangle(
-                bounds.min.x as f64,
-                bounds.min.y as f64,
-                bounds.width() as f64,
-                bounds.height() as f64,
-            );
-
-            let length = bounds.width() as f64;
-
-            let mut segment_points = vec![segment_start_point];
-            let mut current_length = 0.0;
-
-            while current_index < pts.len() - 1 && current_length < length {
-                let p1 = pts[current_index];
-
-                let p2 = pts[current_index + 1];
-
-                let segment_length = p1.distance_to(&p2);
-
-                accumulated_length += segment_length;
-
-                if accumulated_length > length {
-                    let excess = accumulated_length - length;
-
-                    let t = (segment_length - excess) / segment_length;
-
-                    let split_point = p1.interpolate(&p2, t);
-
-                    segment_points.push(split_point);
-
-                    accumulated_length -= excess; // Reset for the next segment
-
-                    current_length += segment_length - excess;
-
-                    segment_start_point = split_point; // Start next segment from here
-
-                    break;
-                } else {
-                    segment_points.push(p2);
-
-                    current_length += segment_length;
-
-                    current_index += 1;
-                }
-            }
-
-            let segment = Segment {
-                points: segment_points,
-            };
-
-            let avg_position = segment.average_position();
-
-            let avg_normal = segment.average_normal();
-
-            cr.translate(avg_position.x, avg_position.y);
-
-            // cr.set_source_rgb(1.0, 0.0, 0.0);
-
-            // cr.set_line_width(0.1);
-            // cr.stroke().unwrap();
-
-            let points = outline.points();
-
-            let mut i = 0;
-
-            for verb in outline.verbs().into_iter() {
-                match verb {
-                    Verb::MoveTo => {
-                        cr.move_to(points[i].x as f64, points[i].y as f64);
-
-                        i += 1;
-                    }
-                    Verb::LineTo => {
-                        cr.line_to(points[i].x as f64, points[i].y as f64);
-
-                        i += 1;
-                    }
-                    Verb::CurveTo => {
-                        cr.curve_to(
-                            points[i].x as f64,
-                            points[i].y as f64,
-                            points[i + 1].x as f64,
-                            points[i + 1].y as f64,
-                            points[i + 2].x as f64,
-                            points[i + 2].y as f64,
-                        );
-
-                        i += 3;
-                    }
-                    Verb::QuadTo => {
-                        let current_point = cr.current_point().unwrap_or((0.0, 0.0));
-
-                        let control = points[i];
-
-                        let point = points[i + 1];
-
-                        cr.curve_to(
-                            current_point.0
-                                + (control.x as f64 - current_point.0) * 2.0 / 3.0 as f64,
-                            current_point.1
-                                + (control.y as f64 - current_point.1) * 2.0 / 3.0 as f64,
-                            point.x as f64 + (control.x - point.x) as f64 * 2.0 / 3.0 as f64,
-                            point.y as f64 + (control.y - point.y) as f64 * 2.0 / 3.0 as f64,
-                            point.x as f64,
-                            point.y as f64,
-                        );
-
-                        i += 2;
-                    }
-                    Verb::Close => {
-                        cr.close_path();
-                    }
-                }
-            }
-
-            // cr.set_source_rgb(0.0, 0.0, 1.0);
-
-            cr.fill().unwrap();
-
-            // cr.fill_extents()
-
-            // cr.translate(glyph.advance as f64, 0.0);
-        }
-    });
+    for (mut glyph_string, font, pos, angle) in placements {
+        draw_cluster(cr, &mut glyph_string, &font, pos, angle);
+    }
 }

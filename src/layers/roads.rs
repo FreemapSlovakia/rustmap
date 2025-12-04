@@ -1,6 +1,7 @@
 use crate::bbox::BBox;
 use crate::colors::{Color, ContextExt};
 use crate::draw::markers_on_path::draw_markers_on_path;
+use crate::draw::text_on_line::{Align, Upright, text_on_line};
 use crate::{colors, ctx::Ctx, draw::draw::draw_line};
 use postgis::ewkb::LineString;
 use postgres::Client;

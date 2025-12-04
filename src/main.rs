@@ -2,9 +2,10 @@ use crate::{
     collision::Collision,
     layers::{
         aerialways, aeroways, barrierways, borders, bridge_areas, building_names, buildings,
-        cutlines, housenumbers, landuse, locality_names, military_areas, pipelines, place_names,
-        power_lines, protected_area_names, protected_areas, road_access_restrictions, roads,
-        routes,
+        cutlines,
+        highway_names::highway_names,
+        housenumbers, landuse, locality_names, military_areas, pipelines, place_names, power_lines,
+        protected_area_names, protected_areas, road_access_restrictions, roads, routes,
         shading_and_contours::{self, SHADING_THREAD_LOCAL},
         solar_power_plants, trees, water_area_names, water_areas, water_lines,
     },
@@ -251,7 +252,7 @@ fn render(
             housenumbers::render(ctx, client, &mut collision);
         }
 
-        // <HighwayNames />
+        highway_names(ctx, client, &mut collision);
 
         // <RouteNames {...routeProps} />
 

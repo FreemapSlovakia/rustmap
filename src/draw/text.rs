@@ -170,57 +170,57 @@ pub fn draw_text(
 
         let mut li = layout.iter();
 
-        let t = layout.text();
+        // let t = layout.text();
 
         // println!("==================");
 
-        let mut n = 0;
+        // let mut n = 0;
 
-        loop {
-            let (ext, _) = li.cluster_extents();
+        // loop {
+        //     let (ext, _) = li.cluster_extents();
 
-            let char_x = ext.x() as f64 / SCALE as f64;
+        //     let char_x = ext.x() as f64 / SCALE as f64;
 
-            let char_y = ext.y() as f64 / SCALE as f64;
+        //     let char_y = ext.y() as f64 / SCALE as f64;
 
-            let char_width = ext.width() as f64 / SCALE as f64;
+        //     let char_width = ext.width() as f64 / SCALE as f64;
 
-            let char_height = ext.height() as f64 / SCALE as f64;
+        //     let char_height = ext.height() as f64 / SCALE as f64;
 
-            let ci = BBox::new(
-                x - halo_width + char_x,
-                y - halo_width + char_y,
-                x + 2.0 * halo_width + char_x + char_width,
-                y + 2.0 * halo_width + char_y + char_height,
-            );
+        //     let ci = BBox::new(
+        //         x - halo_width + char_x,
+        //         y - halo_width + char_y,
+        //         x + 2.0 * halo_width + char_x + char_width,
+        //         y + 2.0 * halo_width + char_y + char_height,
+        //     );
 
-            context.rectangle(ci.min_x - 0.5, ci.min_y, ci.get_width(), ci.get_height());
-            context.set_line_width(1.0);
-            if n % 2 == 0 {
-                context.set_source_rgb(0.0, 1.0, 0.0);
-            } else {
-                context.set_source_rgb(0.0, 0.0, 1.0);
-            }
+        //     context.rectangle(ci.min_x - 0.5, ci.min_y, ci.get_width(), ci.get_height());
+        //     context.set_line_width(1.0);
+        //     if n % 2 == 0 {
+        //         context.set_source_rgb(0.0, 1.0, 0.0);
+        //     } else {
+        //         context.set_source_rgb(0.0, 0.0, 1.0);
+        //     }
 
-            n += 1;
+        //     n += 1;
 
-            context.stroke().unwrap();
+        //     context.stroke().unwrap();
 
-            let i = li.index() as usize;
+        //     let i = li.index() as usize;
 
-            let has_next = li.next_cluster();
+        //     let has_next = li.next_cluster();
 
-            let ni = li.index() as usize;
+        //     let ni = li.index() as usize;
 
-            let t = t.get(i..ni).unwrap(); // .chars().next().unwrap();
-            // println!("II {} {}", i, t);
+        //     let t = t.get(i..ni).unwrap(); // .chars().next().unwrap();
+        //     // println!("II {} {}", i, t);
 
-            if !has_next {
-                // println!("XX {}", ni);
+        //     if !has_next {
+        //         // println!("XX {}", ni);
 
-                break;
-            }
-        }
+        //         break;
+        //     }
+        // }
 
         loop {
             let (ext, _) = li.line_extents();
