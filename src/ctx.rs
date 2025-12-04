@@ -1,6 +1,7 @@
-use crate::{bbox::BBox, cache::Cache, size::Size};
+use crate::{bbox::BBox, size::Size, svg_cache::SvgCache};
 use cairo::Context;
-use std::cell::RefCell;
+use gdal::Dataset;
+use std::{cell::RefCell, collections::HashMap};
 
 pub struct Ctx<'a> {
     pub context: Context,
@@ -8,7 +9,8 @@ pub struct Ctx<'a> {
     pub size: Size<u32>,
     pub zoom: u32,
     pub scale: f64,
-    pub cache: &'a RefCell<Cache>,
+    pub svg_cache: &'a RefCell<SvgCache>,
+    pub shading_data: &'a RefCell<HashMap<String, Dataset>>,
 }
 
 impl Ctx<'_> {

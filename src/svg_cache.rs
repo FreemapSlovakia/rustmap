@@ -1,15 +1,25 @@
 use cairo::{Content, Context, RecordingSurface, Rectangle};
-use gdal::Dataset;
 use rsvg::Loader;
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap};
 
-pub struct Cache {
-    pub hillshading_datasets: HashMap<String, Dataset>,
-    pub svg_map: HashMap<String, RecordingSurface>,
+thread_local! {
+    pub static SVG_CACHE_THREAD_LOCAL: RefCell<SvgCache> = {
+        RefCell::new(SvgCache::new())
+    };
 }
 
-impl Cache {
-    pub fn get_svg(&mut self, key: &str) -> &RecordingSurface {
+pub struct SvgCache {
+    svg_map: HashMap<String, RecordingSurface>,
+}
+
+impl SvgCache {
+    pub fn new() -> SvgCache {
+        Self {
+            svg_map: HashMap::new(),
+        }
+    }
+
+    pub fn get(&mut self, key: &str) -> &RecordingSurface {
         let svg_map = &mut self.svg_map;
 
         let maybe_cached = svg_map.get(key);

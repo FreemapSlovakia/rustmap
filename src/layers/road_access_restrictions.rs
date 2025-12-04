@@ -3,13 +3,21 @@ use postgres::Client;
 use std::cell::Cell;
 
 use crate::{
-    bbox::BBox, ctx::Ctx, draw::{draw::draw_geometry, markers_on_path::draw_markers_on_path}
+    bbox::BBox,
+    ctx::Ctx,
+    draw::{draw::draw_geometry, markers_on_path::draw_markers_on_path},
 };
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
         context,
-        bbox: BBox { min_x, min_y, max_x, max_y },
+        bbox:
+            BBox {
+                min_x,
+                min_y,
+                max_x,
+                max_y,
+            },
         ..
     } = ctx;
 
@@ -35,12 +43,12 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     // TODO lazy
 
     let no_bicycle_icon = &ctx
-        .cache
+        .svg_cache
         .borrow_mut()
-        .get_svg("images/no_bicycle.svg")
+        .get("images/no_bicycle.svg")
         .clone();
 
-    let no_foot_icon = &ctx.cache.borrow_mut().get_svg("images/no_foot.svg").clone();
+    let no_foot_icon = &ctx.svg_cache.borrow_mut().get("images/no_foot.svg").clone();
 
     let no_bicycle_rect = no_bicycle_icon.extents().unwrap();
     let no_foot_rect = no_foot_icon.extents().unwrap();

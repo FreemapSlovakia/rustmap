@@ -33,7 +33,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: &str) {
 
     for row in &client.query(
         &format!("SELECT ST_SimplifyVW((ST_Dump(ST_LineMerge(ST_Collect(ST_ClipByBox2D(wkb_geometry, ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), 100)))))).geom, $5) AS geom, height
-        FROM contour_{}_split
+        FROM {}
         WHERE wkb_geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)
         GROUP BY height", country),
         &[min_x, min_y, max_x, max_y, &simplify_factor]

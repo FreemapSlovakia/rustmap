@@ -159,18 +159,15 @@ fn read_rgba_from_gdal(
 pub fn render(ctx: &Ctx, country: &str) {
     let Ctx {
         context,
-        cache,
+        shading_data,
         zoom,
         scale,
         ..
     } = ctx;
 
-    let cache = &cache.borrow_mut();
+    let shading_data = &shading_data.borrow_mut();
 
-    let hillshading_dataset = match cache.hillshading_datasets.get(country) {
-        Some(v) => v,
-        None => return,
-    };
+    let hillshading_dataset = shading_data.get(country).expect("no such dataset");
 
     let [gt_x_off, gt_x_width, _, gt_y_off, _, gt_y_width] =
         hillshading_dataset.geo_transform().unwrap();

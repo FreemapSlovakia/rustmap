@@ -7,7 +7,13 @@ use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
-        bbox: BBox { min_x, min_y, max_x, max_y },
+        bbox:
+            BBox {
+                min_x,
+                min_y,
+                max_x,
+                max_y,
+            },
         context,
         ..
     } = ctx;
@@ -54,10 +60,10 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         _ => 0.00,
     };
 
-    let mut cache = ctx.cache.borrow_mut();
+    let mut cache = ctx.svg_cache.borrow_mut();
 
     // TODO lazy
-    let arrow = cache.get_svg("images/highway-arrow.svg");
+    let arrow = cache.get("images/highway-arrow.svg");
 
     let rect = arrow.extents().unwrap();
 

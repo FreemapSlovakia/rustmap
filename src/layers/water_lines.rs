@@ -1,12 +1,21 @@
 use crate::{
-    bbox::BBox, colors::{self, ContextExt}, ctx::Ctx, draw::{markers_on_path::draw_markers_on_path, smooth_line::draw_smooth_bezier_spline}
+    bbox::BBox,
+    colors::{self, ContextExt},
+    ctx::Ctx,
+    draw::{markers_on_path::draw_markers_on_path, smooth_line::draw_smooth_bezier_spline},
 };
 use postgis::ewkb::LineString;
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
-        bbox: BBox { min_x, min_y, max_x, max_y },
+        bbox:
+            BBox {
+                min_x,
+                min_y,
+                max_x,
+                max_y,
+            },
         context,
         zoom,
         ..
@@ -18,21 +27,21 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             12 => "ST_Segmentize(ST_Simplify(geometry, 24), 200) AS geometry",
             13 => "ST_Segmentize(ST_Simplify(geometry, 12), 200) AS geometry",
             14 => "ST_Segmentize(ST_Simplify(geometry, 6), 200) AS geometry",
-            _ => "geometry"
+            _ => "geometry",
         },
         match zoom {
             ..=9 => "osm_waterways_gen0",
             10..=11 => "osm_waterways_gen1",
-            _ => "osm_waterways"
+            _ => "osm_waterways",
         }
     );
 
     let rows = &client.query(sql, &[min_x, min_y, max_x, max_y]).unwrap();
 
-    let mut cache = ctx.cache.borrow_mut();
+    let mut svg_cache = ctx.svg_cache.borrow_mut();
 
     // TODO lazy
-    let arrow = cache.get_svg("images/waterway-arrow.svg");
+    let arrow = svg_cache.get("images/waterway-arrow.svg");
 
     let rect = arrow.extents().unwrap();
 

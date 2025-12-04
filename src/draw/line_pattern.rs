@@ -119,9 +119,9 @@ pub fn draw_polyline_outline_scaled(
         return;
     }
 
-    let mut cache = ctx.cache.borrow_mut();
+    let mut svg_cache = ctx.svg_cache.borrow_mut();
 
-    let tile = cache.get_svg(image);
+    let tile = svg_cache.get(image);
 
     let pattern = SurfacePattern::create(tile);
 
@@ -322,7 +322,7 @@ pub fn draw_polyline_outline_scaled(
 
         let mut matrix = Matrix::identity();
 
-        matrix.translate(width / 2.0 + ((dist / scale) % width) , height / 2.0);
+        matrix.translate(width / 2.0 + ((dist / scale) % width), height / 2.0);
 
         matrix.scale(1.0 / scale, 1.0 / scale);
 

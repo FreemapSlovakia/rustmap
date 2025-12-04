@@ -1,5 +1,9 @@
 use crate::{
-    bbox::BBox, colors::{self, Color, ContextExt}, ctx::Ctx, draw::draw::draw_geometry, xyz::to_absolute_pixel_coords
+    bbox::BBox,
+    colors::{self, Color, ContextExt},
+    ctx::Ctx,
+    draw::draw::draw_geometry,
+    xyz::to_absolute_pixel_coords,
 };
 use cairo::{Extend, Matrix, SurfacePattern};
 use postgis::ewkb::Geometry;
@@ -7,13 +11,19 @@ use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
-        bbox: BBox { min_x, min_y, max_x, max_y },
+        bbox:
+            BBox {
+                min_x,
+                min_y,
+                max_x,
+                max_y,
+            },
         zoom,
         context,
         ..
     } = ctx;
 
-    let mut cache = ctx.cache.borrow_mut();
+    let mut svg_cache = ctx.svg_cache.borrow_mut();
 
     let query = &format!(
         "SELECT
@@ -40,7 +50,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         };
 
         let mut pattern_area = |path: &str| {
-            let tile = cache.get_svg(path);
+            let tile = svg_cache.get(path);
 
             let pattern = SurfacePattern::create(tile);
 
