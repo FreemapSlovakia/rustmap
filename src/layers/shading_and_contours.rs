@@ -6,8 +6,8 @@ use gdal::Dataset;
 use postgres::Client;
 use std::{cell::RefCell, collections::HashMap};
 
-const FALLBACK: bool = false;
-const CONTOURS: bool = false;
+const FALLBACK: bool = true;
+const CONTOURS: bool = true;
 
 thread_local! {
     pub static SHADING_THREAD_LOCAL: RefCell<HashMap<String, Dataset>> = {

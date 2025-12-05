@@ -56,26 +56,32 @@ pub fn draw_text(
         flo,
     } = options;
 
+    // context.save().expect("context saved");
+
+    // context.arc(point.x, point.y, 2.0, 0.0, TAU);
+    // context.set_source_color(colors::BLACK);
+
+    // context.fill().unwrap();
+    // context.restore().expect("context restored");
+
     let layout = create_pango_layout(context, text, flo);
-
-    let max_width = flo.max_width - 2.0 * halo_width;
-
-    let x = point.x - max_width / 2.0;
 
     let mut my: Option<f64> = None;
 
     let (ext, _) = layout.extents();
 
-    // let layout_x = ext.x() as f64 / SCALE as f64;
+    let layout_x = ext.x() as f64 / SCALE as f64;
 
-    // let layout_y = ext.y() as f64 / SCALE as f64;
+    let layout_y = ext.y() as f64 / SCALE as f64;
 
-    // let layout_width = ext.width() as f64 / SCALE as f64;
+    let layout_width = ext.width() as f64 / SCALE as f64;
 
     let layout_height = ext.height() as f64 / SCALE as f64;
 
+    let x = point.x - (layout_x + layout_width / 2.0);
+
     'outer: for dy in *placements {
-        let y = *dy + point.y - layout_height / 2.0;
+        let y = *dy + point.y - (layout_y + layout_height / 2.0);
 
         // let ci = BBox::new(
         //     x - halo_width + layout_x,
