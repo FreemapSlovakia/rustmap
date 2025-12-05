@@ -85,7 +85,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             context.push_group(); // contours
             contours::render(ctx, client, country);
             context.pop_group_to_source().unwrap(); // contours
-            context.paint().unwrap();
+            context.paint_with_alpha(0.33).unwrap();
         }
 
         hillshading::render(ctx, country, fade_alpha);
@@ -116,7 +116,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             context.push_group(); // contours
             contours::render(ctx, client, "contour_split");
             context.pop_group_to_source().unwrap(); // contours
-            context.paint().unwrap();
+            context.paint_with_alpha(0.33).unwrap();
         }
 
         hillshading::render(ctx, "_", fade_alpha);
