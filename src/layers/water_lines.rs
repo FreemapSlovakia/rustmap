@@ -36,7 +36,9 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         }
     );
 
-    let rows = &client.query(sql, &[min_x, min_y, max_x, max_y]).unwrap();
+    let rows = &client
+        .query(sql, &[min_x, min_y, max_x, max_y])
+        .expect("db data");
 
     let mut svg_cache = ctx.svg_cache.borrow_mut();
 

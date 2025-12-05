@@ -2,13 +2,22 @@ use postgis::ewkb::Geometry;
 use postgres::Client;
 
 use crate::{
-    bbox::BBox, colors::{self, ContextExt}, ctx::Ctx, draw::{draw::draw_geometry, hatch::hatch_geometry}
+    bbox::BBox,
+    colors::{self, ContextExt},
+    ctx::Ctx,
+    draw::{draw::draw_geometry, hatch::hatch_geometry},
 };
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
         context,
-        bbox: BBox { min_x, min_y, max_x, max_y },
+        bbox:
+            BBox {
+                min_x,
+                min_y,
+                max_x,
+                max_y,
+            },
         ..
     } = ctx;
 
@@ -16,9 +25,14 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     let d = 4.0f64.max(1.33f64.powf(zoom as f64) / 10.0).round();
 
-    let sql = "SELECT geometry FROM osm_power_generators WHERE source = 'solar' AND geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)";
+    let sql = concat!(
+        "SELECT geometry FROM osm_power_generators ",
+        "WHERE source = 'solar' AND geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)"
+    );
 
-    let rows = client.query(sql, &[min_x, min_y, max_x, max_y]).unwrap();
+    let rows = client
+        .query(sql, &[min_x, min_y, max_x, max_y])
+        .expect("db data");
 
     for row in rows {
         let geom: Geometry = row.get("geometry");

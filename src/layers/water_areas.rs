@@ -1,12 +1,21 @@
 use crate::{
-    bbox::BBox, colors::{self, ContextExt}, ctx::Ctx, draw::draw::draw_geometry
+    bbox::BBox,
+    colors::{self, ContextExt},
+    ctx::Ctx,
+    draw::draw::draw_geometry,
 };
 use postgis::ewkb::Geometry;
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
-        bbox: BBox { min_x, min_y, max_x, max_y },
+        bbox:
+            BBox {
+                min_x,
+                min_y,
+                max_x,
+                max_y,
+            },
         context,
         ..
     } = ctx;
@@ -14,7 +23,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     for row in &client.query(
         "SELECT type, geometry FROM osm_waterareas WHERE geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)",
         &[min_x, min_y, max_x, max_y]
-    ).unwrap() {
+    ).expect("db data") {
         let geom: Geometry = row.get("geometry");
 
         context.set_source_color(colors::WATER);

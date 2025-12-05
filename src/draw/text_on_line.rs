@@ -1,26 +1,59 @@
-use crate::{ctx::Ctx, draw::draw::Projectable, point::Point};
-use core::slice::Iter;
-use pangocairo::{
-    functions::{create_layout, glyph_string_path},
-    pango::{
-        Alignment, Font, FontDescription, GlyphItem, GlyphItemIter, GlyphString, Layout, SCALE,
-        WrapMode,
+use crate::{
+    colors::{self, Color, ContextExt},
+    ctx::Ctx,
+    draw::{
+        create_pango_layout::{FontAndLayoutOptions, create_pango_layout},
+        draw::Projectable,
     },
+    point::Point,
 };
+use core::slice::Iter;
+use pangocairo::{functions::glyph_string_path, pango::{Font, GlyphItem, GlyphString, Layout, SCALE}};
 use postgis::ewkb::Point as PgPoint;
-use std::f64::consts::PI;
+use std::f64::consts::{PI, TAU};
 
 const MAX_CURVATURE_DEGREES: f64 = 60.0;
 const CONCAVE_SPACING_FACTOR: f64 = 1.0;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
+pub struct TextOnLineOptions {
+    pub upright: Upright,
+    pub align: Align,
+    pub repeat_distance: Option<f64>,
+    pub spacing: f64,
+    pub alpha: f64,
+    pub color: Color,
+    pub halo_color: Color,
+    pub halo_opacity: f64,
+    pub halo_width: f64,
+    pub flo: FontAndLayoutOptions,
+}
+
+impl Default for TextOnLineOptions {
+    fn default() -> Self {
+        TextOnLineOptions {
+            upright: Upright::Auto,
+            align: Align::Center,
+            repeat_distance: None,
+            spacing: 0.0,
+            alpha: 1.0,
+            color: colors::BLACK,
+            halo_color: colors::WHITE,
+            halo_opacity: 0.75,
+            halo_width: 1.5,
+            flo: FontAndLayoutOptions::default(),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
 pub enum Upright {
     Left,
     Right,
     Auto,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum Align {
     Left,
     Center,
@@ -42,13 +75,14 @@ fn angle_between(a: Point, b: Point) -> f64 {
     det.atan2(dot).abs().to_degrees()
 }
 
-fn normalize_angle(mut a: f64) -> f64 {
+fn normalize_angle(a: f64) -> f64 {
     if a > PI {
-        a -= 2.0 * PI;
+        a - TAU
     } else if a <= -PI {
-        a += 2.0 * PI;
+        a + TAU
+    } else {
+        a
     }
-    a
 }
 
 fn adjust_upright_angle(angle: f64, upright: Upright) -> f64 {
@@ -191,13 +225,6 @@ fn position_at(pts: &[Point], cum: &[f64], dist: f64) -> Option<(Point, Point)> 
     Some((pos, tangent))
 }
 
-fn make_font_description() -> FontDescription {
-    let mut font_description = FontDescription::new();
-    font_description.set_family("PT Sans,Fira Sans Condensed,Noto Sans");
-    font_description.set_size((SCALE as f64 * 12.0) as i32);
-    font_description
-}
-
 fn make_cluster_glyph_string(
     glyph_item: &GlyphItem,
     start_glyph: i32,
@@ -227,7 +254,7 @@ fn make_cluster_glyph_string(
     dst
 }
 
-fn collect_clusters(layout: &Layout, _text: &str) -> Vec<(f64, GlyphString, Font)> {
+fn collect_clusters(layout: &Layout) -> Vec<(f64, GlyphString, Font)> {
     let mut result = Vec::new();
     let ps = 1.0 / SCALE as f64;
 
@@ -270,27 +297,47 @@ fn collect_clusters(layout: &Layout, _text: &str) -> Vec<(f64, GlyphString, Font
     result
 }
 
-fn draw_cluster(
+fn draw_label(
     cr: &cairo::Context,
-    glyph_string: &mut GlyphString,
-    font: &Font,
-    pos: Point,
-    angle: f64,
+    glyphs: &[(GlyphString, Font, Point, f64)],
+    opts: &TextOnLineOptions,
 ) {
+    if glyphs.is_empty() {
+        return;
+    }
+
     let ps = 1.0 / SCALE as f64;
 
-    // Rotate around the glyph's centroid (center of logical bbox).
-    let (_, logical) = glyph_string.extents(font);
-    let cx = (logical.x() as f64 + logical.width() as f64 / 2.0) * ps;
-    let cy = (logical.y() as f64 + logical.height() as f64 / 2.0) * ps;
-
     cr.save().unwrap();
-    cr.translate(pos.x, pos.y);
-    cr.rotate(angle);
-    cr.translate(-cx, -cy);
+    cr.push_group();
 
-    glyph_string_path(cr, font, glyph_string);
+    for (glyph_string, font, pos, angle) in glyphs {
+        // Rotate around the glyph's centroid (center of logical bbox).
+        let mut gs = glyph_string.clone();
+        let (_, logical) = gs.extents(font);
+        let cx = (logical.x() as f64 + logical.width() as f64 / 2.0) * ps;
+        let cy = (logical.y() as f64 + logical.height() as f64 / 2.0) * ps;
+
+        cr.save().unwrap();
+        cr.translate(pos.x, pos.y);
+        cr.rotate(*angle);
+        cr.translate(-cx, -cy);
+
+        glyph_string_path(cr, font, &mut gs);
+
+        cr.restore().unwrap();
+    }
+
+    cr.set_source_color_a(opts.halo_color, opts.halo_opacity);
+    cr.set_dash(&[], 0.0);
+    cr.set_line_width(opts.halo_width * 2.0);
+    cr.stroke_preserve().unwrap();
+
+    cr.set_source_color(opts.color);
     cr.fill().unwrap();
+
+    cr.pop_group_to_source().unwrap();
+    cr.paint_with_alpha(opts.alpha).unwrap();
 
     cr.restore().unwrap();
 }
@@ -333,15 +380,7 @@ fn label_offsets(
     (0..count).map(|i| start + i as f64 * step).collect()
 }
 
-pub fn text_on_line(
-    ctx: &Ctx,
-    iter: Iter<PgPoint>,
-    text: &str,
-    upright: Upright,
-    align: Align,
-    repeat_distance: Option<f64>,
-    spacing: f64,
-) {
+pub fn text_on_line(ctx: &Ctx, iter: Iter<PgPoint>, text: &str, options: &TextOnLineOptions) {
     let mut pts: Vec<Point> = iter.map(|p| p.project(ctx)).rev().collect();
 
     pts.dedup_by(|a, b| a == b);
@@ -357,13 +396,20 @@ pub fn text_on_line(
         return;
     }
 
-    let layout = create_layout(&ctx.context);
+    let TextOnLineOptions {
+        spacing,
+        repeat_distance,
+        align,
+        upright,
+        flo,
+        ..
+    } = options;
 
-    layout.set_text(text);
+    let layout = create_pango_layout(&ctx.context, text, flo);
+
     layout.set_width(-1); // no width constraint, so no wrapping happens at all
-    layout.set_font_description(Some(&make_font_description()));
 
-    let clusters = collect_clusters(&layout, text);
+    let clusters = collect_clusters(&layout);
     if clusters.is_empty() {
         return;
     }
@@ -373,14 +419,20 @@ pub fn text_on_line(
         return;
     }
 
-    let offsets = label_offsets(total_length, total_advance, spacing, repeat_distance, align);
+    let offsets = label_offsets(
+        total_length,
+        total_advance,
+        *spacing,
+        *repeat_distance,
+        *align,
+    );
     if offsets.is_empty() {
         return;
     }
 
-    let mut placements = Vec::new();
+    let mut placements: Vec<Vec<(GlyphString, Font, Point, f64)>> = Vec::new();
 
-    for start in offsets {
+    'outer: for start in offsets {
         // Decide per-repeat if we need to flip to stay upright.
         let overall_span_start = start;
         let overall_span_end = start + total_advance;
@@ -389,7 +441,7 @@ pub fn text_on_line(
                 .unwrap_or(Point::new(1.0, 0.0));
 
         let base_angle = overall_tangent.y.atan2(overall_tangent.x);
-        let adjusted_angle = adjust_upright_angle(base_angle, upright);
+        let adjusted_angle = adjust_upright_angle(base_angle, *upright);
         let flip_needed = (normalize_angle(adjusted_angle - base_angle)).abs() > PI / 2.0;
         let flip_offset = if flip_needed {
             0.0
@@ -410,21 +462,18 @@ pub fn text_on_line(
 
         let mut offset = start_use;
         let mut label_placements = Vec::new();
-        let mut failed = false;
 
         for (advance, glyph_string, font) in clusters.iter() {
             let span_start = offset;
             let span_end = offset + *advance;
             if span_end > total_length {
-                failed = true;
-                break;
+                continue 'outer;
             }
 
             let (_, tangent) = match position_at(&pts_use, &cum_use, span_start + *advance / 2.0) {
                 Some(v) => v,
                 None => {
-                    failed = true;
-                    break;
+                    continue 'outer;
                 }
             };
 
@@ -447,8 +496,7 @@ pub fn text_on_line(
             }
 
             if max_bend > MAX_CURVATURE_DEGREES {
-                failed = true;
-                break;
+                continue 'outer;
             }
 
             // Extra space proportional to curvature to avoid glyph tops touching on bends.
@@ -460,15 +508,13 @@ pub fn text_on_line(
             let shifted_center = shifted_start + *advance / 2.0;
 
             if shifted_end > total_length {
-                failed = true;
-                break;
+                continue 'outer;
             }
 
             let (pos, _) = match position_at(&pts_use, &cum_use, shifted_center) {
                 Some(v) => v,
                 None => {
-                    failed = true;
-                    break;
+                    continue 'outer;
                 }
             };
 
@@ -483,13 +529,11 @@ pub fn text_on_line(
             offset += *advance + concave_spacing;
         }
 
-        if !failed {
-            placements.extend(label_placements);
-        }
+        placements.push(label_placements);
     }
 
-    let cr = &ctx.context;
-    for (mut glyph_string, font, pos, angle) in placements {
-        draw_cluster(cr, &mut glyph_string, &font, pos, angle);
+    let context = &ctx.context;
+    for label in placements {
+        draw_label(context, &label, options);
     }
 }

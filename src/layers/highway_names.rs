@@ -8,7 +8,7 @@ use crate::{
     ctx::Ctx,
     draw::{
         draw::Projectable,
-        text_on_line::{Align, Upright, text_on_line},
+        text_on_line::{Align, TextOnLineOptions, Upright, text_on_line},
     },
 };
 
@@ -25,36 +25,38 @@ pub fn highway_names(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f
         ..
     } = ctx;
 
-    let sql = r#"
-        SELECT name, ST_LineMerge(ST_Collect(geometry)) AS geometry, type
+    let sql = "
+        WITH merged AS (
+          SELECT name, ST_LineMerge(ST_Collect(geometry)) AS geom, type, z_order
           FROM osm_roads
           WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) AND name <> ''
           GROUP BY z_order, name, type
-          ORDER BY z_order DESC"#;
+        )
+        SELECT name, (ST_Dump(ST_CollectionExtract(geom, 2))).geom AS geometry, type
+        FROM merged
+        ORDER BY z_order DESC";
 
     let buffer = ctx.meters_per_pixel() * 256.0;
 
-    for row in &client
+    let rows = client
         .query(sql, &[min_x, min_y, max_x, max_y, &buffer])
-        .unwrap()
-    {
+        .expect("db data");
+
+    for row in rows {
         let geom: LineString = row.get("geometry");
 
         let name: &str = row.get("name");
-
-        context.set_source_color(colors::TRACK);
 
         text_on_line(
             ctx,
             geom.points.iter(),
             name,
-            // "Idanská",
-            // "Jánošíkova",
-            // "Janosikova",
-            Upright::Auto,
-            Align::Center,
-            Some(10.0),
-            10.0,
+            &TextOnLineOptions {
+                repeat_distance: Some(50.0),
+                spacing: 50.0,
+                color: colors::TRACK,
+                ..TextOnLineOptions::default()
+            },
         );
     }
 }

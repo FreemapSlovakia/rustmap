@@ -4,7 +4,7 @@ use crate::{
     ctx::Ctx,
     draw::{
         draw::Projectable,
-        text::{draw_text, TextOptions, DEFAULT_PLACEMENTS},
+        text::{DEFAULT_PLACEMENTS, TextOptions, draw_text},
     },
 };
 use postgis::ewkb::Point;
@@ -49,19 +49,22 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
 
     let buffer = ctx.meters_per_pixel() * 1024.0;
 
-    for row in &client
+    let text_options = TextOptions {
+        placements: DEFAULT_PLACEMENTS,
+        ..TextOptions::default()
+    };
+
+    let rows = client
         .query(sql, &[min_x, min_y, max_x, max_y, &buffer])
-        .unwrap()
-    {
+        .expect("db data");
+
+    for row in rows {
         draw_text(
             context,
             collision,
             row.get::<_, Point>("geometry").project(ctx),
             row.get("name"),
-            &TextOptions {
-                placements: DEFAULT_PLACEMENTS,
-                ..TextOptions::default()
-            },
+            &text_options,
         );
     }
 }

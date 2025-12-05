@@ -53,10 +53,11 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     let no_bicycle_rect = no_bicycle_icon.extents().unwrap();
     let no_foot_rect = no_foot_icon.extents().unwrap();
 
-    for row in &client
+    let rows = client
         .query(sql, &[min_x, min_y, max_x, max_y, &buffer])
-        .unwrap()
-    {
+        .expect("db data");
+
+    for row in rows {
         let geom: Geometry = row.get("geometry");
 
         draw_geometry(ctx, &geom);
@@ -85,14 +86,14 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 (no_bicycle_icon, no_bicycle_rect)
             };
 
-            context.save().unwrap();
+            context.save().expect("context saved");
             context.translate(x, y);
             context.rotate(angle);
             context
                 .set_source_surface(arrow, -rect.width() / 2.0, -rect.height() / 2.0)
                 .unwrap();
             context.paint_with_alpha(0.75).unwrap();
-            context.restore().unwrap();
+            context.restore().expect("context restored");
 
             i_cell.set(i + 1);
         });

@@ -52,7 +52,9 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     let highway_width_coef = || 1.5f64.powf(8.6f64.max(zoom as f64) - 8.0);
 
-    let rows = &client.query(&query, &[min_x, min_y, max_x, max_y]).unwrap();
+    let rows = &client
+        .query(&query, &[min_x, min_y, max_x, max_y])
+        .expect("db data");
 
     let ke = || match zoom {
         12 => 0.66,
@@ -67,6 +69,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     let arrow = cache.get("images/highway-arrow.svg");
 
     let rect = arrow.extents().unwrap();
+
+    context.save().expect("context saved");
 
     for row in rows {
         let geom: LineString = row.get("geometry");
@@ -175,7 +179,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         let draw_bridges_tunnels = |width: f64| {
             if row.get::<_, i16>("bridge") > 0 {
-                context.save().unwrap();
+                context.save().expect("context saved");
                 context.set_dash(&[], 0.0);
                 context.set_source_rgb(0.0, 0.0, 0.0);
 
@@ -195,7 +199,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 context.pop_group_to_source().unwrap();
                 context.paint().unwrap();
 
-                context.restore().unwrap();
+                context.restore().expect("context restored");
             }
 
             if row.get::<_, i16>("tunnel") > 0 {
@@ -206,7 +210,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 draw();
                 context.stroke().unwrap();
 
-                context.save().unwrap();
+                context.save().expect("context saved");
                 context.set_dash(&[3.0, 3.0], 0.0);
                 context.set_source_rgba(0.0, 0.0, 0.0, 0.5);
 
@@ -226,7 +230,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 context.pop_group_to_source().unwrap();
                 context.paint().unwrap();
 
-                context.restore().unwrap();
+                context.restore().expect("context restored");
             }
         };
 
@@ -541,15 +545,17 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             context.new_path();
 
             draw_markers_on_path(&path, 50.0, 100.0, &|x, y, angle| {
-                context.save().unwrap();
+                context.save().expect("context saved");
                 context.translate(x, y);
                 context.rotate(angle + if oneway < 0 { 180.0 } else { 0.0 });
                 context
                     .set_source_surface(arrow, -rect.width() / 2.0, -rect.height() / 2.0)
                     .unwrap();
                 context.paint().unwrap();
-                context.restore().unwrap();
+                context.restore().expect("context restored");
             });
         }
     }
+
+    context.save().expect("context saved");
 }

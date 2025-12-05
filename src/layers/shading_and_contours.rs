@@ -77,7 +77,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         if *zoom >= 12 {
             context.push_group(); // contours
-            contours::render(ctx, client, &format!("contour_{}_split", country));
+            contours::render(ctx, client, country);
             context.pop_group_to_source().unwrap(); // contours
             context.paint().unwrap();
         }

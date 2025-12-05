@@ -1,8 +1,13 @@
 use crate::{
-    bbox::BBox, collision::Collision, colors, ctx::Ctx, draw::{
+    bbox::BBox,
+    collision::Collision,
+    colors,
+    ctx::Ctx,
+    draw::{
+        create_pango_layout::FontAndLayoutOptions,
         draw::Projectable,
-        text::{self, draw_text, TextOptions},
-    }
+        text::{self, TextOptions, draw_text},
+    },
 };
 use pangocairo::pango::Style;
 use postgis::ewkb::Point;
@@ -11,7 +16,13 @@ use postgres::Client;
 pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     let Ctx {
         context,
-        bbox: BBox { min_x, min_y, max_x, max_y },
+        bbox:
+            BBox {
+                min_x,
+                min_y,
+                max_x,
+                max_y,
+            },
         ..
     } = ctx;
 
@@ -33,22 +44,27 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
 
     let buffer = ctx.meters_per_pixel() * 1024.0;
 
+    let text_options = TextOptions {
+        flo: FontAndLayoutOptions {
+            style: Style::Italic,
+            ..FontAndLayoutOptions::default()
+        },
+        color: colors::WATER_LABEL,
+        halo_color: colors::WATER_LABEL_HALO,
+        placements: text::DEFAULT_PLACEMENTS,
+        ..TextOptions::default()
+    };
+
     for row in &client
         .query(sql, &[min_x, min_y, max_x, max_y, &(zoom as i32), &buffer])
-        .unwrap()
+        .expect("db data")
     {
         draw_text(
             context,
             collision,
             row.get::<_, Point>("geometry").project(ctx),
             row.get("name"),
-            &TextOptions {
-                color: colors::WATER_LABEL,
-                halo_color: colors::WATER_LABEL_HALO,
-                style: Style::Italic,
-                placements: text::DEFAULT_PLACEMENTS,
-                ..TextOptions::default()
-            },
+            &text_options,
         );
     }
 }

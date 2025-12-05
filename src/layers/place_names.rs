@@ -3,6 +3,7 @@ use crate::{
     collision::Collision,
     ctx::Ctx,
     draw::{
+        create_pango_layout::FontAndLayoutOptions,
         draw::Projectable,
         text::{self, TextOptions, draw_text},
     },
@@ -44,10 +45,11 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
 
     let buffer = ctx.meters_per_pixel() * 1024.0;
 
-    for row in &client
+    let rows = client
         .query(sql, &[min_x, min_y, max_x, max_y, &buffer])
-        .unwrap()
-    {
+        .expect("db data");
+
+    for row in rows {
         let (size, uppercase, halo_width) = match (zoom, row.get("type")) {
             (6.., "city") => (1.2, true, 2.0),
             (9.., "town") => (0.8, true, 2.0),
@@ -65,14 +67,17 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
             row.get::<_, Point>("geometry").project(ctx),
             row.get("name"),
             &TextOptions {
-                size: size * scale,
+                flo: FontAndLayoutOptions {
+                    size: size * scale,
+                    uppercase,
+                    narrow: true,
+                    weight: Weight::Bold,
+                    letter_spacing: 1.0,
+                    ..FontAndLayoutOptions::default()
+                },
                 halo_width,
                 halo_opacity: 0.9,
-                uppercase,
-                narrow: true,
                 alpha: if zoom <= 14 { 1.0 } else { 0.5 },
-                weight: Weight::Bold,
-                letter_spacing: 1.0,
                 placements: text::DEFAULT_PLACEMENTS,
                 ..TextOptions::default()
             },

@@ -2,23 +2,39 @@ use postgis::ewkb::Geometry;
 use postgres::Client;
 
 use crate::{
-    bbox::BBox, colors::{self, ContextExt}, ctx::Ctx, draw::draw::draw_geometry
+    bbox::BBox,
+    colors::{self, ContextExt},
+    ctx::Ctx,
+    draw::draw::draw_geometry,
 };
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
         context,
-        bbox: BBox { min_x, min_y, max_x, max_y },
+        bbox:
+            BBox {
+                min_x,
+                min_y,
+                max_x,
+                max_y,
+            },
         ..
     } = ctx;
 
     let zoom = ctx.zoom;
 
-    let sql = format!("SELECT geometry, location IN('underground', 'underwater') AS below FROM osm_pipelines WHERE geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857) AND location IN ({})",
-        if zoom < 15 { "'overground', 'overhead', ''" } else { "'overground', 'overhead', '', 'underground', 'underwater'" }
+    let sql = format!(
+        "SELECT geometry, location IN('underground', 'underwater') AS below FROM osm_pipelines WHERE geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857) AND location IN ({})",
+        if zoom < 15 {
+            "'overground', 'overhead', ''"
+        } else {
+            "'overground', 'overhead', '', 'underground', 'underwater'"
+        }
     );
 
-    let rows = client.query(&sql, &[min_x, min_y, max_x, max_y]).unwrap();
+    let rows = client
+        .query(&sql, &[min_x, min_y, max_x, max_y])
+        .expect("db data");
 
     for row in rows {
         let geom: Geometry = row.get("geometry");

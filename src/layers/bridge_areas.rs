@@ -2,24 +2,42 @@ use postgis::ewkb::Geometry;
 use postgres::Client;
 
 use crate::{
-    bbox::BBox, colors::{self, ContextExt}, ctx::Ctx, draw::draw::draw_geometry
+    bbox::BBox,
+    colors::{self, ContextExt},
+    ctx::Ctx,
+    draw::draw::draw_geometry,
 };
 
 pub fn render(ctx: &Ctx, client: &mut Client, mask: bool) {
     let Ctx {
-        bbox: BBox {min_x, min_y, max_x, max_y},
+        bbox:
+            BBox {
+                min_x,
+                min_y,
+                max_x,
+                max_y,
+            },
         context,
         size,
         ..
     } = ctx;
 
-    let query = "SELECT geometry FROM osm_landusages WHERE geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857) AND type = 'bridge'";
+    let query = concat!(
+        "SELECT geometry FROM osm_landusages ",
+        "WHERE geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857) AND type = 'bridge'"
+    );
 
     if mask {
         context.set_fill_rule(cairo::FillRule::EvenOdd);
     }
 
-    for row in client.query(query, &[min_x, min_y, max_x, max_y]).unwrap() {
+    context.save().expect("context saved");
+
+    let rows = client
+        .query(query, &[min_x, min_y, max_x, max_y])
+        .expect("db data");
+
+    for row in rows {
         let geom: Geometry = row.get("geometry");
 
         if mask {
@@ -37,4 +55,6 @@ pub fn render(ctx: &Ctx, client: &mut Client, mask: bool) {
             context.stroke().unwrap();
         }
     }
+
+    context.restore().expect("context restored");
 }

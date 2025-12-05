@@ -1,9 +1,12 @@
 use crate::{
-    bbox::BBox, colors::{self, ContextExt}, ctx::Ctx, draw::{
+    bbox::BBox,
+    colors::{self, ContextExt},
+    ctx::Ctx,
+    draw::{
         draw::{draw_geometry, draw_geometry_uni, draw_line_off},
         hatch::hatch_geometry,
         line_pattern::draw_line_pattern,
-    }
+    },
 };
 use core::slice::Iter;
 use postgis::ewkb::{Geometry, Point};
@@ -16,7 +19,13 @@ fn draw_protected_area_border(ctx: &Ctx, iter: Iter<Point>) {
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
         context,
-        bbox: BBox { min_x, min_y, max_x, max_y },
+        bbox:
+            BBox {
+                min_x,
+                min_y,
+                max_x,
+                max_y,
+            },
         ..
     } = ctx;
 
@@ -24,10 +33,18 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     let sql = &format!(
         "SELECT type, protect_class, geometry FROM osm_protected_areas WHERE geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857) {}",
-        if zoom < 12 { " AND NOT (type = 'nature_reserve' OR type = 'protected_area' AND protect_class <> '2')" } else { "" }
+        if zoom < 12 {
+            " AND NOT (type = 'nature_reserve' OR type = 'protected_area' AND protect_class <> '2')"
+        } else {
+            ""
+        }
     );
 
-    let rows = &client.query(sql, &[min_x, min_y, max_x, max_y]).unwrap();
+    context.save().expect("context saved");
+
+    let rows = &client
+        .query(sql, &[min_x, min_y, max_x, max_y])
+        .expect("db data");
 
     // hatching
     if zoom <= 11 {
@@ -67,7 +84,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         }
     }
 
-    ctx.context.push_group();
+    context.push_group();
 
     for row in rows {
         let typ: &str = row.get("type");
@@ -81,21 +98,23 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 2.0
             };
 
-            ctx.context.set_source_color(colors::PROTECTED);
-            ctx.context.set_dash(&[], 0.0);
-            ctx.context.set_line_width(wb * 0.75);
-            ctx.context.set_line_join(cairo::LineJoin::Round);
+            context.set_source_color(colors::PROTECTED);
+            context.set_dash(&[], 0.0);
+            context.set_line_width(wb * 0.75);
+            context.set_line_join(cairo::LineJoin::Round);
             draw_geometry(ctx, &geom);
-            ctx.context.stroke().unwrap();
+            context.stroke().unwrap();
 
-            ctx.context.set_line_width(wb);
-            ctx.context.set_source_color_a(colors::PROTECTED, 0.5);
+            context.set_line_width(wb);
+            context.set_source_color_a(colors::PROTECTED, 0.5);
             draw_geometry_uni(&geom, &|iter| draw_line_off(ctx, iter, wb * 0.75));
-            ctx.context.stroke().unwrap();
+            context.stroke().unwrap();
         }
     }
 
-    ctx.context.pop_group_to_source().unwrap();
+    context.pop_group_to_source().unwrap();
 
-    ctx.context.paint_with_alpha(0.66).unwrap();
+    context.paint_with_alpha(0.66).unwrap();
+
+    context.restore().expect("context restored");
 }

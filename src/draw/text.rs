@@ -1,34 +1,22 @@
-use std::f64::consts::PI;
-
 use crate::{
     bbox::BBox,
     collision::Collision,
     colors::{self, Color, ContextExt},
+    draw::create_pango_layout::{FontAndLayoutOptions, create_pango_layout},
     point::Point,
 };
 use cairo::Context;
-use pangocairo::{
-    functions::{create_layout, glyph_string_path, layout_path},
-    pango::{
-        Alignment, AttrInt, AttrList, FontDescription, GlyphString, SCALE, Style, Weight, WrapMode,
-        ffi::{PangoGlyphString, pango_glyph_string_new},
-    },
-};
+use pangocairo::{functions::layout_path, pango::SCALE};
 
+#[derive(Copy, Clone, Debug)]
 pub struct TextOptions<'a> {
     pub alpha: f64,
     pub color: Color,
     pub halo_color: Color,
     pub halo_opacity: f64,
     pub halo_width: f64,
-    pub letter_spacing: f64,
-    pub max_width: f64,
-    pub narrow: bool,
     pub placements: &'a [f64],
-    pub size: f64,
-    pub style: Style,
-    pub uppercase: bool,
-    pub weight: Weight,
+    pub flo: FontAndLayoutOptions,
 }
 
 pub static DEFAULT_PLACEMENTS: &[f64] = &[0.0, 3.0, -3.0, 6.0, -6.0, 9.0, -9.0];
@@ -41,14 +29,8 @@ impl Default for TextOptions<'_> {
             halo_color: colors::WHITE,
             halo_opacity: 0.75,
             halo_width: 1.5,
-            letter_spacing: 0.0,
-            max_width: 100.0,
-            narrow: false,
+            flo: FontAndLayoutOptions::default(),
             placements: &[0.0],
-            size: 12.0,
-            style: Style::Normal,
-            uppercase: false,
-            weight: Weight::Normal,
         }
     }
 }
@@ -57,10 +39,10 @@ pub fn draw_text(
     context: &Context,
     collision: &mut Collision<f64>,
     point: Point,
-    original_text: &str,
+    text: &str,
     options: &TextOptions,
 ) {
-    if original_text.is_empty() {
+    if text.is_empty() {
         return;
     }
 
@@ -70,66 +52,13 @@ pub fn draw_text(
         halo_color,
         halo_opacity,
         halo_width,
-        letter_spacing,
-        max_width,
-        narrow,
         placements,
-        size,
-        style,
-        uppercase,
-        weight,
+        flo,
     } = options;
 
-    let layout = create_layout(context);
+    let layout = create_pango_layout(context, text, flo);
 
-    let max_width = max_width - 2.0 * halo_width;
-
-    let mut font_description = FontDescription::new();
-
-    font_description.set_family(if *narrow {
-        "PT Sans Narrow,Fira Sans Extra Condensed,Noto Sans"
-    } else {
-        "PT Sans,Fira Sans Condensed,Noto Sans"
-    });
-
-    font_description.set_weight(*weight);
-
-    font_description.set_size((SCALE as f64 * size * 0.75) as i32);
-
-    font_description.set_style(*style);
-
-    layout.set_font_description(Some(&font_description));
-
-    let uppercase_text;
-
-    let text = if *uppercase {
-        uppercase_text = original_text.to_uppercase();
-        &uppercase_text
-    } else {
-        original_text
-    };
-
-    // let text = "الله";
-
-    layout.set_wrap(WrapMode::Word);
-    layout.set_alignment(Alignment::Center);
-    layout.set_line_spacing(0.4);
-    layout.set_width((max_width * SCALE as f64) as i32);
-
-    layout.set_text(text);
-    // layout.set_markup(r#"<span font_features="liga=1">fi</span>"#);
-
-    // let letter_spacing = &16.0;
-
-    if *letter_spacing != 1.0 {
-        let attr_list = AttrList::new();
-
-        attr_list.insert(AttrInt::new_letter_spacing(
-            (SCALE as f64 * *letter_spacing) as i32,
-        ));
-
-        layout.set_attributes(Some(&attr_list));
-    }
+    let max_width = flo.max_width - 2.0 * halo_width;
 
     let x = point.x - max_width / 2.0;
 
@@ -270,6 +199,8 @@ pub fn draw_text(
         None => return,
     };
 
+    context.save().expect("context saved");
+
     context.move_to(x, y);
 
     layout_path(context, &layout);
@@ -279,9 +210,7 @@ pub fn draw_text(
     context.set_source_color_a(*halo_color, *halo_opacity);
     context.set_dash(&[], 0.0);
     context.set_line_width(halo_width * 2.0);
-
     context.stroke_preserve().unwrap();
-
     context.set_source_color(*color);
 
     context.fill().unwrap();
@@ -289,4 +218,6 @@ pub fn draw_text(
     context.pop_group_to_source().unwrap();
 
     context.paint_with_alpha(*alpha).unwrap();
+
+    context.restore().expect("context restored");
 }

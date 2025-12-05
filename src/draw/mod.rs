@@ -1,8 +1,9 @@
+pub mod create_pango_layout;
 pub mod draw;
 pub mod hatch;
 pub mod line_pattern;
+pub mod markers_on_path;
 pub mod offset_line;
 pub mod smooth_line;
 pub mod text;
-pub mod markers_on_path;
 pub mod text_on_line;

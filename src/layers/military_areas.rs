@@ -1,5 +1,8 @@
 use crate::{
-    bbox::BBox, colors::{self, ContextExt}, ctx::Ctx, draw::{draw::draw_geometry, hatch::hatch_geometry}
+    bbox::BBox,
+    colors::{self, ContextExt},
+    ctx::Ctx,
+    draw::{draw::draw_geometry, hatch::hatch_geometry},
 };
 use postgis::ewkb::Geometry;
 use postgres::Client;
@@ -7,7 +10,13 @@ use postgres::Client;
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx {
         context,
-        bbox: BBox { min_x, min_y, max_x, max_y },
+        bbox:
+            BBox {
+                min_x,
+                min_y,
+                max_x,
+                max_y,
+            },
         ..
     } = ctx;
 
@@ -23,7 +32,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     let rows = &client
         .query(sql, &[min_x, min_y, max_x, max_y, &(zoom as i32)])
-        .unwrap();
+        .expect("db data");
 
     ctx.context.push_group();
 

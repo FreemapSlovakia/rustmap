@@ -117,7 +117,7 @@ fn get_routes_query(
         }
     };
 
-    format!(r#"
+    format!("
 SELECT
   ST_Multi(ST_LineMerge(ST_Collect(geometry))) AS geometry,
   idx(arr1, 0) AS h_red,
@@ -247,7 +247,7 @@ GROUP BY
   b_red, b_blue, b_green, b_yellow, b_black, b_white, b_orange, b_purple, b_none,
   s_red, s_blue, s_green, s_yellow, s_black, s_white, s_orange, s_purple, s_none,
   r_red, r_blue, r_green, r_yellow, r_black, r_white, r_orange, r_purple, r_none,
-  off1, off2, refs1, refs2"#,
+  off1, off2, refs1, refs2",
         lefts_in = lefts_in,
         rights_in = rights_in,
         bool_horse = route_types.contains(RouteTypes::HORSE),
@@ -295,9 +295,10 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
         _ => return,
     };
 
-    let rows = &client.query(&query, &[min_x, min_y, max_x, max_y]).unwrap();
-
-    for row in rows {
+    for row in &client
+        .query(&query, &[min_x, min_y, max_x, max_y])
+        .expect("db data")
+    {
         let geom: MultiLineString = row.get("geometry");
 
         let (zo, wf) = match zoom {

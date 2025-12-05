@@ -29,15 +29,26 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: &str) {
         _ => 0.0,
     };
 
+    context.save().expect("context saved");
+
     // TODO measure performance impact of simplification, if it makes something faster
 
-    for row in &client.query(
-        &format!("SELECT ST_SimplifyVW((ST_Dump(ST_LineMerge(ST_Collect(ST_ClipByBox2D(wkb_geometry, ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), 100)))))).geom, $5) AS geom, height
-        FROM {}
-        WHERE wkb_geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)
-        GROUP BY height", country),
-        &[min_x, min_y, max_x, max_y, &simplify_factor]
-    ).unwrap_or_default() {
+    let sql = format!(
+        "SELECT ST_SimplifyVW((ST_Dump(ST_LineMerge(ST_Collect(ST_ClipByBox2D(wkb_geometry,
+            ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), 100)))))).geom, $5) AS geom,
+            height
+            FROM contour_{}_split
+            WHERE wkb_geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)
+            GROUP BY height",
+        country
+    );
+
+    let rows = client
+        .query(&sql, &[min_x, min_y, max_x, max_y, &simplify_factor])
+        .unwrap_or_default();
+
+    for row in rows {
+        println!("XXXXxx");
         let height: f64 = row.get("height");
 
         let width = match zoom {
@@ -69,4 +80,6 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: &str) {
 
         context.stroke().unwrap();
     }
+
+    context.restore().expect("context restored");
 }

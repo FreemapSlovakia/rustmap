@@ -22,10 +22,19 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         ..
     } = ctx;
 
-    for row in &client.query("SELECT geometry, type FROM osm_barrierways WHERE geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)", &[min_x, min_y, max_x, max_y]).unwrap() {
+    let sql = concat!(
+        "SELECT geometry, type FROM osm_barrierways ",
+        "WHERE geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)"
+    );
+
+    let rows = client
+        .query(sql, &[min_x, min_y, max_x, max_y])
+        .expect("db data");
+
+    for row in rows {
         let geom: LineString = row.get("geometry");
 
-        context.save().unwrap();
+        context.save().expect("context saved");
 
         match row.get("type") {
             "city_wall" => {
@@ -51,7 +60,6 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         context.stroke().unwrap();
 
-        context.restore().unwrap();
-
+        context.restore().expect("context restores");
     }
 }

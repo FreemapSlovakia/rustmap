@@ -182,7 +182,7 @@ pub fn render(ctx: &Ctx, country: &str) {
         *scale,
     );
 
-    context.save().unwrap();
+    context.save().expect("context saved");
 
     context.identity_matrix();
 
@@ -192,5 +192,5 @@ pub fn render(ctx: &Ctx, country: &str) {
         .paint_with_alpha(1.0f64.min(1.0 - (*zoom as f64 - 7.0).ln() / 5.0))
         .unwrap();
 
-    context.restore().unwrap();
+    context.restore().expect("context restored");
 }
