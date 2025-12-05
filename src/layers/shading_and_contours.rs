@@ -1,11 +1,13 @@
-use std::{cell::RefCell, collections::HashMap};
-
 use crate::{
     ctx::Ctx,
     layers::{bridge_areas, contours, hillshading},
 };
 use gdal::Dataset;
 use postgres::Client;
+use std::{cell::RefCell, collections::HashMap};
+
+const FALLBACK: bool = false;
+const CONTOURS: bool = false;
 
 thread_local! {
     pub static SHADING_THREAD_LOCAL: RefCell<HashMap<String, Dataset>> = {
@@ -49,6 +51,8 @@ thread_local! {
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let Ctx { context, zoom, .. } = ctx;
 
+    let fade_alpha = 1.0f64.min(1.0 - (*zoom as f64 - 7.0).ln() / 5.0);
+
     context.push_group(); // top
 
     if *zoom >= 15 {
@@ -59,30 +63,32 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     // (CC, CC, CC, (mask-$cc, mask-$cc, mask-$cc, (fallback_contours, fallback_final):src-out):src-over)
 
-    for (country, ccs) in vec![
-        ("at", vec!["sk", "si", "cz"]),
-        ("it", vec!["at", "ch", "si", "fr"]),
-        ("ch", vec!["at", "fr"]),
-        ("si", vec![]),
-        ("cz", vec!["sk", "pl"]),
-        ("pl", vec!["sk"]),
+    let config: Vec<(&str, Vec<&str>)> = vec![
+        // ("at", vec!["sk", "si", "cz"]),
+        // ("it", vec!["at", "ch", "si", "fr"]),
+        // ("ch", vec!["at", "fr"]),
+        // ("si", vec![]),
+        // ("cz", vec!["sk", "pl"]),
+        // ("pl", vec!["sk"]),
         ("sk", vec![]),
-        ("fr", vec![]),
-    ] {
+        // ("fr", vec![]),
+    ];
+
+    for (country, ccs) in config {
         context.push_group(); // country-contours-and-shading
 
-        hillshading::render(ctx, &format!("{}-mask", country));
+        hillshading::render(ctx, &format!("{}-mask", country), 1.0);
 
         context.push_group(); // contours-and-shading
 
-        if *zoom >= 12 {
+        if CONTOURS && *zoom >= 12 {
             context.push_group(); // contours
             contours::render(ctx, client, country);
             context.pop_group_to_source().unwrap(); // contours
             context.paint().unwrap();
         }
 
-        hillshading::render(ctx, country);
+        hillshading::render(ctx, country, fade_alpha);
 
         context.pop_group_to_source().unwrap(); // contours-and-shading
         context.set_operator(cairo::Operator::In);
@@ -90,36 +96,38 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         for cc in ccs {
             context.set_operator(cairo::Operator::DestOut);
-            hillshading::render(ctx, &format!("{}-mask", cc));
+            hillshading::render(ctx, &format!("{}-mask", cc), 1.0);
         }
 
         context.pop_group_to_source().unwrap(); // // country-contours-and-shading
         context.paint().unwrap();
     }
 
-    context.push_group(); // mask
+    if FALLBACK {
+        context.push_group(); // mask
 
-    for country in vec!["it", "at", "ch", "si", "pl", "sk", "cz", "fr"] {
-        hillshading::render(ctx, &format!("{}-mask", country));
-    }
+        for country in vec!["it", "at", "ch", "si", "pl", "sk", "cz", "fr"] {
+            hillshading::render(ctx, &format!("{}-mask", country), 1.0);
+        }
 
-    context.push_group(); // fallback
+        context.push_group(); // fallback
 
-    if *zoom >= 12 {
-        context.push_group(); // contours
-        contours::render(ctx, client, "contour_split");
-        context.pop_group_to_source().unwrap(); // contours
+        if CONTOURS && *zoom >= 12 {
+            context.push_group(); // contours
+            contours::render(ctx, client, "contour_split");
+            context.pop_group_to_source().unwrap(); // contours
+            context.paint().unwrap();
+        }
+
+        hillshading::render(ctx, "_", fade_alpha);
+
+        context.pop_group_to_source().unwrap(); // fallback
+        context.set_operator(cairo::Operator::Out);
+        context.paint().unwrap();
+
+        context.pop_group_to_source().unwrap(); // mask
         context.paint().unwrap();
     }
-
-    hillshading::render(ctx, "_");
-
-    context.pop_group_to_source().unwrap(); // fallback
-    context.set_operator(cairo::Operator::Out);
-    context.paint().unwrap();
-
-    context.pop_group_to_source().unwrap(); // mask
-    context.paint().unwrap();
 
     context.pop_group_to_source().unwrap(); // top
     context.paint().unwrap();

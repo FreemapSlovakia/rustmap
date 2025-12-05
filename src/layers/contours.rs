@@ -48,7 +48,6 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: &str) {
         .unwrap_or_default();
 
     for row in rows {
-        println!("XXXXxx");
         let height: f64 = row.get("height");
 
         let width = match zoom {

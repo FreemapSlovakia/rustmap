@@ -156,11 +156,10 @@ fn read_rgba_from_gdal(
     surface
 }
 
-pub fn render(ctx: &Ctx, country: &str) {
+pub fn render(ctx: &Ctx, country: &str, alpha: f64) {
     let Ctx {
         context,
         shading_data,
-        zoom,
         scale,
         ..
     } = ctx;
@@ -188,9 +187,7 @@ pub fn render(ctx: &Ctx, country: &str) {
 
     context.set_source_surface(surface, 0.0, 0.0).unwrap();
 
-    context
-        .paint_with_alpha(1.0f64.min(1.0 - (*zoom as f64 - 7.0).ln() / 5.0))
-        .unwrap();
+    context.paint_with_alpha(alpha).unwrap();
 
     context.restore().expect("context restored");
 }
