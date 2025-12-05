@@ -1,4 +1,6 @@
 use crate::{
+    bbox::BBox,
+    collision::Collision,
     colors::{self, Color, ContextExt},
     ctx::Ctx,
     draw::{
@@ -8,7 +10,10 @@ use crate::{
     point::Point,
 };
 use core::slice::Iter;
-use pangocairo::{functions::glyph_string_path, pango::{Font, GlyphItem, GlyphString, Layout, SCALE}};
+use pangocairo::{
+    functions::glyph_string_path,
+    pango::{Font, GlyphItem, GlyphString, Layout, SCALE},
+};
 use postgis::ewkb::Point as PgPoint;
 use std::f64::consts::{PI, TAU};
 
@@ -380,7 +385,13 @@ fn label_offsets(
     (0..count).map(|i| start + i as f64 * step).collect()
 }
 
-pub fn text_on_line(ctx: &Ctx, iter: Iter<PgPoint>, text: &str, options: &TextOnLineOptions) {
+pub fn text_on_line(
+    ctx: &Ctx,
+    iter: Iter<PgPoint>,
+    text: &str,
+    mut collision: Option<&mut Collision<f64>>,
+    options: &TextOnLineOptions,
+) {
     let mut pts: Vec<Point> = iter.map(|p| p.project(ctx)).rev().collect();
 
     pts.dedup_by(|a, b| a == b);
@@ -462,6 +473,7 @@ pub fn text_on_line(ctx: &Ctx, iter: Iter<PgPoint>, text: &str, options: &TextOn
 
         let mut offset = start_use;
         let mut label_placements = Vec::new();
+        let mut glyph_bboxes: Vec<BBox<f64>> = Vec::new();
 
         for (advance, glyph_string, font) in clusters.iter() {
             let span_start = offset;
@@ -524,9 +536,32 @@ pub fn text_on_line(ctx: &Ctx, iter: Iter<PgPoint>, text: &str, options: &TextOn
 
             let angle = normalize_angle(weighted_tangent.y.atan2(weighted_tangent.x) + flip_offset);
 
+            // Track an axis-aligned bbox for the rotated glyph.
+            let mut gs_bbox = glyph_string.clone();
+            let (_, logical) = gs_bbox.extents(font);
+            let w = logical.width() as f64 / SCALE as f64;
+            let h = logical.height() as f64 / SCALE as f64;
+            let hw = w / 2.0;
+            let hh = h / 2.0;
+            let cos = angle.cos().abs();
+            let sin = angle.sin().abs();
+            let rx = hw * cos + hh * sin;
+            let ry = hw * sin + hh * cos;
+            let glyph_bbox = BBox::new(pos.x - rx, pos.y - ry, pos.x + rx, pos.y + ry);
+            glyph_bboxes.push(glyph_bbox);
+
             label_placements.push((glyph_string.clone(), font.clone(), pos, angle));
 
             offset += *advance + concave_spacing;
+        }
+
+        if let Some(col) = collision.as_deref_mut() {
+            if glyph_bboxes.iter().any(|bb| col.collides(*bb)) {
+                continue 'outer;
+            }
+            for bb in glyph_bboxes {
+                col.add(bb);
+            }
         }
 
         placements.push(label_placements);

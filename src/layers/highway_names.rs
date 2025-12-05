@@ -1,20 +1,15 @@
-use postgis::ewkb::{LineString, Point};
-use postgres::Client;
-
 use crate::{
     bbox::BBox,
     collision::Collision,
-    colors::{self, ContextExt},
+    colors::{self},
     ctx::Ctx,
-    draw::{
-        draw::Projectable,
-        text_on_line::{Align, TextOnLineOptions, Upright, text_on_line},
-    },
+    draw::text_on_line::{TextOnLineOptions, text_on_line},
 };
+use postgis::ewkb::LineString;
+use postgres::Client;
 
 pub fn highway_names(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     let Ctx {
-        context,
         bbox:
             BBox {
                 min_x,
@@ -27,16 +22,16 @@ pub fn highway_names(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f
 
     let sql = "
         WITH merged AS (
-          SELECT name, ST_LineMerge(ST_Collect(geometry)) AS geom, type, z_order
+          SELECT name, ST_LineMerge(ST_Collect(geometry)) AS geom, type, z_order, MIN(osm_id) AS osm_id
           FROM osm_roads
           WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) AND name <> ''
           GROUP BY z_order, name, type
         )
         SELECT name, (ST_Dump(ST_CollectionExtract(geom, 2))).geom AS geometry, type
         FROM merged
-        ORDER BY z_order DESC";
+        ORDER BY z_order DESC, osm_id";
 
-    let buffer = ctx.meters_per_pixel() * 256.0;
+    let buffer = ctx.meters_per_pixel() * 512.0;
 
     let rows = client
         .query(sql, &[min_x, min_y, max_x, max_y, &buffer])
@@ -51,9 +46,10 @@ pub fn highway_names(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f
             ctx,
             geom.points.iter(),
             name,
+            Some(collision),
             &TextOnLineOptions {
-                repeat_distance: Some(50.0),
-                spacing: 50.0,
+                repeat_distance: Some(200.0),
+                spacing: 200.0,
                 color: colors::TRACK,
                 ..TextOnLineOptions::default()
             },

@@ -76,8 +76,6 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: &str) {
             _ => false,
         };
 
-        println!("{} {} {}", zoom, height % 50.0, height % 100.0);
-
         let geom: LineString = row.get("geom");
 
         if width > 0.0 {
@@ -97,6 +95,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: &str) {
                 ctx,
                 geom.points.iter(),
                 &format!("{}", height),
+                None,
                 &TextOnLineOptions {
                     flo: FontAndLayoutOptions {
                         ..FontAndLayoutOptions::default()
