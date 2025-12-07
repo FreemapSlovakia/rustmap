@@ -39,13 +39,13 @@ impl SvgCache {
 
             let rect = Rectangle::new(0.0, 0.0, dim.0, dim.1);
 
-            let tile = RecordingSurface::create(Content::ColorAlpha, Some(rect)).unwrap();
+            let surface = RecordingSurface::create(Content::ColorAlpha, Some(rect)).unwrap();
 
-            let context = Context::new(&tile).unwrap();
+            let context = Context::new(&surface).unwrap();
 
             renderer.render_document(&context, &rect).unwrap();
 
-            svg_map.insert(String::from(key), tile);
+            svg_map.insert(String::from(key), surface);
         };
 
         svg_map.get(key).unwrap()

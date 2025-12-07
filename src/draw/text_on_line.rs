@@ -17,9 +17,6 @@ use pangocairo::{
 use postgis::ewkb::Point as PgPoint;
 use std::f64::consts::{PI, TAU};
 
-const MAX_CURVATURE_DEGREES: f64 = 60.0;
-const CONCAVE_SPACING_FACTOR: f64 = 1.0;
-
 #[derive(Copy, Clone, Debug)]
 pub struct TextOnLineOptions {
     pub upright: Upright,
@@ -31,6 +28,8 @@ pub struct TextOnLineOptions {
     pub halo_color: Color,
     pub halo_opacity: f64,
     pub halo_width: f64,
+    pub max_curvature_degrees: f64,
+    pub concave_spacing_factor: f64,
     pub flo: FontAndLayoutOptions,
 }
 
@@ -46,6 +45,8 @@ impl Default for TextOnLineOptions {
             halo_color: colors::WHITE,
             halo_opacity: 0.75,
             halo_width: 1.5,
+            max_curvature_degrees: 60.0,
+            concave_spacing_factor: 1.0,
             flo: FontAndLayoutOptions::default(),
         }
     }
@@ -412,6 +413,8 @@ pub fn text_on_line(
         repeat_distance,
         align,
         upright,
+        max_curvature_degrees,
+        concave_spacing_factor,
         flo,
         ..
     } = options;
@@ -507,13 +510,13 @@ pub fn text_on_line(
                 max_bend = max_bend.max(angle_between(pair[0], pair[1]));
             }
 
-            if max_bend > MAX_CURVATURE_DEGREES {
+            if max_bend > *max_curvature_degrees {
                 continue 'outer;
             }
 
             // Extra space proportional to curvature to avoid glyph tops touching on bends.
             let ratio = (max_bend / 180.0).clamp(0.0, 1.0);
-            let concave_spacing = *advance * CONCAVE_SPACING_FACTOR * ratio;
+            let concave_spacing = *advance * *concave_spacing_factor * ratio;
 
             let shifted_start = span_start + concave_spacing;
             let shifted_end = shifted_start + *advance;

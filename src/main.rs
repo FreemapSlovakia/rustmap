@@ -2,12 +2,12 @@ use crate::{
     collision::Collision,
     layers::{
         aerialways, aeroways, barrierways, borders, bridge_areas, building_names, buildings,
-        cutlines,
+        cutlines, features,
         highway_names::highway_names,
         housenumbers, landuse, locality_names, military_areas, pipelines, place_names, power_lines,
         protected_area_names, protected_areas, road_access_restrictions, roads, routes,
         shading_and_contours::{self, SHADING_THREAD_LOCAL},
-        solar_power_plants, trees, water_area_names, water_areas, water_lines,
+        solar_power_plants, trees, water_area_names, water_areas, water_line_names, water_lines,
     },
     svg_cache::{SVG_CACHE_THREAD_LOCAL, SvgCache},
 };
@@ -224,7 +224,7 @@ fn render(
 
         place_names::render(ctx, client, &mut collision);
 
-        // TODO <Features /> <FeatureNames />
+        features::render(ctx, client, &mut collision);
 
         if zoom >= 10 {
             water_area_names::render(ctx, client, &mut collision);
@@ -258,7 +258,7 @@ fn render(
 
         // <AerialwayNames />
 
-        // <WaterLineNames />
+        water_line_names::render(ctx, client, &mut collision);
 
         // <Fixmes />
 
@@ -267,11 +267,6 @@ fn render(
         // <PlaceNames2 />
 
         // <CountryNames />
-
-        // context.set_line_width(1.0);
-        // context.set_source_rgb(0.0, 0.0, 0.0);
-        // context.rectangle(0.0, 0.0, 256.0, 256.0);
-        // context.stroke().unwrap();
     };
 
     let w = size.width as f64 * scale;

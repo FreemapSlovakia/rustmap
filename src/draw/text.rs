@@ -17,6 +17,7 @@ pub struct TextOptions<'a> {
     pub halo_width: f64,
     pub placements: &'a [f64],
     pub flo: FontAndLayoutOptions,
+    pub valign_by_placement: bool,
 }
 
 pub static DEFAULT_PLACEMENTS: &[f64] = &[0.0, 3.0, -3.0, 6.0, -6.0, 9.0, -9.0];
@@ -31,6 +32,7 @@ impl Default for TextOptions<'_> {
             halo_width: 1.5,
             flo: FontAndLayoutOptions::default(),
             placements: &[0.0],
+            valign_by_placement: false,
         }
     }
 }
@@ -41,9 +43,9 @@ pub fn draw_text(
     point: Point,
     text: &str,
     options: &TextOptions,
-) {
+) -> bool {
     if text.is_empty() {
-        return;
+        return true;
     }
 
     let TextOptions {
@@ -54,15 +56,8 @@ pub fn draw_text(
         halo_width,
         placements,
         flo,
+        valign_by_placement,
     } = options;
-
-    // context.save().expect("context saved");
-
-    // context.arc(point.x, point.y, 2.0, 0.0, TAU);
-    // context.set_source_color(colors::BLACK);
-
-    // context.fill().unwrap();
-    // context.restore().expect("context restored");
 
     let layout = create_pango_layout(context, text, flo);
 
@@ -80,82 +75,52 @@ pub fn draw_text(
 
     let x = point.x - (layout_x + layout_width / 2.0);
 
-    'outer: for dy in *placements {
-        let y = *dy + point.y - (layout_y + layout_height / 2.0);
+    let mut cap_height: Option<f64> = None;
+    let mut first_baseline: Option<f64> = None;
+    let mut last_baseline: Option<f64> = None;
 
-        // let ci = BBox::new(
-        //     x - halo_width + layout_x,
-        //     y - halo_width + layout_y,
-        //     x + 2.0 * halo_width + layout_x + layout_width,
-        //     y + 2.0 * halo_width + layout_y + layout_height,
-        // );
+    'outer: for &dy in *placements {
+        let anchor_y = dy + point.y;
+        let y = if *valign_by_placement {
+            let ch = *cap_height.get_or_insert_with(|| {
+                layout
+                    .font_description()
+                    .map(|desc| {
+                        let ctx = layout.context();
+                        let metrics = ctx.metrics(Some(&desc), None);
+                        metrics.ascent() as f64 / SCALE as f64
+                    })
+                    .unwrap_or(layout_height + layout_y)
+            });
 
-        // if collision.collides(ci) {
-        //     continue;
-        // }
+            if first_baseline.is_none() || last_baseline.is_none() {
+                let mut li = layout.iter();
+                let first = li.baseline() as f64 / SCALE as f64;
+                let mut last = first;
+                while li.next_line() {
+                    last = li.baseline() as f64 / SCALE as f64;
+                }
+                first_baseline = Some(first);
+                last_baseline = Some(last);
+            }
 
-        // collision.add(ci);
+            let fb = first_baseline.unwrap();
+            let lb = last_baseline.unwrap();
 
-        // context.rectangle(ci.min_x, ci.min_y, ci.get_width(), ci.get_height());
-        // context.set_line_width(1.0);
-        // context.set_source_rgb(0.0, 0.0, 1.0);
-        // context.stroke().unwrap();
+            if dy > 0.0 {
+                anchor_y - fb + ch
+            } else if dy < 0.0 {
+                anchor_y - lb
+            } else {
+                anchor_y - (layout_y + layout_height / 2.0)
+            }
+        } else {
+            anchor_y - (layout_y + layout_height / 2.0)
+        };
 
         let mut items = Vec::new();
 
         let mut li = layout.iter();
-
-        // let t = layout.text();
-
-        // println!("==================");
-
-        // let mut n = 0;
-
-        // loop {
-        //     let (ext, _) = li.cluster_extents();
-
-        //     let char_x = ext.x() as f64 / SCALE as f64;
-
-        //     let char_y = ext.y() as f64 / SCALE as f64;
-
-        //     let char_width = ext.width() as f64 / SCALE as f64;
-
-        //     let char_height = ext.height() as f64 / SCALE as f64;
-
-        //     let ci = BBox::new(
-        //         x - halo_width + char_x,
-        //         y - halo_width + char_y,
-        //         x + 2.0 * halo_width + char_x + char_width,
-        //         y + 2.0 * halo_width + char_y + char_height,
-        //     );
-
-        //     context.rectangle(ci.min_x - 0.5, ci.min_y, ci.get_width(), ci.get_height());
-        //     context.set_line_width(1.0);
-        //     if n % 2 == 0 {
-        //         context.set_source_rgb(0.0, 1.0, 0.0);
-        //     } else {
-        //         context.set_source_rgb(0.0, 0.0, 1.0);
-        //     }
-
-        //     n += 1;
-
-        //     context.stroke().unwrap();
-
-        //     let i = li.index() as usize;
-
-        //     let has_next = li.next_cluster();
-
-        //     let ni = li.index() as usize;
-
-        //     let t = t.get(i..ni).unwrap(); // .chars().next().unwrap();
-        //     // println!("II {} {}", i, t);
-
-        //     if !has_next {
-        //         // println!("XX {}", ni);
-
-        //         break;
-        //     }
-        // }
 
         loop {
             let (ext, _) = li.line_extents();
@@ -181,11 +146,6 @@ pub fn draw_text(
 
             items.push(ci);
 
-            // context.rectangle(ci.min_x, ci.min_y, ci.get_width(), ci.get_height());
-            // context.set_line_width(1.0);
-            // context.set_source_rgb(1.0, 0.0, 0.0);
-            // context.stroke().unwrap();
-
             if !li.next_line() {
                 break;
             }
@@ -202,7 +162,7 @@ pub fn draw_text(
 
     let y = match my {
         Some(y) => y,
-        None => return,
+        None => return false,
     };
 
     context.save().expect("context saved");
@@ -226,4 +186,6 @@ pub fn draw_text(
     context.paint_with_alpha(*alpha).unwrap();
 
     context.restore().expect("context restored");
+
+    return true;
 }

@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14">
-    <path d="M5 3C2 3 .96 5 1 6v1h12V6c0-1-1-3-4-3zM1 8C0 8 0 9 1 9h12c1 0 1-1 0-1zm0 2.031v.625C1 11.34 1.816 12 2.5 12h9c.684 0 1.5-.66 1.5-1.344v-.625z" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-opacity=".5"/>
-    <path d="M5 3C2 3 .96 5 1 6v1h12V6c0-1-1-3-4-3zM1 8C0 8 0 9 1 9h12c1 0 1-1 0-1zm0 2.031v.625C1 11.34 1.816 12 2.5 12h9c.684 0 1.5-.66 1.5-1.344v-.625z"/>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="16.5" height="12" version="1.1" id="svg2" sodipodi:docname="fast_food.svg" inkscape:version="1.4.2 (ebf0e940d0, 2025-05-08)" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
+  <defs id="defs2" />
+  <sodipodi:namedview id="namedview2" pagecolor="#ffffff" bordercolor="#666666" borderopacity="1.0" inkscape:showpageshadow="2" inkscape:pageopacity="0.0" inkscape:pagecheckerboard="true" inkscape:deskcolor="#d1d1d1" inkscape:zoom="18.535714" inkscape:cx="-0.26974952" inkscape:cy="7.4990366" inkscape:window-width="2154" inkscape:window-height="1206" inkscape:window-x="0" inkscape:window-y="0" inkscape:window-maximized="1" inkscape:current-layer="svg2" />
+  <path d="M 6.25,1.5 C 3.25,1.5 2.21,3.5 2.25,4.5 V 5.5 H 14.25 V 4.5 C 14.25,3.5 13.25,1.5 10.25,1.5 Z M 2.25,6.5 C 1.25,6.5 1.25,7.5 2.25,7.5 H 14.25 C 15.25,7.5 15.25,6.5 14.25,6.5 Z M 2.25,8.531 V 9.156 C 2.25,9.84 3.066,10.5 3.75,10.5 H 12.75 C 13.434,10.5 14.25,9.84 14.25,9.156 V 8.531 Z" id="path2" style="stroke:#ffffff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:0.5;paint-order:stroke fill markers" />
 </svg>

@@ -62,6 +62,8 @@ pub fn create_pango_layout(
 
     font_description.set_style(*style);
 
+    // font_description.set_variant(Variant::SmallCaps);
+
     layout.set_font_description(Some(&font_description));
 
     layout.set_wrap(WrapMode::Word);
