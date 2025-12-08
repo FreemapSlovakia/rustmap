@@ -3,10 +3,8 @@ use crate::{
     collision::Collision,
     colors::{self},
     ctx::Ctx,
-    draw::{
-        draw::Projectable,
-        text_on_line::{TextOnLineOptions, text_on_line},
-    },
+    draw::text_on_line::{TextOnLineOptions, text_on_line},
+    projectable::Projectable,
 };
 use geo::Coord;
 use postgis::ewkb::LineString;

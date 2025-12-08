@@ -2,7 +2,8 @@ use crate::{
     bbox::BBox,
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::draw::{Projectable, draw_line},
+    draw::draw::draw_line,
+    projectable::Projectable,
 };
 use postgis::ewkb::{LineString, Point};
 use postgres::Client;
@@ -50,7 +51,7 @@ pub fn render_lines(ctx: &Ctx, client: &mut Client) {
         context.set_dash(&[], 0.0);
         context.set_line_width(1.0);
 
-        draw_line(ctx, geom.points.iter());
+        draw_line(ctx, geom.points);
 
         context.stroke().unwrap();
     }

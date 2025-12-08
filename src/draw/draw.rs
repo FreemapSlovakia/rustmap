@@ -1,33 +1,9 @@
-use crate::ctx::Ctx;
+use crate::{ctx::Ctx, projectable::Projectable};
 use cavalier_contours::polyline::{PlineSource, PlineSourceMut, PlineVertex, Polyline};
 use core::slice::Iter;
 use geo::Coord;
 use postgis::ewkb::{Geometry, Point, Polygon};
-
-pub trait Projectable {
-    fn get(&self) -> Coord;
-
-    fn project(&self, ctx: &Ctx) -> Coord {
-        let Ctx { bbox, size, .. } = ctx;
-
-        let coord = self.get();
-
-        let x = ((coord.x - bbox.min_x) / bbox.get_width()) * size.width as f64;
-
-        let y = (1.0 - ((coord.y - bbox.min_y) / bbox.get_height())) * size.height as f64;
-
-        Coord { x, y }
-    }
-}
-
-impl Projectable for Point {
-    fn get(&self) -> Coord {
-        Coord {
-            x: self.x,
-            y: self.y,
-        }
-    }
-}
+use std::borrow::Borrow;
 
 pub fn draw_geometry(ctx: &Ctx, geom: &Geometry) {
     draw_geometry_uni(geom, &|iter| draw_line(ctx, iter));
@@ -72,9 +48,12 @@ where
     }
 }
 
-pub fn draw_line(ctx: &Ctx, iter: Iter<Point>) {
-    for (i, p) in iter.enumerate() {
-        let Coord { x, y } = p.project(ctx);
+pub fn draw_line<P>(ctx: &Ctx, points: impl IntoIterator<Item = P>)
+where
+    P: Borrow<Point>,
+{
+    for (i, p) in points.into_iter().enumerate() {
+        let Coord { x, y } = p.borrow().project(ctx);
 
         if i == 0 {
             ctx.context.move_to(x, y);
@@ -84,13 +63,16 @@ pub fn draw_line(ctx: &Ctx, iter: Iter<Point>) {
     }
 }
 
-pub fn draw_line_off(ctx: &Ctx, iter: Iter<Point>, offset: f64) {
+pub fn draw_line_off<P>(ctx: &Ctx, points: impl IntoIterator<Item = P>, offset: f64)
+where
+    P: Borrow<Point>,
+{
     let mut polyline = Polyline::new();
 
     let context = &ctx.context;
 
-    for p in iter {
-        let Coord { x, y } = p.project(ctx);
+    for p in points {
+        let Coord { x, y } = p.borrow().project(ctx);
 
         polyline.add_vertex(PlineVertex::new(x, y, 0.0));
     }

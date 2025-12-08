@@ -58,7 +58,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             }
         }
 
-        draw_line(ctx, geom.points.iter());
+        draw_line(ctx, geom.points);
 
         context.stroke().unwrap();
 

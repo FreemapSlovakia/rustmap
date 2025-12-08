@@ -1,11 +1,12 @@
 use crate::{
     ctx::Ctx,
-    draw::draw::{Projectable, draw_geometry_uni},
+    draw::draw::draw_geometry_uni,
+    projectable::Projectable,
     xyz::{perpendicular_distance, to_absolute_pixel_coords},
 };
-use core::slice::Iter;
 use geo::Coord;
 use postgis::ewkb::{Geometry, Point};
+use std::borrow::Borrow;
 
 pub fn hatch_geometry(ctx: &Ctx, geom: &Geometry, spacing: f64, angle: f64) {
     draw_geometry_uni(geom, &|iter| {
@@ -13,7 +14,10 @@ pub fn hatch_geometry(ctx: &Ctx, geom: &Geometry, spacing: f64, angle: f64) {
     });
 }
 
-pub fn hatch(ctx: &Ctx, iter: Iter<Point>, spacing: f64, angle: f64) {
+pub fn hatch<P>(ctx: &Ctx, points: impl IntoIterator<Item = P>, spacing: f64, angle: f64)
+where
+    P: Borrow<Point>,
+{
     let mut merc_min_x = f64::INFINITY;
     let mut merc_max_x = f64::NEG_INFINITY;
     let mut merc_min_y = f64::INFINITY;
@@ -24,7 +28,9 @@ pub fn hatch(ctx: &Ctx, iter: Iter<Point>, spacing: f64, angle: f64) {
     let mut max_x = f64::NEG_INFINITY;
     let mut max_y = f64::NEG_INFINITY;
 
-    for p in iter {
+    for p in points {
+        let p = p.borrow();
+
         merc_min_x = merc_min_x.min(p.x);
         merc_max_x = merc_max_x.max(p.x);
         merc_min_y = merc_min_y.min(p.y);

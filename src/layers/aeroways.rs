@@ -45,7 +45,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     for row in rows {
         let geom: LineString = row.get("geometry");
 
-        draw_line(ctx, geom.points.iter());
+        draw_line(ctx, geom.points);
 
         context.set_source_color(colors::AEROWAY);
         context.set_dash(&[], 0.0);

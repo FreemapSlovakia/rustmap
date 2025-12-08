@@ -1,19 +1,24 @@
+use std::borrow::Borrow;
+
 use crate::ctx::Ctx;
-use crate::draw::draw::{Projectable, draw_line};
-use core::slice::Iter;
+use crate::draw::draw::draw_line;
+use crate::projectable::Projectable;
 use geo::Coord;
 use postgis::ewkb::Point;
 
 // https://github.com/ghaerr/agg-2.6/blob/master/agg-src/src/agg_vcgen_smooth_poly1.cpp
 // https://agg.sourceforge.net/antigrain.com/research/bezier_interpolation/index.html
-pub fn draw_smooth_bezier_spline(ctx: &Ctx, iter: Iter<Point>, smooth_value: f64) {
+pub fn draw_smooth_bezier_spline<P>(ctx: &Ctx, iter: impl IntoIterator<Item = P>, smooth_value: f64)
+where
+    P: Borrow<Point>,
+{
     if smooth_value == 0.0 {
         draw_line(ctx, iter);
 
         return;
     }
 
-    let mut points: Vec<Coord> = iter.map(|p| p.project(ctx)).collect();
+    let mut points: Vec<Coord> = iter.into_iter().map(|p| p.borrow().project(ctx)).collect();
 
     let mut len = points.len();
 

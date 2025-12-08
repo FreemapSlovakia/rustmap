@@ -87,7 +87,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                         2.4
                     });
 
-                    draw_smooth_bezier_spline(ctx, geom.points.iter(), smooth);
+                    draw_smooth_bezier_spline(ctx, geom.points, smooth);
 
                     context.stroke().unwrap();
                 }
@@ -97,7 +97,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
                 context.set_line_width(width);
 
-                draw_smooth_bezier_spline(ctx, geom.points.iter(), smooth);
+                draw_smooth_bezier_spline(ctx, geom.points, smooth);
 
                 let path = context.copy_path_flat().unwrap();
 

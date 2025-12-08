@@ -2,10 +2,9 @@ use crate::{
     bbox::BBox,
     ctx::Ctx,
     draw::{
-        draw::{Projectable, draw_line_off},
-        line_pattern::draw_polyline_outline_scaled,
-        offset_line::offset_line,
+        draw::draw_line_off, line_pattern::draw_polyline_outline_scaled, offset_line::offset_line,
     },
+    projectable::Projectable,
 };
 use bitflags::bitflags;
 use colorsys::{Rgb, RgbRatio};

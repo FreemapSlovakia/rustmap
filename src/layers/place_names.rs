@@ -4,9 +4,9 @@ use crate::{
     ctx::Ctx,
     draw::{
         create_pango_layout::FontAndLayoutOptions,
-        draw::Projectable,
         text::{self, TextOptions, draw_text},
     },
+    projectable::Projectable,
 };
 use pangocairo::pango::Weight;
 use postgis::ewkb::Point;

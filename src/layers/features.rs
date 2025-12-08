@@ -1,7 +1,8 @@
 use crate::colors::{self, Color};
 use crate::draw::create_pango_layout::FontAndLayoutOptions;
 use crate::draw::text::{TextOptions, draw_text, draw_text_with_attrs};
-use crate::{bbox::BBox, collision::Collision, ctx::Ctx, draw::draw::Projectable};
+use crate::projectable::Projectable;
+use crate::{bbox::BBox, collision::Collision, ctx::Ctx};
 use core::f64;
 use geo::Coord;
 use pangocairo::pango::{AttrList, AttrSize, SCALE, Style, Weight};

@@ -5,9 +5,9 @@ use crate::{
     ctx::Ctx,
     draw::{
         create_pango_layout::FontAndLayoutOptions,
-        draw::Projectable,
         text_on_line::{TextOnLineOptions, text_on_line},
     },
+    projectable::Projectable,
 };
 use geo::Coord;
 use pangocairo::pango::Style;

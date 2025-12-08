@@ -2,10 +2,8 @@ use crate::{
     bbox::BBox,
     collision::Collision,
     ctx::Ctx,
-    draw::{
-        draw::Projectable,
-        text::{DEFAULT_PLACEMENTS, TextOptions, draw_text},
-    },
+    draw::text::{DEFAULT_PLACEMENTS, TextOptions, draw_text},
+    projectable::Projectable,
 };
 use postgis::ewkb::Point;
 use postgres::Client;

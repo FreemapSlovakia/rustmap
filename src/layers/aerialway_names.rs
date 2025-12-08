@@ -4,10 +4,10 @@ use crate::{
     colors,
     ctx::Ctx,
     draw::{
-        draw::Projectable,
         offset_line::offset_line,
         text_on_line::{TextOnLineOptions, text_on_line},
     },
+    projectable::Projectable,
 };
 use geo::Coord;
 use postgis::ewkb::LineString;

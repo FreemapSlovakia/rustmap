@@ -1,4 +1,4 @@
-use crate::{bbox::BBox, ctx::Ctx, draw::draw::Projectable};
+use crate::{bbox::BBox, ctx::Ctx, projectable::Projectable};
 use postgis::ewkb::Point;
 use postgres::Client;
 

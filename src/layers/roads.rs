@@ -539,7 +539,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         let oneway = row.get::<_, i16>("oneway");
 
         if zoom >= 14 && oneway != 0 {
-            draw_line(ctx, geom.points.iter());
+            draw_line(ctx, geom.points);
 
             let path = context.copy_path().unwrap();
 

@@ -4,10 +4,10 @@ use crate::{
     ctx::Ctx,
     draw::{
         create_pango_layout::FontAndLayoutOptions,
-        draw::Projectable,
         smooth_line::draw_smooth_bezier_spline,
         text_on_line::{TextOnLineOptions, Upright, text_on_line},
     },
+    projectable::Projectable,
 };
 use geo::Coord;
 use postgis::ewkb::LineString;

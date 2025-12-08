@@ -1,4 +1,4 @@
-use crate::{ctx::Ctx, draw::draw::Projectable};
+use crate::{ctx::Ctx, projectable::Projectable};
 use cairo::{Matrix, SurfacePattern};
 use core::slice::Iter;
 use geo::Coord;

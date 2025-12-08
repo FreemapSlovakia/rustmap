@@ -5,9 +5,9 @@ use crate::{
     ctx::Ctx,
     draw::{
         create_pango_layout::FontAndLayoutOptions,
-        draw::Projectable,
         text::{TextOptions, draw_text},
     },
+    projectable::Projectable,
 };
 use postgis::ewkb::Point;
 use postgres::Client;
