@@ -66,14 +66,14 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     // (CC, CC, CC, (mask-$cc, mask-$cc, mask-$cc, (fallback_contours, fallback_final):src-out):src-over)
 
     let config: Vec<(&str, Vec<&str>)> = vec![
-        // ("at", vec!["sk", "si", "cz"]),
-        // ("it", vec!["at", "ch", "si", "fr"]),
-        // ("ch", vec!["at", "fr"]),
-        // ("si", vec![]),
-        // ("cz", vec!["sk", "pl"]),
-        // ("pl", vec!["sk"]),
+        ("at", vec!["sk", "si", "cz"]),
+        ("it", vec!["at", "ch", "si", "fr"]),
+        ("ch", vec!["at", "fr"]),
+        ("si", vec![]),
+        ("cz", vec!["sk", "pl"]),
+        ("pl", vec!["sk"]),
         ("sk", vec![]),
-        // ("fr", vec![]),
+        ("fr", vec![]),
     ];
 
     for (country, ccs) in config {
