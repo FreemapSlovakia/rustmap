@@ -7,6 +7,7 @@ use pangocairo::pango::{AttrList, AttrSize, SCALE, Style, Weight};
 use postgis::ewkb::Point;
 use postgres::Client;
 use regex::Regex;
+use std::u32;
 use std::{borrow::Cow, collections::HashMap, sync::LazyLock};
 
 struct Extra<'a> {
@@ -15,16 +16,18 @@ struct Extra<'a> {
     font_size: f64,
     weight: Weight,
     text_color: Color,
+    max_zoom: u32,
 }
 
 impl Default for Extra<'_> {
     fn default() -> Self {
         Self {
-            replacements: Default::default(),
+            replacements: vec![],
             icon: None,
             font_size: 12.0,
             weight: Weight::Normal,
             text_color: colors::BLACK,
+            max_zoom: u32::MAX,
         }
     }
 }
@@ -90,9 +93,9 @@ static POIS: LazyLock<HashMap<&'static str, Def>> = LazyLock::new(|| {
             replacements: build_replacements(&[(r"^[Ll]etisko\b *", "")]),
             ..Extra::default()
         }),
-        (12, 12, Y, N, "guidepost", Extra { icon: Some("guidepost_x"), weight: Weight::Bold, ..Extra::default() }), // { maxZoom: 12 }
-        (13, 13, Y, N, "guidepost", Extra { icon: Some("guidepost_xx"), weight: Weight::Bold, ..Extra::default() }), // { maxZoom: 13 }
-        (14, 14, Y, N, "guidepost", Extra { icon: Some("guidepost_xx"), weight: Weight::Bold, ..Extra::default() }), //
+        (12, 12, Y, N, "guidepost", Extra { icon: Some("guidepost_x"), weight: Weight::Bold, max_zoom: 12, ..Extra::default() }),
+        (13, 13, Y, N, "guidepost", Extra { icon: Some("guidepost_xx"), weight: Weight::Bold, max_zoom: 13, ..Extra::default() }),
+        (14, 14, Y, N, "guidepost", Extra { icon: Some("guidepost_xx"), weight: Weight::Bold, ..Extra::default() }),
         (10, 10, Y, Y, "peak1", Extra { icon: Some("peak"), font_size: 13.0, ..Extra::default() }),
         (11, 11, Y, Y, "peak2", Extra { icon: Some("peak"), font_size: 13.0, ..Extra::default() }),
         (12, 12, Y, Y, "peak3", Extra { icon: Some("peak"), font_size: 13.0, ..Extra::default() }),
@@ -695,7 +698,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
                 continue;
             };
 
-            if def.min_zoom > zoom {
+            if def.min_zoom > zoom || def.extra.max_zoom < zoom {
                 continue;
             }
 

@@ -32,7 +32,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
                 NULLIF("addr:housenumber", ''),
                 NULLIF("addr:conscriptionnumber", '')
             ) AS housenumber,
-            geometry
+            ST_PointOnSurface(geometry) AS geometry
         FROM osm_housenumbers
         WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)"#;
 
