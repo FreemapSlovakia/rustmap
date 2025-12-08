@@ -25,6 +25,7 @@ use regex::Regex;
 use std::{
     cell::RefCell, collections::HashMap, net::Ipv4Addr, ops::Deref, sync::LazyLock, time::Duration,
 };
+use tracy_client::Client;
 use xyz::{bbox_size_in_pixels, tile_bounds_to_epsg3857};
 
 mod bbox;
@@ -38,7 +39,11 @@ mod size;
 mod svg_cache;
 mod xyz;
 
+const SHADING_AND_CONTOURS: bool = false;
+
 pub fn main() {
+    Client::start();
+
     let manager = r2d2_postgres::PostgresConnectionManager::new(
         Config::new()
             .user("martin")
@@ -109,13 +114,16 @@ fn render(
 
     let is_svg = ext == "svg";
 
-    let mut collision = Collision::<f64>::new();
-
     let size = bbox_size_in_pixels(bbox, zoom as f64);
 
     let mut draw = |surface: &Surface| {
+        let context = Context::new(surface).unwrap();
+
+        // let mut collision = Collision::<f64>::new(Some(&context));
+        let mut collision = Collision::<f64>::new(None);
+
         let ctx = &Ctx {
-            context: Context::new(surface).unwrap(),
+            context: &context,
             bbox,
             size,
             zoom,
@@ -176,7 +184,9 @@ fn render(
             road_access_restrictions::render(ctx, client);
         }
 
-        shading_and_contours::render(ctx, client);
+        if SHADING_AND_CONTOURS {
+            shading_and_contours::render(ctx, client);
+        }
 
         if zoom >= 11 {
             aeroways::render(ctx, client);
@@ -300,6 +310,7 @@ fn render(
             "Content-Type",
             if is_svg { "image/svg+xml" } else { "image/png" },
         )
+        .header("Access-Control-Allow-Origin", "*")
         .body(Body::from(buffer))
         .expect("body should be built")
 }

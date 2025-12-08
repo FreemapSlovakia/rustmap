@@ -49,6 +49,8 @@ thread_local! {
 }
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
+    let _span = tracy_client::span!("shading_and_contours::render");
+
     let Ctx { context, zoom, .. } = ctx;
 
     let fade_alpha = 1.0f64.min(1.0 - (*zoom as f64 - 7.0).ln() / 5.0);
@@ -81,11 +83,15 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         context.push_group(); // contours-and-shading
 
-        if CONTOURS && *zoom >= 12 {
-            context.push_group(); // contours
-            contours::render(ctx, client, country);
-            context.pop_group_to_source().unwrap(); // contours
-            context.paint_with_alpha(0.33).unwrap();
+        {
+            let _span = tracy_client::span!("shading_and_contours::contours");
+
+            if CONTOURS && *zoom >= 12 {
+                context.push_group(); // contours
+                contours::render(ctx, client, country);
+                context.pop_group_to_source().unwrap(); // contours
+                context.paint_with_alpha(0.33).unwrap();
+            }
         }
 
         hillshading::render(ctx, country, fade_alpha);
@@ -112,11 +118,15 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         context.push_group(); // fallback
 
-        if CONTOURS && *zoom >= 12 {
-            context.push_group(); // contours
-            contours::render(ctx, client, "contour_split");
-            context.pop_group_to_source().unwrap(); // contours
-            context.paint_with_alpha(0.33).unwrap();
+        {
+            let _span = tracy_client::span!("shading_and_contours::contours");
+
+            if CONTOURS && *zoom >= 12 {
+                context.push_group(); // contours
+                contours::render(ctx, client, "contour_split");
+                context.pop_group_to_source().unwrap(); // contours
+                context.paint_with_alpha(0.33).unwrap();
+            }
         }
 
         hillshading::render(ctx, "_", fade_alpha);

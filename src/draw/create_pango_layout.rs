@@ -31,9 +31,10 @@ impl Default for FontAndLayoutOptions {
     }
 }
 
-pub fn create_pango_layout(
+pub fn create_pango_layout_with_attrs(
     context: &Context,
     text: &str,
+    attrs: Option<AttrList>,
     options: &FontAndLayoutOptions,
 ) -> Layout {
     let FontAndLayoutOptions {
@@ -81,15 +82,27 @@ pub fn create_pango_layout(
 
     // layout.set_markup(r#"<span font_features="liga=1">fi</span>"#);
 
-    if *letter_spacing != 1.0 {
-        let attr_list = AttrList::new();
+    let mut attr_list = attrs;
 
-        attr_list.insert(AttrInt::new_letter_spacing(
+    if *letter_spacing != 1.0 {
+        let list = attr_list.unwrap_or_else(AttrList::new);
+        list.insert(AttrInt::new_letter_spacing(
             (SCALE as f64 * *letter_spacing) as i32,
         ));
+        attr_list = Some(list);
+    }
 
-        layout.set_attributes(Some(&attr_list));
+    if let Some(ref list) = attr_list {
+        layout.set_attributes(Some(list));
     }
 
     layout
+}
+
+pub fn create_pango_layout(
+    context: &Context,
+    text: &str,
+    options: &FontAndLayoutOptions,
+) -> Layout {
+    create_pango_layout_with_attrs(context, text, None, options)
 }

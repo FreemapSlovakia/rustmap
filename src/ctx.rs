@@ -4,7 +4,7 @@ use gdal::Dataset;
 use std::{cell::RefCell, collections::HashMap};
 
 pub struct Ctx<'a> {
-    pub context: Context,
+    pub context: &'a Context,
     pub bbox: BBox<f64>,
     pub size: Size<u32>,
     pub zoom: u32,

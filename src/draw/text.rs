@@ -2,13 +2,16 @@ use crate::{
     bbox::BBox,
     collision::Collision,
     colors::{self, Color, ContextExt},
-    draw::create_pango_layout::{FontAndLayoutOptions, create_pango_layout},
+    draw::create_pango_layout::{FontAndLayoutOptions, create_pango_layout_with_attrs},
     point::Point,
 };
 use cairo::Context;
-use pangocairo::{functions::layout_path, pango::SCALE};
+use pangocairo::{
+    functions::layout_path,
+    pango::{AttrList, SCALE},
+};
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone)]
 pub struct TextOptions<'a> {
     pub alpha: f64,
     pub color: Color,
@@ -18,6 +21,7 @@ pub struct TextOptions<'a> {
     pub placements: &'a [f64],
     pub flo: FontAndLayoutOptions,
     pub valign_by_placement: bool,
+    pub omit_bbox: Option<usize>,
 }
 
 pub static DEFAULT_PLACEMENTS: &[f64] = &[0.0, 3.0, -3.0, 6.0, -6.0, 9.0, -9.0];
@@ -30,9 +34,10 @@ impl Default for TextOptions<'_> {
             halo_color: colors::WHITE,
             halo_opacity: 0.75,
             halo_width: 1.5,
-            flo: FontAndLayoutOptions::default(),
+            flo: Default::default(),
             placements: &[0.0],
             valign_by_placement: false,
+            omit_bbox: None,
         }
     }
 }
@@ -42,6 +47,17 @@ pub fn draw_text(
     collision: &mut Collision<f64>,
     point: Point,
     text: &str,
+    options: &TextOptions,
+) -> bool {
+    draw_text_with_attrs(context, collision, point, text, None, options)
+}
+
+pub fn draw_text_with_attrs(
+    context: &Context,
+    collision: &mut Collision<f64>,
+    point: Point,
+    text: &str,
+    attrs: Option<AttrList>,
     options: &TextOptions,
 ) -> bool {
     if text.is_empty() {
@@ -57,9 +73,10 @@ pub fn draw_text(
         placements,
         flo,
         valign_by_placement,
+        omit_bbox,
     } = options;
 
-    let layout = create_pango_layout(context, text, flo);
+    let layout = create_pango_layout_with_attrs(context, text, attrs, flo);
 
     let mut my: Option<f64> = None;
 
@@ -136,11 +153,15 @@ pub fn draw_text(
             let ci = BBox::new(
                 x - halo_width + line_x,
                 y - halo_width + line_y,
-                x + 2.0 * halo_width + line_x + line_width,
-                y + 2.0 * halo_width + line_y + line_height,
+                x + halo_width + line_x + line_width,
+                y + halo_width + line_y + line_height,
             );
 
-            if collision.collides(ci) {
+            if let Some(omit_idx) = *omit_bbox {
+                if collision.collides_with_exclusion(&ci, omit_idx) {
+                    continue 'outer;
+                }
+            } else if collision.collides(&ci) {
                 continue 'outer;
             }
 
@@ -152,7 +173,7 @@ pub fn draw_text(
         }
 
         for item in items {
-            collision.add(item);
+            let _ = collision.add(item);
         }
 
         my = Some(y);

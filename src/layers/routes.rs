@@ -262,6 +262,8 @@ GROUP BY
 }
 
 pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
+    let _span = tracy_client::span!("routes::render");
+
     let Ctx {
         context,
         bbox:

@@ -559,11 +559,11 @@ pub fn text_on_line(
         }
 
         if let Some(col) = collision.as_deref_mut() {
-            if glyph_bboxes.iter().any(|bb| col.collides(*bb)) {
+            if glyph_bboxes.iter().any(|bb| col.collides(bb)) {
                 continue 'outer;
             }
             for bb in glyph_bboxes {
-                col.add(bb);
+                let _ = col.add(bb);
             }
         }
 
