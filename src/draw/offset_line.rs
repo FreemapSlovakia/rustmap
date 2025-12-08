@@ -1,8 +1,8 @@
-use crate::point::Point;
 use cavalier_contours::polyline::{PlineSource, PlineSourceMut, PlineVertex, Polyline};
+use geo::Coord;
 
-pub fn offset_line(iter: impl IntoIterator<Item = Point>, offset: f64) -> Vec<Point> {
-    let mut result = Vec::<Point>::new();
+pub fn offset_line(iter: impl IntoIterator<Item = Coord>, offset: f64) -> Vec<Coord> {
+    let mut result = Vec::<Coord>::new();
 
     let mut polyline = Polyline::new();
 
@@ -12,7 +12,7 @@ pub fn offset_line(iter: impl IntoIterator<Item = Point>, offset: f64) -> Vec<Po
 
     for pc in polyline.parallel_offset(offset) {
         for v in pc.arcs_to_approx_lines(1.0).unwrap().vertex_data {
-            result.push(Point::new(v.x, v.y));
+            result.push(Coord { x: v.x, y: v.y });
         }
     }
 

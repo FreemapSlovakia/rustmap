@@ -7,6 +7,7 @@ pub mod bridge_areas;
 pub mod building_names;
 pub mod buildings;
 pub mod contours;
+pub mod country_names;
 pub mod cutlines;
 pub mod features;
 pub mod highway_names;

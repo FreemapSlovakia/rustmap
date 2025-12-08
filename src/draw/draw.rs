@@ -1,31 +1,31 @@
-use crate::{ctx::Ctx, point::Point};
+use crate::ctx::Ctx;
 use cavalier_contours::polyline::{PlineSource, PlineSourceMut, PlineVertex, Polyline};
 use core::slice::Iter;
-use postgis::ewkb::{Geometry, Point as PgPoint, Polygon};
+use geo::Coord;
+use postgis::ewkb::{Geometry, Point, Polygon};
 
 pub trait Projectable {
-    fn get(&self) -> Point;
+    fn get(&self) -> Coord;
 
-    fn project(&self, ctx: &Ctx) -> Point {
-        let Ctx {
-            bbox,
-            size,
-            ..
-        } = ctx;
+    fn project(&self, ctx: &Ctx) -> Coord {
+        let Ctx { bbox, size, .. } = ctx;
 
-        let point = self.get();
+        let coord = self.get();
 
-        let x = ((point.x - bbox.min_x) / bbox.get_width()) * size.width as f64;
+        let x = ((coord.x - bbox.min_x) / bbox.get_width()) * size.width as f64;
 
-        let y = (1.0 - ((point.y - bbox.min_y) / bbox.get_height())) * size.height as f64;
+        let y = (1.0 - ((coord.y - bbox.min_y) / bbox.get_height())) * size.height as f64;
 
-        Point::new(x, y)
+        Coord { x, y }
     }
 }
 
-impl Projectable for PgPoint {
-    fn get(&self) -> Point {
-        Point::new(self.x, self.y)
+impl Projectable for Point {
+    fn get(&self) -> Coord {
+        Coord {
+            x: self.x,
+            y: self.y,
+        }
     }
 }
 
@@ -35,7 +35,7 @@ pub fn draw_geometry(ctx: &Ctx, geom: &Geometry) {
 
 pub fn draw_geometry_uni<F>(geom: &Geometry, dl: &F)
 where
-    F: Fn(Iter<PgPoint>),
+    F: Fn(Iter<Point>),
 {
     match geom {
         Geometry::GeometryCollection(gc) => {
@@ -65,16 +65,16 @@ where
 
 fn draw_poly<F>(poly: &Polygon, dl: &F)
 where
-    F: Fn(Iter<PgPoint>),
+    F: Fn(Iter<Point>),
 {
     for ring in &poly.rings {
         dl(ring.points.iter());
     }
 }
 
-pub fn draw_line(ctx: &Ctx, iter: Iter<PgPoint>) {
+pub fn draw_line(ctx: &Ctx, iter: Iter<Point>) {
     for (i, p) in iter.enumerate() {
-        let Point { x, y } = p.project(ctx);
+        let Coord { x, y } = p.project(ctx);
 
         if i == 0 {
             ctx.context.move_to(x, y);
@@ -84,13 +84,13 @@ pub fn draw_line(ctx: &Ctx, iter: Iter<PgPoint>) {
     }
 }
 
-pub fn draw_line_off(ctx: &Ctx, iter: Iter<PgPoint>, offset: f64) {
+pub fn draw_line_off(ctx: &Ctx, iter: Iter<Point>, offset: f64) {
     let mut polyline = Polyline::new();
 
     let context = &ctx.context;
 
     for p in iter {
-        let Point { x, y } = p.project(ctx);
+        let Coord { x, y } = p.project(ctx);
 
         polyline.add_vertex(PlineVertex::new(x, y, 0.0));
     }

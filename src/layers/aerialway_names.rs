@@ -8,8 +8,8 @@ use crate::{
         offset_line::offset_line,
         text_on_line::{TextOnLineOptions, text_on_line},
     },
-    point::Point,
 };
+use geo::Coord;
 use postgis::ewkb::LineString;
 use postgres::Client;
 
@@ -48,7 +48,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
 
         let name: &str = row.get("name");
 
-        let projected: Vec<Point> = geom.points.iter().map(|p| p.project(ctx)).collect();
+        let projected: Vec<Coord> = geom.points.iter().map(|p| p.project(ctx)).collect();
 
         let points = offset_line(projected, 10.0);
 

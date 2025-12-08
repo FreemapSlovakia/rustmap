@@ -1,17 +1,15 @@
 use crate::{
     bbox::BBox,
     collision::Collision,
-    colors::{self, ContextExt},
+    colors::{self},
     ctx::Ctx,
     draw::{
         create_pango_layout::FontAndLayoutOptions,
         draw::Projectable,
-        markers_on_path::draw_markers_on_path,
-        smooth_line::draw_smooth_bezier_spline,
         text_on_line::{TextOnLineOptions, text_on_line},
     },
-    point::Point,
 };
+use geo::Coord;
 use pangocairo::pango::Style;
 use postgis::ewkb::LineString;
 use postgres::Client;
@@ -25,7 +23,6 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
                 max_x,
                 max_y,
             },
-        context,
         zoom,
         ..
     } = ctx;
@@ -76,7 +73,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
 
         let name: &str = row.get("name");
 
-        let projected: Vec<Point> = geom.points.iter().map(|p| p.project(ctx)).collect();
+        let projected: Vec<Coord> = geom.points.iter().map(|p| p.project(ctx)).collect();
 
         text_on_line(ctx, projected, name, Some(collision), &options);
     }

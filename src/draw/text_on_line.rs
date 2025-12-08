@@ -4,8 +4,8 @@ use crate::{
     colors::{self, Color, ContextExt},
     ctx::Ctx,
     draw::create_pango_layout::{FontAndLayoutOptions, create_pango_layout},
-    point::Point,
 };
+use geo::{Coord, Distance, Euclidean, InterpolatePoint};
 use pangocairo::{
     functions::glyph_string_path,
     pango::{Font, GlyphItem, GlyphString, Layout, SCALE},
@@ -61,21 +61,27 @@ pub enum Align {
     Right,
 }
 
-fn normalize(v: Point) -> Point {
+// TODO check geo crate
+fn normalize(v: Coord) -> Coord {
     let len = v.x.hypot(v.y);
     if len == 0.0 {
-        Point::new(0.0, 0.0)
+        Coord { x: 0.0, y: 0.0 }
     } else {
-        Point::new(v.x / len, v.y / len)
+        Coord {
+            x: v.x / len,
+            y: v.y / len,
+        }
     }
 }
 
-fn angle_between(a: Point, b: Point) -> f64 {
+// TODO check geo crate
+fn angle_between(a: Coord, b: Coord) -> f64 {
     let dot = a.x * b.x + a.y * b.y;
     let det = a.x * b.y - a.y * b.x;
     det.atan2(dot).abs().to_degrees()
 }
 
+// TODO check geo crate
 fn normalize_angle(a: f64) -> f64 {
     if a > PI {
         a - TAU
@@ -103,16 +109,16 @@ fn adjust_upright_angle(angle: f64, upright: Upright) -> f64 {
 }
 
 fn weighted_tangent_for_span(
-    pts: &[Point],
+    pts: &[Coord],
     cum: &[f64],
     span_start: f64,
     span_end: f64,
-) -> Option<Point> {
+) -> Option<Coord> {
     if pts.len() < 2 {
         return None;
     }
 
-    let mut accum = Point::new(0.0, 0.0);
+    let mut accum = Coord { x: 0.0, y: 0.0 };
     let mut total = 0.0;
 
     for i in 0..pts.len() - 1 {
@@ -127,7 +133,7 @@ fn weighted_tangent_for_span(
         }
 
         let weight = overlap_end - overlap_start;
-        let tangent = normalize(Point {
+        let tangent = normalize(Coord {
             x: pts[i + 1].x - pts[i].x,
             y: pts[i + 1].y - pts[i].y,
         });
@@ -140,11 +146,11 @@ fn weighted_tangent_for_span(
     if total == 0.0 {
         None
     } else {
-        Some(normalize(Point::new(accum.x, accum.y)))
+        Some(normalize(accum))
     }
 }
 
-fn tangents_for_span(pts: &[Point], cum: &[f64], span_start: f64, span_end: f64) -> Vec<Point> {
+fn tangents_for_span(pts: &[Coord], cum: &[f64], span_start: f64, span_end: f64) -> Vec<Coord> {
     let mut result = Vec::new();
 
     for i in 0..pts.len() - 1 {
@@ -158,7 +164,7 @@ fn tangents_for_span(pts: &[Point], cum: &[f64], span_start: f64, span_end: f64)
             continue;
         }
 
-        let tangent = normalize(Point {
+        let tangent = normalize(Coord {
             x: pts[i + 1].x - pts[i].x,
             y: pts[i + 1].y - pts[i].y,
         });
@@ -169,24 +175,24 @@ fn tangents_for_span(pts: &[Point], cum: &[f64], span_start: f64, span_end: f64)
     result
 }
 
-fn cumulative_lengths(pts: &[Point]) -> Vec<f64> {
+fn cumulative_lengths(pts: &[Coord]) -> Vec<f64> {
     let mut result = Vec::with_capacity(pts.len());
     let mut total = 0.0;
     result.push(0.0);
     for window in pts.windows(2) {
-        total += window[0].distance_to(&window[1]);
+        total += Euclidean.distance(window[0], window[1]);
         result.push(total);
     }
     result
 }
 
-fn position_at(pts: &[Point], cum: &[f64], dist: f64) -> Option<(Point, Point)> {
+fn position_at(pts: &[Coord], cum: &[f64], dist: f64) -> Option<(Coord, Coord)> {
     if pts.len() < 2 {
         return None;
     }
 
     if dist <= 0.0 {
-        let tangent = normalize(Point {
+        let tangent = normalize(Coord {
             x: pts[1].x - pts[0].x,
             y: pts[1].y - pts[0].y,
         });
@@ -196,7 +202,7 @@ fn position_at(pts: &[Point], cum: &[f64], dist: f64) -> Option<(Point, Point)> 
     if let Some(total) = cum.last() {
         if dist >= *total {
             let len = pts.len();
-            let tangent = normalize(Point {
+            let tangent = normalize(Coord {
                 x: pts[len - 1].x - pts[len - 2].x,
                 y: pts[len - 1].y - pts[len - 2].y,
             });
@@ -217,8 +223,8 @@ fn position_at(pts: &[Point], cum: &[f64], dist: f64) -> Option<(Point, Point)> 
     let t = (dist - cum[idx]) / seg_len;
     let p1 = pts[idx];
     let p2 = pts[idx + 1];
-    let pos = p1.interpolate(&p2, t);
-    let tangent = normalize(Point {
+    let pos = Euclidean.point_at_ratio_between(p1.into(), p2.into(), t).0;
+    let tangent = normalize(Coord {
         x: p2.x - p1.x,
         y: p2.y - p1.y,
     });
@@ -300,7 +306,7 @@ fn collect_clusters(layout: &Layout) -> Vec<(f64, GlyphString, Font)> {
 
 fn draw_label(
     cr: &cairo::Context,
-    glyphs: &[(GlyphString, Font, Point, f64)],
+    glyphs: &[(GlyphString, Font, Coord, f64)],
     opts: &TextOnLineOptions,
 ) {
     if glyphs.is_empty() {
@@ -383,12 +389,12 @@ fn label_offsets(
 
 pub fn text_on_line(
     ctx: &Ctx,
-    iter: impl IntoIterator<Item = Point>,
+    iter: impl IntoIterator<Item = Coord>,
     text: &str,
     mut collision: Option<&mut Collision<f64>>,
     options: &TextOnLineOptions,
 ) {
-    let mut pts: Vec<Point> = iter.into_iter().collect();
+    let mut pts: Vec<Coord> = iter.into_iter().collect();
 
     pts.dedup_by(|a, b| a == b);
 
@@ -439,7 +445,7 @@ pub fn text_on_line(
         return;
     }
 
-    let mut placements: Vec<Vec<(GlyphString, Font, Point, f64)>> = Vec::new();
+    let mut placements: Vec<Vec<(GlyphString, Font, Coord, f64)>> = Vec::new();
 
     'outer: for start in offsets {
         // Decide per-repeat if we need to flip to stay upright.
@@ -447,7 +453,7 @@ pub fn text_on_line(
         let overall_span_end = start + total_advance;
         let overall_tangent =
             weighted_tangent_for_span(&pts, &cum, overall_span_start, overall_span_end)
-                .unwrap_or(Point::new(1.0, 0.0));
+                .unwrap_or(Coord { x: 1.0, y: 0.0 });
 
         let base_angle = overall_tangent.y.atan2(overall_tangent.x);
         let adjusted_angle = adjust_upright_angle(base_angle, *upright);

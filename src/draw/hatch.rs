@@ -1,11 +1,11 @@
 use crate::{
     ctx::Ctx,
-    draw::draw::{draw_geometry_uni, Projectable},
-    point::Point,
+    draw::draw::{Projectable, draw_geometry_uni},
     xyz::{perpendicular_distance, to_absolute_pixel_coords},
 };
 use core::slice::Iter;
-use postgis::ewkb::{Geometry, Point as PgPoint};
+use geo::Coord;
+use postgis::ewkb::{Geometry, Point};
 
 pub fn hatch_geometry(ctx: &Ctx, geom: &Geometry, spacing: f64, angle: f64) {
     draw_geometry_uni(geom, &|iter| {
@@ -13,7 +13,7 @@ pub fn hatch_geometry(ctx: &Ctx, geom: &Geometry, spacing: f64, angle: f64) {
     });
 }
 
-pub fn hatch(ctx: &Ctx, iter: Iter<PgPoint>, spacing: f64, angle: f64) {
+pub fn hatch(ctx: &Ctx, iter: Iter<Point>, spacing: f64, angle: f64) {
     let mut merc_min_x = f64::INFINITY;
     let mut merc_max_x = f64::NEG_INFINITY;
     let mut merc_min_y = f64::INFINITY;
@@ -30,7 +30,7 @@ pub fn hatch(ctx: &Ctx, iter: Iter<PgPoint>, spacing: f64, angle: f64) {
         merc_min_y = merc_min_y.min(p.y);
         merc_max_y = merc_max_y.max(p.y);
 
-        let Point { x, y } = p.project(ctx);
+        let Coord { x, y } = p.project(ctx);
 
         min_x = min_x.min(x);
         min_y = min_y.min(y);

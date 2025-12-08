@@ -3,6 +3,7 @@ use crate::draw::create_pango_layout::FontAndLayoutOptions;
 use crate::draw::text::{TextOptions, draw_text, draw_text_with_attrs};
 use crate::{bbox::BBox, collision::Collision, ctx::Ctx, draw::draw::Projectable};
 use core::f64;
+use geo::Coord;
 use pangocairo::pango::{AttrList, AttrSize, SCALE, Style, Weight};
 use postgis::ewkb::Point;
 use postgres::Client;
@@ -677,14 +678,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
             .expect("db data")
     };
 
-    let mut to_label = Vec::<(
-        crate::point::Point,
-        f64,
-        String,
-        Option<String>,
-        usize,
-        &Def,
-    )>::new();
+    let mut to_label = Vec::<(Coord, f64, String, Option<String>, usize, &Def)>::new();
 
     {
         let _paint_span = tracy_client::span!("features::paint_svgs");
@@ -767,7 +761,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
                             }
 
                             to_label.push((
-                                crate::point::Point {
+                                Coord {
                                     x: point.x + dx,
                                     y: point.y + dy,
                                 },

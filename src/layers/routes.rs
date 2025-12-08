@@ -6,10 +6,10 @@ use crate::{
         line_pattern::draw_polyline_outline_scaled,
         offset_line::offset_line,
     },
-    point::Point,
 };
 use bitflags::bitflags;
 use colorsys::{Rgb, RgbRatio};
+use geo::Coord;
 use postgis::ewkb::MultiLineString;
 use postgres::Client;
 
@@ -321,7 +321,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
                     let offset = (zo + (off as f64 - 1.0) * wf * df) + 0.5;
 
                     for part in geom.lines.iter() {
-                        let projected: Vec<Point> =
+                        let projected: Vec<Coord> =
                             part.points.iter().map(|p| p.project(ctx)).collect();
 
                         draw_polyline_outline_scaled(
@@ -348,7 +348,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
                     let offset = -(zo + (off as f64 - 1.0) * wf * 2.0) - 1.0;
 
                     for part in geom.lines.iter() {
-                        let projected: Vec<Point> =
+                        let projected: Vec<Coord> =
                             part.points.iter().map(|p| p.project(ctx)).collect();
 
                         draw_polyline_outline_scaled(

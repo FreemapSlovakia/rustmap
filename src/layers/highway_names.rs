@@ -7,8 +7,8 @@ use crate::{
         draw::Projectable,
         text_on_line::{TextOnLineOptions, text_on_line},
     },
-    point::Point,
 };
+use geo::Coord;
 use postgis::ewkb::LineString;
 use postgres::Client;
 
@@ -53,7 +53,7 @@ pub fn highway_names(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f
 
         let name: &str = row.get("name");
 
-        let projected: Vec<Point> = geom.points.iter().map(|p| p.project(ctx)).collect();
+        let projected: Vec<Coord> = geom.points.iter().map(|p| p.project(ctx)).collect();
 
         text_on_line(ctx, projected, name, Some(collision), &options);
     }

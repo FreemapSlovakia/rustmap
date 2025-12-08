@@ -34,7 +34,6 @@ mod colors;
 mod ctx;
 mod draw;
 mod layers;
-mod point;
 mod size;
 mod svg_cache;
 mod xyz;

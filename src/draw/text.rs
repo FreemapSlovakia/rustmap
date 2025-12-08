@@ -3,9 +3,9 @@ use crate::{
     collision::Collision,
     colors::{self, Color, ContextExt},
     draw::create_pango_layout::{FontAndLayoutOptions, create_pango_layout_with_attrs},
-    point::Point,
 };
 use cairo::Context;
+use geo::Coord;
 use pangocairo::{
     functions::layout_path,
     pango::{AttrList, SCALE},
@@ -45,7 +45,7 @@ impl Default for TextOptions<'_> {
 pub fn draw_text(
     context: &Context,
     collision: &mut Collision<f64>,
-    point: Point,
+    point: Coord,
     text: &str,
     options: &TextOptions,
 ) -> bool {
@@ -55,7 +55,7 @@ pub fn draw_text(
 pub fn draw_text_with_attrs(
     context: &Context,
     collision: &mut Collision<f64>,
-    point: Point,
+    point: Coord,
     text: &str,
     attrs: Option<AttrList>,
     options: &TextOptions,

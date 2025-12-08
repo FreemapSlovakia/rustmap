@@ -1,6 +1,7 @@
-use crate::{ctx::Ctx, draw::draw::Projectable, point::Point};
+use crate::{ctx::Ctx, draw::draw::Projectable};
 use cairo::{Matrix, SurfacePattern};
 use core::slice::Iter;
+use geo::Coord;
 
 pub fn draw_line_pattern(
     ctx: &Ctx,
@@ -8,7 +9,7 @@ pub fn draw_line_pattern(
     miter_limit: f64,
     image: &str,
 ) {
-    let pts: Vec<Point> = iter.map(|p| p.project(ctx)).rev().collect();
+    let pts: Vec<Coord> = iter.map(|p| p.project(ctx)).rev().collect();
 
     draw_polyline_outline(ctx, &pts[..], miter_limit, image);
 }
@@ -20,7 +21,7 @@ fn get_perpendicular(dx: f64, dy: f64, length: f64, stroke_width: f64) -> (f64, 
     )
 }
 
-fn get_intersection1(p1: Point, p2: Point, p3: Point, p4: Point) -> Option<Point> {
+fn get_intersection1(p1: Coord, p2: Coord, p3: Coord, p4: Coord) -> Option<Coord> {
     let s1_x = p2.x - p1.x;
     let s1_y = p2.y - p1.y;
     let s2_x = p4.x - p3.x;
@@ -37,13 +38,16 @@ fn get_intersection1(p1: Point, p2: Point, p3: Point, p4: Point) -> Option<Point
     let t = (s2_x * (p1.y - p3.y) - s2_y * (p1.x - p3.x)) / denom;
 
     if (0.0..=1.0).contains(&s) && (0.0..=1.0).contains(&t) {
-        Some(Point::new(p1.x + t * s1_x, p1.y + t * s1_y))
+        Some(Coord {
+            x: p1.x + t * s1_x,
+            y: p1.y + t * s1_y,
+        })
     } else {
         None
     }
 }
 
-fn get_intersection(p1: Point, p2: Point, p3: Point, p4: Point) -> Option<Point> {
+fn get_intersection(p1: Coord, p2: Coord, p3: Coord, p4: Coord) -> Option<Coord> {
     let s1_x = p2.x - p1.x;
     let s1_y = p2.y - p1.y;
     let s2_x = p4.x - p3.x;
@@ -57,13 +61,16 @@ fn get_intersection(p1: Point, p2: Point, p3: Point, p4: Point) -> Option<Point>
 
     let s = (s1_x * (p1.y - p3.y) - s1_y * (p1.x - p3.x)) / denom;
 
-    Some(Point::new(p3.x + s * s2_x, p3.y + s * s2_y))
+    Some(Coord {
+        x: p3.x + s * s2_x,
+        y: p3.y + s * s2_y,
+    })
 }
 
 fn should_use_bevel_join(
-    p0: Point,
-    p1: Point,
-    p2: Point,
+    p0: Coord,
+    p1: Coord,
+    p2: Coord,
     stroke_width: f64,
     miter_limit: f64,
 ) -> bool {
@@ -84,31 +91,43 @@ fn should_use_bevel_join(
     miter_length > miter_limit * stroke_width
 }
 
-fn cross_product(v1: Point, v2: Point, v3: Point) -> f64 {
+fn cross_product(v1: Coord, v2: Coord, v3: Coord) -> f64 {
     (v2.x - v1.x) * (v3.y - v2.y) - (v2.y - v1.y) * (v3.x - v2.x)
 }
 
-fn compute_corners(p0: Point, p1: Point, stroke_width: f64) -> (Point, Point, Point, Point) {
+fn compute_corners(p0: Coord, p1: Coord, stroke_width: f64) -> (Coord, Coord, Coord, Coord) {
     let dx0 = p1.x - p0.x;
     let dy0 = p1.y - p0.y;
     let length0 = (dx0.powi(2) + dy0.powi(2)).sqrt();
     let perp0 = get_perpendicular(dx0, dy0, length0, stroke_width);
 
     (
-        Point::new(p0.x + perp0.0, p0.y + perp0.1),
-        Point::new(p0.x - perp0.0, p0.y - perp0.1),
-        Point::new(p1.x - perp0.0, p1.y - perp0.1),
-        Point::new(p1.x + perp0.0, p1.y + perp0.1),
+        Coord {
+            x: p0.x + perp0.0,
+            y: p0.y + perp0.1,
+        },
+        Coord {
+            x: p0.x - perp0.0,
+            y: p0.y - perp0.1,
+        },
+        Coord {
+            x: p1.x - perp0.0,
+            y: p1.y - perp0.1,
+        },
+        Coord {
+            x: p1.x + perp0.0,
+            y: p1.y + perp0.1,
+        },
     )
 }
 
-pub fn draw_polyline_outline(ctx: &Ctx, vertices: &[Point], miter_limit: f64, image: &str) {
+pub fn draw_polyline_outline(ctx: &Ctx, vertices: &[Coord], miter_limit: f64, image: &str) {
     draw_polyline_outline_scaled(ctx, vertices, miter_limit, image, 1.0);
 }
 
 pub fn draw_polyline_outline_scaled(
     ctx: &Ctx,
-    vertices: &[Point],
+    vertices: &[Coord],
     miter_limit: f64,
     image: &str,
     scale: f64,
@@ -165,8 +184,8 @@ pub fn draw_polyline_outline_scaled(
         let (mut corner1, mut corner2, mut corner3, mut corner4) =
             compute_corners(p1, p2, stroke_width);
 
-        let mut extra_corner1: Option<Point> = None;
-        let mut extra_corner2: Option<Point> = None;
+        let mut extra_corner1: Option<Coord> = None;
+        let mut extra_corner2: Option<Coord> = None;
 
         let mut use_corner1 = true;
         let mut use_corner2 = true;
@@ -185,15 +204,15 @@ pub fn draw_polyline_outline_scaled(
 
             if !bevel {
                 extra_corner1 = Some(if cp < 0.0 {
-                    Point::new(
-                        (corner1.x + prev_corner4.x) / 2.0,
-                        (corner1.y + prev_corner4.y) / 2.0,
-                    )
+                    Coord {
+                        x: (corner1.x + prev_corner4.x) / 2.0,
+                        y: (corner1.y + prev_corner4.y) / 2.0,
+                    }
                 } else {
-                    Point::new(
-                        (corner2.x + prev_corner3.x) / 2.0,
-                        (corner2.y + prev_corner3.y) / 2.0,
-                    )
+                    Coord {
+                        x: (corner2.x + prev_corner3.x) / 2.0,
+                        y: (corner2.y + prev_corner3.y) / 2.0,
+                    }
                 });
             }
 
@@ -242,15 +261,15 @@ pub fn draw_polyline_outline_scaled(
 
             if !bevel {
                 extra_corner2 = Some(if cp < 0.0 {
-                    Point::new(
-                        (corner4.x + next_corner1.x) / 2.0,
-                        (corner4.y + next_corner1.y) / 2.0,
-                    )
+                    Coord {
+                        x: (corner4.x + next_corner1.x) / 2.0,
+                        y: (corner4.y + next_corner1.y) / 2.0,
+                    }
                 } else {
-                    Point::new(
-                        (corner3.x + next_corner2.x) / 2.0,
-                        (corner3.y + next_corner2.y) / 2.0,
-                    )
+                    Coord {
+                        x: (corner3.x + next_corner2.x) / 2.0,
+                        y: (corner3.y + next_corner2.y) / 2.0,
+                    }
                 });
             }
 
