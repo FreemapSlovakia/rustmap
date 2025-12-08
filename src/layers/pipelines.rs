@@ -24,7 +24,9 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     let zoom = ctx.zoom;
 
     let sql = format!(
-        "SELECT geometry, location IN('underground', 'underwater') AS below FROM osm_pipelines WHERE geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857) AND location IN ({})",
+        "SELECT geometry, location IN('underground', 'underwater') AS below
+        FROM osm_pipelines
+        WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) AND location IN ({})",
         if zoom < 15 {
             "'overground', 'overhead', ''"
         } else {
@@ -32,8 +34,10 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         }
     );
 
+    let buffer = ctx.meters_per_pixel() * 8.0;
+
     let rows = client
-        .query(&sql, &[min_x, min_y, max_x, max_y])
+        .query(&sql, &[min_x, min_y, max_x, max_y, &buffer])
         .expect("db data");
 
     for row in rows {

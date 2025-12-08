@@ -32,7 +32,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     let zoom = ctx.zoom;
 
     let sql = &format!(
-        "SELECT type, protect_class, geometry FROM osm_protected_areas WHERE geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857) {}",
+        "SELECT type, protect_class, geometry FROM osm_protected_areas WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) {}",
         if zoom < 12 {
             " AND NOT (type = 'nature_reserve' OR type = 'protected_area' AND protect_class <> '2')"
         } else {
@@ -40,10 +40,12 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         }
     );
 
+    let buffer = ctx.meters_per_pixel() * 10.0;
+
     context.save().expect("context saved");
 
     let rows = &client
-        .query(sql, &[min_x, min_y, max_x, max_y])
+        .query(sql, &[min_x, min_y, max_x, max_y, &buffer])
         .expect("db data");
 
     // hatching

@@ -1,8 +1,8 @@
 use crate::{
     collision::Collision,
     layers::{
-        aerialways, aeroways, barrierways, borders, bridge_areas, building_names, buildings,
-        cutlines, features,
+        aerialway_names, aerialways, aeroways, barrierways, borders, bridge_areas, building_names,
+        buildings, cutlines, features,
         highway_names::highway_names,
         housenumbers, landuse, locality_names, military_areas, pipelines, place_names, power_lines,
         protected_area_names, protected_areas, road_access_restrictions, roads, routes,
@@ -39,7 +39,7 @@ mod size;
 mod svg_cache;
 mod xyz;
 
-const SHADING_AND_CONTOURS: bool = false;
+const SHADING_AND_CONTOURS: bool = true;
 
 pub fn main() {
     Client::start();
@@ -242,15 +242,13 @@ fn render(
 
         // TODO national_park_border_names
 
-        if zoom >= 12 {
-            protected_area_names::render(ctx, client, &mut collision);
-        }
-
         if zoom >= 17 {
             building_names::render(ctx, client, &mut collision);
         }
 
-        // TODO <ProtectedAreaNames />
+        if zoom >= 12 {
+            protected_area_names::render(ctx, client, &mut collision);
+        }
 
         // TODO <LandcoverNames />
 
@@ -266,7 +264,7 @@ fn render(
 
         // <RouteNames {...routeProps} />
 
-        // <AerialwayNames />
+        aerialway_names::render(ctx, client, &mut collision);
 
         water_line_names::render(ctx, client, &mut collision);
 

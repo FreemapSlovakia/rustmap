@@ -22,14 +22,26 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     let zoom = ctx.zoom;
 
-    let sql = concat!(
-        "SELECT ST_LineMerge(ST_Collect(geometry)) AS geometry ",
-        "FROM osm_admin ",
-        "WHERE admin_level = 2 AND geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)"
-    );
+    let sql = "
+        WITH segs AS (
+            SELECT DISTINCT ON (m.member)
+                m.member,
+                m.geometry
+            FROM osm_admin_members m
+            JOIN osm_admin_relations r
+                ON r.osm_id = m.osm_id
+                AND r.admin_level = 2
+            WHERE
+                m.type = 1
+                AND m.geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
+        )
+        SELECT ST_LineMerge(ST_Collect(geometry)) AS geometry
+        FROM segs";
+
+    let buffer = ctx.meters_per_pixel() * 10.0;
 
     let rows = client
-        .query(sql, &[min_x, min_y, max_x, max_y])
+        .query(sql, &[min_x, min_y, max_x, max_y, &buffer])
         .expect("db data");
 
     context.save().expect("context saved");

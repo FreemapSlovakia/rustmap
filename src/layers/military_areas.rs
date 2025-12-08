@@ -27,11 +27,13 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             FROM osm_landusages
             WHERE
                 type = 'military'
-                AND geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)
-                AND area / POWER(4, 19 - $5) > 10";
+                AND geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
+                AND area / POWER(4, 19 - $6) > 10";
+
+    let buffer = ctx.meters_per_pixel() * 10.0;
 
     let rows = &client
-        .query(sql, &[min_x, min_y, max_x, max_y, &(zoom as i32)])
+        .query(sql, &[min_x, min_y, max_x, max_y, &buffer, &(zoom as i32)])
         .expect("db data");
 
     ctx.context.push_group();

@@ -32,8 +32,10 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             power(0.666, greatest(0, trail_visibility - 1))::DOUBLE PRECISION AS trail_visibility,
             osm_route_members.member IS NOT NULL AS is_in_route
         FROM {table} LEFT JOIN osm_route_members ON osm_route_members.type = 1 AND osm_route_members.member = {table}.osm_id
-        WHERE {table}.geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)
+        WHERE {table}.geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
         ORDER BY z_order, CASE WHEN {table}.type = 'rail' AND service IN ('', 'main') THEN 2 ELSE 1 END, {table}.osm_id", table = table);
+
+    let buffer = ctx.meters_per_pixel() * 128.0;
 
     let apply_highway_defaults = |width: f64| {
         context.set_dash(&[], 0.0);
@@ -52,7 +54,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     let highway_width_coef = || 1.5f64.powf(8.6f64.max(zoom as f64) - 8.0);
 
     let rows = &client
-        .query(&query, &[min_x, min_y, max_x, max_y])
+        .query(&query, &[min_x, min_y, max_x, max_y, &buffer])
         .expect("db data");
 
     let ke = || match zoom {

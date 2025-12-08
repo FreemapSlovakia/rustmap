@@ -5,10 +5,12 @@ use crate::{
     ctx::Ctx,
     draw::{
         create_pango_layout::FontAndLayoutOptions,
+        draw::Projectable,
         markers_on_path::draw_markers_on_path,
         smooth_line::draw_smooth_bezier_spline,
         text_on_line::{TextOnLineOptions, text_on_line},
     },
+    point::Point,
 };
 use pangocairo::pango::Style;
 use postgis::ewkb::LineString;
@@ -74,6 +76,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
 
         let name: &str = row.get("name");
 
-        text_on_line(ctx, geom.points.iter(), name, Some(collision), &options);
+        let projected: Vec<Point> = geom.points.iter().map(|p| p.project(ctx)).collect();
+
+        text_on_line(ctx, projected, name, Some(collision), &options);
     }
 }

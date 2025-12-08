@@ -3,18 +3,13 @@ use crate::{
     collision::Collision,
     colors::{self, Color, ContextExt},
     ctx::Ctx,
-    draw::{
-        create_pango_layout::{FontAndLayoutOptions, create_pango_layout},
-        draw::Projectable,
-    },
+    draw::create_pango_layout::{FontAndLayoutOptions, create_pango_layout},
     point::Point,
 };
-use core::slice::Iter;
 use pangocairo::{
     functions::glyph_string_path,
     pango::{Font, GlyphItem, GlyphString, Layout, SCALE},
 };
-use postgis::ewkb::Point as PgPoint;
 use std::f64::consts::{PI, TAU};
 
 #[derive(Copy, Clone, Debug)]
@@ -388,12 +383,12 @@ fn label_offsets(
 
 pub fn text_on_line(
     ctx: &Ctx,
-    iter: Iter<PgPoint>,
+    iter: impl IntoIterator<Item = Point>,
     text: &str,
     mut collision: Option<&mut Collision<f64>>,
     options: &TextOnLineOptions,
 ) {
-    let mut pts: Vec<Point> = iter.map(|p| p.project(ctx)).rev().collect();
+    let mut pts: Vec<Point> = iter.into_iter().collect();
 
     pts.dedup_by(|a, b| a == b);
 

@@ -4,9 +4,11 @@ use crate::{
     ctx::Ctx,
     draw::{
         create_pango_layout::FontAndLayoutOptions,
+        draw::Projectable,
         smooth_line::draw_smooth_bezier_spline,
         text_on_line::{TextOnLineOptions, Upright, text_on_line},
     },
+    point::Point,
 };
 use postgis::ewkb::LineString;
 use postgres::Client;
@@ -91,16 +93,18 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: &str) {
         }
 
         if labels {
+            let projected: Vec<Point> = geom.points.iter().map(|p| p.project(ctx)).collect();
+
             text_on_line(
                 ctx,
-                geom.points.iter(),
+                projected,
                 &format!("{}", height),
                 None,
                 &TextOnLineOptions {
                     flo: FontAndLayoutOptions {
                         ..FontAndLayoutOptions::default()
                     },
-                    upright: Upright::Right,
+                    upright: Upright::Left,
                     color: colors::CONTOUR,
                     ..TextOnLineOptions::default()
                 },

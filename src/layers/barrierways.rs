@@ -24,11 +24,13 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     let sql = concat!(
         "SELECT geometry, type FROM osm_barrierways ",
-        "WHERE geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)"
+        "WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)"
     );
 
+    let buffer = ctx.meters_per_pixel() * 8.0;
+
     let rows = client
-        .query(sql, &[min_x, min_y, max_x, max_y])
+        .query(sql, &[min_x, min_y, max_x, max_y, &buffer])
         .expect("db data");
 
     for row in rows {

@@ -29,12 +29,17 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         _ => panic!("unsupported zoom"),
     };
 
-    let sql = "SELECT geometry, type FROM osm_aeroways WHERE geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)";
+    let sql = concat!(
+        "SELECT geometry, type FROM osm_aeroways ",
+        "WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)"
+    );
+
+    let buffer = ctx.meters_per_pixel() * 12.0;
 
     context.save().expect("context saved");
 
     let rows = client
-        .query(sql, &[min_x, min_y, max_x, max_y])
+        .query(sql, &[min_x, min_y, max_x, max_y, &buffer])
         .expect("db data");
 
     for row in rows {

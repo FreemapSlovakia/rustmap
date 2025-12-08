@@ -22,7 +22,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     } = ctx;
 
     let sql = &format!(
-        "SELECT {}, type, seasonal OR intermittent AS tmp, tunnel FROM {} WHERE geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)",
+        "SELECT {}, type, seasonal OR intermittent AS tmp, tunnel FROM {} WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)",
         match zoom {
             12 => "ST_Segmentize(ST_Simplify(geometry, 24), 200) AS geometry",
             13 => "ST_Segmentize(ST_Simplify(geometry, 12), 200) AS geometry",
@@ -36,8 +36,10 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         }
     );
 
+    let buffer = ctx.meters_per_pixel() * 8.0;
+
     let rows = &client
-        .query(sql, &[min_x, min_y, max_x, max_y])
+        .query(sql, &[min_x, min_y, max_x, max_y, &buffer])
         .expect("db data");
 
     let mut svg_cache = ctx.svg_cache.borrow_mut();

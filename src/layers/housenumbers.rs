@@ -36,7 +36,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         FROM osm_housenumbers
         WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)"#;
 
-    let buffer = ctx.meters_per_pixel() * 256.0;
+    let buffer = ctx.meters_per_pixel() * 128.0;
 
     let text_options = TextOptions {
         flo: FontAndLayoutOptions {

@@ -1,15 +1,17 @@
-use bitflags::bitflags;
-use colorsys::{Rgb, RgbRatio};
-use postgis::ewkb::MultiLineString;
-use postgres::Client;
-
 use crate::{
     bbox::BBox,
     ctx::Ctx,
     draw::{
-        draw::draw_line_off, line_pattern::draw_polyline_outline_scaled, offset_line::offset_line,
+        draw::{Projectable, draw_line_off},
+        line_pattern::draw_polyline_outline_scaled,
+        offset_line::offset_line,
     },
+    point::Point,
 };
+use bitflags::bitflags;
+use colorsys::{Rgb, RgbRatio};
+use postgis::ewkb::MultiLineString;
+use postgres::Client;
 
 const COLOR_SQL: &str = r#"
   CASE
@@ -319,9 +321,12 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
                     let offset = (zo + (off as f64 - 1.0) * wf * df) + 0.5;
 
                     for part in geom.lines.iter() {
+                        let projected: Vec<Point> =
+                            part.points.iter().map(|p| p.project(ctx)).collect();
+
                         draw_polyline_outline_scaled(
                             ctx,
-                            &offset_line(ctx, part.points.iter(), offset)[..],
+                            &offset_line(projected, offset)[..],
                             0.5,
                             &format!("images/horse.svg|path {{ fill: #{} }}", color.1),
                             wf / 2.0,
@@ -343,9 +348,12 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
                     let offset = -(zo + (off as f64 - 1.0) * wf * 2.0) - 1.0;
 
                     for part in geom.lines.iter() {
+                        let projected: Vec<Point> =
+                            part.points.iter().map(|p| p.project(ctx)).collect();
+
                         draw_polyline_outline_scaled(
                             ctx,
-                            &offset_line(ctx, part.points.iter(), offset)[..],
+                            &offset_line(projected, offset)[..],
                             0.5,
                             &format!("images/ski.svg|path {{ fill: #{} }}", color.1),
                             wf / 2.0,
