@@ -9,6 +9,7 @@ use crate::{
         shading_and_contours::{self, SHADING_THREAD_LOCAL},
         solar_power_plants, trees, water_area_names, water_areas, water_line_names, water_lines,
     },
+    projectable::TileProjector,
     svg_cache::{SVG_CACHE_THREAD_LOCAL, SvgCache},
 };
 use cairo::{Context, Format, ImageSurface, Surface, SvgSurface};
@@ -130,6 +131,7 @@ fn render(
             scale,
             svg_cache,
             shading_data,
+            tile_projector: TileProjector::new(bbox, size),
         };
 
         let context = &ctx.context;

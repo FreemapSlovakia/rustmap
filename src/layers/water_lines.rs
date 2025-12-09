@@ -1,25 +1,14 @@
 use crate::{
-    bbox::BBox,
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::{markers_on_path::draw_markers_on_path, smooth_line::draw_smooth_bezier_spline},
+    projectable::{TileProjectable, geometry_line_string},
 };
-use postgis::ewkb::LineString;
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
-    let Ctx {
-        bbox:
-            BBox {
-                min_x,
-                min_y,
-                max_x,
-                max_y,
-            },
-        context,
-        zoom,
-        ..
-    } = ctx;
+    let context = ctx.context;
+    let zoom = ctx.zoom;
 
     let sql = &format!(
         "SELECT {}, type, seasonal OR intermittent AS tmp, tunnel FROM {} WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)",
@@ -36,10 +25,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         }
     );
 
-    let buffer = ctx.meters_per_pixel() * 8.0;
-
     let rows = &client
-        .query(sql, &[min_x, min_y, max_x, max_y, &buffer])
+        .query(sql, &ctx.bbox_query_params(Some(8.0)).as_params())
         .expect("db data");
 
     let mut svg_cache = ctx.svg_cache.borrow_mut();
@@ -53,23 +40,23 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         let glow = pass == 0;
 
         for row in rows {
-            let geom: LineString = row.get("geometry");
+            let geom = geometry_line_string(&row).project_to_tile(&ctx.tile_projector);
 
             let typ: &str = row.get("type");
 
             context.set_dash(if row.get("tmp") { &[6.0, 3.0] } else { &[] }, 0.0);
 
             let (width, smooth) = match (typ, zoom) {
-                ("river", ..=8) => (1.5f64.powf(*zoom as f64 - 8.0), 0.0),
+                ("river", ..=8) => (1.5f64.powf(zoom as f64 - 8.0), 0.0),
                 ("river", 9) => (1.5, 0.0),
                 ("river", 10..=11) => (2.2, 0.0),
                 ("river", 12..) => (2.2, 0.5),
-                (_, 12..) if typ != "river" => (if *zoom == 12 { 1.0 } else { 1.2 }, 0.5),
+                (_, 12..) if typ != "river" => (if zoom == 12 { 1.0 } else { 1.2 }, 0.5),
                 _ => (0.0, 0.0), // TODO panic?
             };
 
             if glow {
-                if *zoom >= 12 {
+                if zoom >= 12 {
                     context.set_source_color(colors::WATER);
 
                     context.set_source_rgba(
@@ -81,13 +68,13 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
                     context.set_line_width(if typ == "river" {
                         3.4
-                    } else if *zoom == 12 {
+                    } else if zoom == 12 {
                         2.0
                     } else {
                         2.4
                     });
 
-                    draw_smooth_bezier_spline(ctx, geom.points, smooth);
+                    draw_smooth_bezier_spline(context, &geom, smooth);
 
                     context.stroke().unwrap();
                 }
@@ -97,7 +84,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
                 context.set_line_width(width);
 
-                draw_smooth_bezier_spline(ctx, geom.points, smooth);
+                draw_smooth_bezier_spline(context, &geom, smooth);
 
                 let path = context.copy_path_flat().unwrap();
 

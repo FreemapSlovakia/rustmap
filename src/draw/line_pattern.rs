@@ -1,17 +1,9 @@
-use crate::{ctx::Ctx, projectable::Projectable};
+use crate::ctx::Ctx;
 use cairo::{Matrix, SurfacePattern};
-use core::slice::Iter;
-use geo::Coord;
+use geo::{Coord, LineString};
 
-pub fn draw_line_pattern(
-    ctx: &Ctx,
-    iter: Iter<postgis::ewkb::Point>,
-    miter_limit: f64,
-    image: &str,
-) {
-    let pts: Vec<Coord> = iter.map(|p| p.project(ctx)).rev().collect();
-
-    draw_polyline_outline(ctx, &pts[..], miter_limit, image);
+pub fn draw_line_pattern(ctx: &Ctx, pts: &LineString, miter_limit: f64, image: &str) {
+    draw_polyline_outline(ctx, &pts, miter_limit, image);
 }
 
 fn get_perpendicular(dx: f64, dy: f64, length: f64, stroke_width: f64) -> (f64, f64) {
@@ -121,17 +113,21 @@ fn compute_corners(p0: Coord, p1: Coord, stroke_width: f64) -> (Coord, Coord, Co
     )
 }
 
-pub fn draw_polyline_outline(ctx: &Ctx, vertices: &[Coord], miter_limit: f64, image: &str) {
+pub fn draw_polyline_outline(ctx: &Ctx, vertices: &LineString, miter_limit: f64, image: &str) {
     draw_polyline_outline_scaled(ctx, vertices, miter_limit, image, 1.0);
 }
 
 pub fn draw_polyline_outline_scaled(
     ctx: &Ctx,
-    vertices: &[Coord],
+    vertices: &LineString,
     miter_limit: f64,
     image: &str,
     scale: f64,
 ) {
+    let mut vertices = vertices.0.clone();
+
+    vertices.reverse();
+
     let len = vertices.len();
 
     if len < 2 {

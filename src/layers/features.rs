@@ -1,12 +1,11 @@
 use crate::colors::{self, Color};
 use crate::draw::create_pango_layout::FontAndLayoutOptions;
 use crate::draw::text::{TextOptions, draw_text, draw_text_with_attrs};
-use crate::projectable::Projectable;
+use crate::projectable::{TileProjectable, geometry_point};
 use crate::{bbox::BBox, collision::Collision, ctx::Ctx};
 use core::f64;
-use geo::Coord;
+use geo::Point;
 use pangocairo::pango::{AttrList, AttrSize, SCALE, Style, Weight};
-use postgis::ewkb::Point;
 use postgres::Client;
 use regex::Regex;
 use std::u32;
@@ -359,17 +358,7 @@ static POIS: LazyLock<HashMap<&'static str, Def>> = LazyLock::new(|| {
 pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     let _span = tracy_client::span!("features::render");
 
-    let Ctx {
-        context,
-        bbox:
-            BBox {
-                min_x,
-                min_y,
-                max_x,
-                max_y,
-            },
-        ..
-    } = ctx;
+    let context = ctx.context;
 
     let zoom = ctx.zoom;
 
@@ -670,16 +659,14 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
 
     let mut svg_cache = ctx.svg_cache.borrow_mut();
 
-    let buffer = ctx.meters_per_pixel() * 1024.0;
-
     let rows = {
         let _span = tracy_client::span!("features::query");
         client
-            .query(&sql, &[min_x, min_y, max_x, max_y, &buffer])
+            .query(&sql, &ctx.bbox_query_params(Some(1024.0)).as_params())
             .expect("db data")
     };
 
-    let mut to_label = Vec::<(Coord, f64, String, Option<String>, usize, &Def)>::new();
+    let mut to_label = Vec::<(Point, f64, String, Option<String>, usize, &Def)>::new();
 
     {
         let _paint_span = tracy_client::span!("features::paint_svgs");
@@ -697,9 +684,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
                 continue;
             }
 
-            let geom: Point = row.get("geometry");
-
-            let point = geom.project(ctx);
+            let point = geometry_point(&row).project_to_tile(&ctx.tile_projector);
 
             let surface = svg_cache.get(&format!(
                 "images/{}.svg",
@@ -708,9 +693,9 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
 
             let rect = surface.extents().unwrap();
 
-            let x = (point.x - rect.width() / 2.0).round();
+            let x = (point.x() - rect.width() / 2.0).round();
 
-            let y = (point.y - rect.height() / 2.0).round();
+            let y = (point.y() - rect.height() / 2.0).round();
 
             'outer: for (j, r) in vec![5.0, 10.0].into_iter().enumerate() {
                 for (i, a) in vec![
@@ -762,10 +747,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
                             }
 
                             to_label.push((
-                                Coord {
-                                    x: point.x + dx,
-                                    y: point.y + dy,
-                                },
+                                Point::new(point.x() + dx, point.y() + dy),
                                 rect.height() / 2.0,
                                 name.into_owned(),
                                 row.get("ele"),
@@ -822,13 +804,13 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
                 draw_text_with_attrs(
                     context,
                     collision,
-                    point,
+                    &point,
                     &format!("{}\n{}", name, ele).trim(),
                     Some(attr_list),
                     &text_options,
                 )
             } else {
-                draw_text(context, collision, point, &name, &text_options)
+                draw_text(context, collision, &point, &name, &text_options)
             };
 
             if !drawn {

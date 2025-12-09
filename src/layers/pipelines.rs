@@ -1,25 +1,13 @@
-use postgis::ewkb::Geometry;
-use postgres::Client;
-
 use crate::{
-    bbox::BBox,
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::draw::draw_geometry,
+    draw::draw::draw_line,
+    projectable::{TileProjectable, geometry_line_string},
 };
+use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
-    let Ctx {
-        context,
-        bbox:
-            BBox {
-                min_x,
-                min_y,
-                max_x,
-                max_y,
-            },
-        ..
-    } = ctx;
+    let context = ctx.context;
 
     let zoom = ctx.zoom;
 
@@ -34,18 +22,17 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         }
     );
 
-    let buffer = ctx.meters_per_pixel() * 8.0;
-
     let rows = client
-        .query(&sql, &[min_x, min_y, max_x, max_y, &buffer])
+        .query(&sql, &ctx.bbox_query_params(Some(8.0)).as_params())
         .expect("db data");
 
     for row in rows {
-        let geom: Geometry = row.get("geometry");
-
         context.push_group();
 
-        draw_geometry(ctx, &geom);
+        draw_line(
+            context,
+            &geometry_line_string(&row).project_to_tile(&ctx.tile_projector),
+        );
 
         context.set_source_color(colors::PIPELINE);
         context.set_dash(&[], 0.0);

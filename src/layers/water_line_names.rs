@@ -1,5 +1,4 @@
 use crate::{
-    bbox::BBox,
     collision::Collision,
     colors::{self},
     ctx::Ctx,
@@ -7,27 +6,15 @@ use crate::{
         create_pango_layout::FontAndLayoutOptions,
         text_on_line::{TextOnLineOptions, text_on_line},
     },
-    projectable::Projectable,
+    projectable::{TileProjectable, geometry_line_string},
 };
-use geo::Coord;
 use pangocairo::pango::Style;
-use postgis::ewkb::LineString;
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
-    let Ctx {
-        bbox:
-            BBox {
-                min_x,
-                min_y,
-                max_x,
-                max_y,
-            },
-        zoom,
-        ..
-    } = ctx;
+    let zoom = ctx.zoom;
 
-    if *zoom < 12 {
+    if zoom < 12 {
         return;
     }
 
@@ -42,17 +29,11 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         )
         SELECT name, (ST_Dump(ST_CollectionExtract(geometry, 2))).geom AS geometry
         FROM merged ORDER BY osm_id, type", // TODO order by type - river 1st
-        if *zoom < 14 {
-            "AND type = 'river' "
-        } else {
-            ""
-        }
+        if zoom < 14 { "AND type = 'river' " } else { "" }
     );
 
-    let buffer = ctx.meters_per_pixel() * 1024.0;
-
     let rows = client
-        .query(&sql, &[min_x, min_y, max_x, max_y, &buffer])
+        .query(&sql, &ctx.bbox_query_params(Some(1024.0)).as_params())
         .expect("db data");
 
     let options = TextOnLineOptions {
@@ -69,12 +50,10 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     };
 
     for row in rows {
-        let geom: LineString = row.get("geometry");
+        let geom = geometry_line_string(&row).project_to_tile(&ctx.tile_projector);
 
         let name: &str = row.get("name");
 
-        let projected: Vec<Coord> = geom.points.iter().map(|p| p.project(ctx)).collect();
-
-        text_on_line(ctx, projected, name, Some(collision), &options);
+        text_on_line(ctx.context, &geom, name, Some(collision), &options);
     }
 }

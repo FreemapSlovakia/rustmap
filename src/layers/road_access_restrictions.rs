@@ -1,25 +1,14 @@
-use postgis::ewkb::Geometry;
 use postgres::Client;
 use std::cell::Cell;
 
 use crate::{
-    bbox::BBox,
     ctx::Ctx,
-    draw::{draw::draw_geometry, markers_on_path::draw_markers_on_path},
+    draw::{draw::draw_line, markers_on_path::draw_markers_on_path},
+    projectable::{TileProjectable, geometry_line_string},
 };
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
-    let Ctx {
-        context,
-        bbox:
-            BBox {
-                min_x,
-                min_y,
-                max_x,
-                max_y,
-            },
-        ..
-    } = ctx;
+    let context = ctx.context;
 
     let sql = "
         SELECT
@@ -38,8 +27,6 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             type NOT IN ('trunk', 'motorway', 'trunk_link', 'motorway_link')
                 AND geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)";
 
-    let buffer = ctx.meters_per_pixel() * 32.0;
-
     // TODO lazy
 
     let no_bicycle_icon = &ctx
@@ -54,13 +41,14 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     let no_foot_rect = no_foot_icon.extents().unwrap();
 
     let rows = client
-        .query(sql, &[min_x, min_y, max_x, max_y, &buffer])
+        .query(sql, &ctx.bbox_query_params(Some(32.0)).as_params())
         .expect("db data");
 
     for row in rows {
-        let geom: Geometry = row.get("geometry");
-
-        draw_geometry(ctx, &geom);
+        draw_line(
+            context,
+            &geometry_line_string(&row).project_to_tile(&ctx.tile_projector),
+        );
 
         let path = context.copy_path_flat().unwrap();
 

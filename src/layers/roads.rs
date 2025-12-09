@@ -1,22 +1,11 @@
-use crate::bbox::BBox;
 use crate::colors::{Color, ContextExt};
 use crate::draw::markers_on_path::draw_markers_on_path;
+use crate::projectable::{TileProjectable, geometry_line_string};
 use crate::{colors, ctx::Ctx, draw::draw::draw_line};
-use postgis::ewkb::LineString;
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
-    let Ctx {
-        bbox:
-            BBox {
-                min_x,
-                min_y,
-                max_x,
-                max_y,
-            },
-        context,
-        ..
-    } = ctx;
+    let context = ctx.context;
 
     let zoom = ctx.zoom;
 
@@ -35,8 +24,6 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         WHERE {table}.geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
         ORDER BY z_order, CASE WHEN {table}.type = 'rail' AND service IN ('', 'main') THEN 2 ELSE 1 END, {table}.osm_id", table = table);
 
-    let buffer = ctx.meters_per_pixel() * 128.0;
-
     let apply_highway_defaults = |width: f64| {
         context.set_dash(&[], 0.0);
         context.set_source_color(colors::TRACK);
@@ -53,8 +40,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     let highway_width_coef = || 1.5f64.powf(8.6f64.max(zoom as f64) - 8.0);
 
-    let rows = &client
-        .query(&query, &[min_x, min_y, max_x, max_y, &buffer])
+    let rows = client
+        .query(&query, &ctx.bbox_query_params(Some(128.0)).as_params())
         .expect("db data");
 
     let ke = || match zoom {
@@ -73,15 +60,23 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     context.save().expect("context saved");
 
-    for row in rows {
-        let geom: LineString = row.get("geometry");
+    let rows: Vec<_> = rows
+        .iter()
+        .map(|row| {
+            (
+                row,
+                geometry_line_string(row).project_to_tile(&ctx.tile_projector),
+            )
+        })
+        .collect();
 
+    for (row, geom) in &rows {
         let typ: &str = row.get("type");
 
         let class: &str = row.get("class");
 
         let draw = || {
-            draw_line(ctx, geom.points.iter());
+            draw_line(context, geom);
 
             context.stroke().unwrap();
         };
@@ -163,9 +158,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         }
     }
 
-    for row in rows {
-        let geom: LineString = row.get("geometry");
-
+    for (row, geom) in &rows {
         let typ: &str = row.get("type");
 
         let class: &str = row.get("class");
@@ -173,7 +166,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         let service: &str = row.get("service");
 
         let draw = || {
-            draw_line(ctx, geom.points.iter());
+            draw_line(context, geom);
 
             context.stroke().unwrap();
         };
@@ -246,18 +239,18 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 context.set_source_color(colors::RAIL_GLOW);
                 context.set_dash(&[], 0.0);
                 context.set_line_width(gw);
-                draw_line(ctx, geom.points.iter());
+                draw_line(context, geom);
                 context.stroke().unwrap();
 
                 context.set_dash(&[0.0, (spacing - gw) / 2.0, gw, (spacing - gw) / 2.0], 0.0);
                 context.set_line_width(sgw);
-                draw_line(ctx, geom.points.iter());
+                draw_line(context, geom);
                 context.stroke().unwrap();
 
                 context.set_source_color(color);
                 context.set_dash(&[], 0.0);
                 context.set_line_width(weight);
-                draw_line(ctx, geom.points.iter());
+                draw_line(context, geom);
                 context.stroke().unwrap();
 
                 context.set_dash(
@@ -270,7 +263,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                     0.0,
                 );
                 context.set_line_width(sleeper_weight);
-                draw_line(ctx, geom.points.iter());
+                draw_line(context, geom);
                 context.stroke().unwrap();
 
                 draw_bridges_tunnels(sleeper_weight + glow_width);
@@ -539,7 +532,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         let oneway = row.get::<_, i16>("oneway");
 
         if zoom >= 14 && oneway != 0 {
-            draw_line(ctx, geom.points);
+            draw_line(context, geom);
 
             let path = context.copy_path().unwrap();
 

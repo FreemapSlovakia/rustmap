@@ -1,5 +1,4 @@
 use crate::{
-    bbox::BBox,
     collision::Collision,
     colors,
     ctx::Ctx,
@@ -7,23 +6,12 @@ use crate::{
         create_pango_layout::FontAndLayoutOptions,
         text::{TextOptions, draw_text},
     },
-    projectable::Projectable,
+    projectable::{TileProjectable, geometry_point},
 };
-use postgis::ewkb::Point;
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
-    let Ctx {
-        context,
-        bbox:
-            BBox {
-                min_x,
-                min_y,
-                max_x,
-                max_y,
-            },
-        ..
-    } = ctx;
+    let context = ctx.context;
 
     let sql = r#"
         SELECT
@@ -36,8 +24,6 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         FROM osm_housenumbers
         WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)"#;
 
-    let buffer = ctx.meters_per_pixel() * 128.0;
-
     let text_options = TextOptions {
         flo: FontAndLayoutOptions {
             size: 8.0,
@@ -49,14 +35,14 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     };
 
     let rows = client
-        .query(sql, &[min_x, min_y, max_x, max_y, &buffer])
+        .query(sql, &ctx.bbox_query_params(Some(128.0)).as_params())
         .expect("db data");
 
     for row in rows {
         draw_text(
             context,
             collision,
-            row.get::<_, Point>("geometry").project(ctx),
+            &geometry_point(&row).project_to_tile(&ctx.tile_projector),
             row.get("housenumber"),
             &text_options,
         );

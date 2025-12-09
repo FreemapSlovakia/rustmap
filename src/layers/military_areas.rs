@@ -1,24 +1,13 @@
 use crate::{
-    bbox::BBox,
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::{draw::draw_geometry, hatch::hatch_geometry},
+    projectable::{TileProjectable, geometry_geometry},
 };
-use postgis::ewkb::Geometry;
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
-    let Ctx {
-        context,
-        bbox:
-            BBox {
-                min_x,
-                min_y,
-                max_x,
-                max_y,
-            },
-        ..
-    } = ctx;
+    let context = ctx.context;
 
     let zoom = ctx.zoom;
 
@@ -30,27 +19,30 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 AND geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
                 AND area / POWER(4, 19 - $6) > 10";
 
-    let buffer = ctx.meters_per_pixel() * 10.0;
+    let mut params = ctx.bbox_query_params(Some(10.0));
+    params.push(zoom as i32);
 
-    let rows = &client
-        .query(sql, &[min_x, min_y, max_x, max_y, &buffer, &(zoom as i32)])
-        .expect("db data");
+    let rows = &client.query(sql, &params.as_params()).expect("db data");
+
+    ctx.context.push_group();
 
     ctx.context.push_group();
 
-    ctx.context.push_group();
+    let geometries: Vec<_> = rows
+        .iter()
+        .filter_map(|row| geometry_geometry(&row))
+        .map(|geom| (geom.project_to_tile(&ctx.tile_projector), geom))
+        .collect();
 
     // hatching
-    for row in rows {
-        let geom: Geometry = row.get("geometry");
-
+    for (projected, unprojected) in &geometries {
         ctx.context.push_group();
 
-        draw_geometry(ctx, &geom);
+        draw_geometry(context, projected);
 
         context.clip();
 
-        hatch_geometry(ctx, &geom, 10.0, -45.0);
+        hatch_geometry(ctx, unprojected, 10.0, -45.0);
 
         ctx.context.set_source_color(colors::MILITARY);
         ctx.context.set_dash(&[], 0.0);
@@ -68,13 +60,11 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     // border
 
-    for row in rows {
-        let geom: Geometry = row.get("geometry");
-
+    for (projected, _) in &geometries {
         ctx.context.set_source_color(colors::MILITARY);
         ctx.context.set_dash(&[25.0, 7.0], 0.0);
         ctx.context.set_line_width(3.0);
-        draw_geometry(ctx, &geom);
+        draw_geometry(context, projected);
         ctx.context.stroke().unwrap();
     }
 

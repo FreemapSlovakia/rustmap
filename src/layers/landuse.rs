@@ -1,27 +1,18 @@
 use crate::{
-    bbox::BBox,
     colors::{self, Color, ContextExt},
     ctx::Ctx,
     draw::draw::draw_geometry,
+    projectable::{TileProjectable, geometry_geometry},
     xyz::to_absolute_pixel_coords,
 };
 use cairo::{Extend, Matrix, SurfacePattern};
-use postgis::ewkb::Geometry;
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
-    let Ctx {
-        bbox:
-            BBox {
-                min_x,
-                min_y,
-                max_x,
-                max_y,
-            },
-        zoom,
-        context,
-        ..
-    } = ctx;
+    let zoom = ctx.zoom;
+    let context = ctx.context;
+    let min_x = ctx.bbox.min_x;
+    let min_y = ctx.bbox.min_y;
 
     let mut svg_cache = ctx.svg_cache.borrow_mut();
 
@@ -45,15 +36,19 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     );
 
     let rows = client
-        .query(query, &[min_x, min_y, max_x, max_y])
+        .query(query, &ctx.bbox_query_params(None).as_params())
         .expect("db data");
 
     for row in rows {
-        let geom: Geometry = row.get("geometry");
+        let Some(geom) =
+            geometry_geometry(&row).map(|geom| geom.project_to_tile(&ctx.tile_projector))
+        else {
+            continue;
+        };
 
         let colour_area = |color: Color| {
             context.set_source_color(color);
-            draw_geometry(ctx, &geom);
+            draw_geometry(context, &geom);
             context.fill().unwrap();
         };
 
@@ -62,7 +57,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
             let pattern = SurfacePattern::create(tile);
 
-            let (x, y) = to_absolute_pixel_coords(*min_x, *min_y, *zoom as u8);
+            let (x, y) = to_absolute_pixel_coords(min_x, min_y, zoom as u8);
 
             let rect = tile.extents().unwrap();
 
@@ -74,7 +69,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
             context.set_source(&pattern).unwrap();
 
-            draw_geometry(ctx, &geom);
+            draw_geometry(context, &geom);
 
             context.fill().unwrap();
         };
@@ -150,7 +145,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
                 context.set_source_rgba(0.0, 0.0, 0.0, 0.2);
                 context.set_line_width(1.0);
-                draw_geometry(ctx, &geom);
+                draw_geometry(context, &geom);
                 context.stroke().unwrap();
             }
             "grassland" => {
@@ -191,7 +186,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
                 context.set_source_color(colors::PARKING_STROKE);
                 context.set_line_width(1.0);
-                draw_geometry(ctx, &geom);
+                draw_geometry(context, &geom);
                 context.stroke().unwrap();
             }
             "pedestrian" => {
@@ -202,7 +197,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
                 context.set_source_color(colors::PITCH_STROKE);
                 context.set_line_width(1.0);
-                draw_geometry(ctx, &geom);
+                draw_geometry(context, &geom);
                 context.stroke().unwrap();
             }
             "plant_nursery" => {
@@ -235,7 +230,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
                 context.set_source_color(colors::SILO_STROKE);
                 context.set_line_width(1.0);
-                draw_geometry(ctx, &geom);
+                draw_geometry(context, &geom);
                 context.stroke().unwrap();
             }
             "school" => {

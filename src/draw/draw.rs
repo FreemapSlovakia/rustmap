@@ -1,39 +1,36 @@
-use crate::{ctx::Ctx, projectable::Projectable};
+use cairo::Context;
 use cavalier_contours::polyline::{PlineSource, PlineSourceMut, PlineVertex, Polyline};
-use core::slice::Iter;
-use geo::Coord;
-use postgis::ewkb::{Geometry, Point, Polygon};
-use std::borrow::Borrow;
+use geo::{Geometry, LineString, Polygon};
 
-pub fn draw_geometry(ctx: &Ctx, geom: &Geometry) {
-    draw_geometry_uni(geom, &|iter| draw_line(ctx, iter));
+pub fn draw_geometry(context: &Context, geom: &Geometry) {
+    draw_geometry_uni(geom, &|iter| draw_line(context, iter));
 }
 
 pub fn draw_geometry_uni<F>(geom: &Geometry, dl: &F)
 where
-    F: Fn(Iter<Point>),
+    F: Fn(&LineString),
 {
     match geom {
         Geometry::GeometryCollection(gc) => {
-            for geometry in &gc.geometries {
+            for geometry in gc {
                 draw_geometry_uni(geometry, dl);
             }
         }
         Geometry::Polygon(p) => {
             draw_poly(p, dl);
         }
-        Geometry::MultiPolygon(p) => {
-            for poly in &p.polygons {
-                draw_poly(poly, dl);
+        Geometry::MultiPolygon(mp) => {
+            for p in mp {
+                draw_poly(p, dl);
             }
         }
-        Geometry::MultiLineString(p) => {
-            for line in &p.lines {
-                dl(line.points.iter());
+        Geometry::MultiLineString(mls) => {
+            for ls in mls {
+                dl(ls);
             }
         }
-        Geometry::LineString(p) => {
-            dl(p.points.iter());
+        Geometry::LineString(ls) => {
+            dl(ls);
         }
         _ => {}
     }
@@ -41,40 +38,30 @@ where
 
 fn draw_poly<F>(poly: &Polygon, dl: &F)
 where
-    F: Fn(Iter<Point>),
+    F: Fn(&LineString),
 {
-    for ring in &poly.rings {
-        dl(ring.points.iter());
+    dl(poly.exterior());
+
+    for ring in poly.interiors() {
+        dl(ring);
     }
 }
 
-pub fn draw_line<P>(ctx: &Ctx, points: impl IntoIterator<Item = P>)
-where
-    P: Borrow<Point>,
-{
+pub fn draw_line(context: &Context, points: &LineString) {
     for (i, p) in points.into_iter().enumerate() {
-        let Coord { x, y } = p.borrow().project(ctx);
-
         if i == 0 {
-            ctx.context.move_to(x, y);
+            context.move_to(p.x, p.y);
         } else {
-            ctx.context.line_to(x, y);
+            context.line_to(p.x, p.y);
         }
     }
 }
 
-pub fn draw_line_off<P>(ctx: &Ctx, points: impl IntoIterator<Item = P>, offset: f64)
-where
-    P: Borrow<Point>,
-{
+pub fn draw_line_off(context: &Context, points: &LineString, offset: f64) {
     let mut polyline = Polyline::new();
 
-    let context = &ctx.context;
-
     for p in points {
-        let Coord { x, y } = p.borrow().project(ctx);
-
-        polyline.add_vertex(PlineVertex::new(x, y, 0.0));
+        polyline.add_vertex(PlineVertex::new(p.x, p.y, 0.0));
     }
 
     for pc in polyline.parallel_offset(offset) {
@@ -151,17 +138,3 @@ where
         }
     }
 }
-
-// pub fn draw_along(ctx: &Ctx, geom: &Geometry) {
-//     draw_geometry_uni(geom, &|iter| {
-//         for (i, p) in iter.enumerate() {
-//             let Point { x, y } = p.project(ctx);
-
-//             if i == 0 {
-//                 ctx.context.move_to(x, y);
-//             } else {
-//                 ctx.context.line_to(x, y);
-//             }
-//         }
-//     });
-// }

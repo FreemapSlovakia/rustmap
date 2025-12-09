@@ -1,5 +1,4 @@
 use crate::{
-    bbox::BBox,
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::{
@@ -7,27 +6,17 @@ use crate::{
         hatch::hatch_geometry,
         line_pattern::draw_line_pattern,
     },
+    projectable::{TileProjectable, geometry_geometry},
 };
-use core::slice::Iter;
-use postgis::ewkb::{Geometry, Point};
+use geo::LineString;
 use postgres::Client;
 
-fn draw_protected_area_border(ctx: &Ctx, iter: Iter<Point>) {
+fn draw_protected_area_border(ctx: &Ctx, iter: &LineString) {
     draw_line_pattern(ctx, iter, 0.8, "images/protected_area.svg");
 }
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
-    let Ctx {
-        context,
-        bbox:
-            BBox {
-                min_x,
-                min_y,
-                max_x,
-                max_y,
-            },
-        ..
-    } = ctx;
+    let context = ctx.context;
 
     let zoom = ctx.zoom;
 
@@ -40,29 +29,34 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         }
     );
 
-    let buffer = ctx.meters_per_pixel() * 10.0;
+    let rows = &client
+        .query(sql, &ctx.bbox_query_params(Some(10.0)).as_params())
+        .expect("db data");
+
+    let geometries: Vec<_> = rows
+        .iter()
+        .filter_map(|row| {
+            geometry_geometry(&row)
+                .map(|geom| (geom.project_to_tile(&ctx.tile_projector), geom, row))
+        })
+        .collect();
 
     context.save().expect("context saved");
 
-    let rows = &client
-        .query(sql, &[min_x, min_y, max_x, max_y, &buffer])
-        .expect("db data");
-
     // hatching
     if zoom <= 11 {
-        for row in rows {
+        for (projected, unprojected, row) in &geometries {
             let typ: &str = row.get("type");
             let protect_class: &str = row.get("protect_class");
-            let geom: Geometry = row.get("geometry");
 
             if typ == "national_park" || typ == "protected_area" && protect_class == "2" {
                 context.push_group();
 
-                draw_geometry(ctx, &geom);
+                draw_geometry(context, &projected);
 
                 context.clip();
 
-                hatch_geometry(ctx, &geom, 3.0, -45.0);
+                hatch_geometry(ctx, &unprojected, 3.0, -45.0);
 
                 context.set_source_color_a(colors::PROTECTED, if zoom < 11 { 0.5 } else { 0.4 });
                 context.set_dash(&[], 0.0);
@@ -76,22 +70,20 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     }
 
     // border
-    for row in rows {
+    for (projected, _, row) in &geometries {
         let typ: &str = row.get("type");
         let protect_class: &str = row.get("protect_class");
-        let geom: Geometry = row.get("geometry");
 
         if typ == "nature_reserve" || typ == "protected_area" && protect_class != "2" {
-            draw_geometry_uni(&geom, &|iter| draw_protected_area_border(ctx, iter));
+            draw_geometry_uni(&projected, &|iter| draw_protected_area_border(ctx, iter));
         }
     }
 
     context.push_group();
 
-    for row in rows {
+    for (projected, _, row) in &geometries {
         let typ: &str = row.get("type");
         let protect_class: &str = row.get("protect_class");
-        let geom: Geometry = row.get("geometry");
 
         if typ == "national_park" || typ == "protected_area" && protect_class == "2" {
             let wb = if zoom > 10 {
@@ -104,12 +96,12 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             context.set_dash(&[], 0.0);
             context.set_line_width(wb * 0.75);
             context.set_line_join(cairo::LineJoin::Round);
-            draw_geometry(ctx, &geom);
+            draw_geometry(context, &projected);
             context.stroke().unwrap();
 
             context.set_line_width(wb);
             context.set_source_color_a(colors::PROTECTED, 0.5);
-            draw_geometry_uni(&geom, &|iter| draw_line_off(ctx, iter, wb * 0.75));
+            draw_geometry_uni(&projected, &|iter| draw_line_off(context, iter, wb * 0.75));
             context.stroke().unwrap();
         }
     }

@@ -1,15 +1,12 @@
 use crate::{
-    bbox::BBox,
     ctx::Ctx,
     draw::{
         draw::draw_line_off, line_pattern::draw_polyline_outline_scaled, offset_line::offset_line,
     },
-    projectable::Projectable,
+    projectable::{TileProjectable, geometry_multi_line_string},
 };
 use bitflags::bitflags;
 use colorsys::{Rgb, RgbRatio};
-use geo::Coord;
-use postgis::ewkb::MultiLineString;
 use postgres::Client;
 
 const COLOR_SQL: &str = r#"
@@ -265,17 +262,7 @@ GROUP BY
 pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
     let _span = tracy_client::span!("routes::render");
 
-    let Ctx {
-        context,
-        bbox:
-            BBox {
-                min_x,
-                min_y,
-                max_x,
-                max_y,
-            },
-        ..
-    } = ctx;
+    let context = ctx.context;
 
     let zoom = ctx.zoom;
 
@@ -298,11 +285,12 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
         _ => return,
     };
 
-    for row in &client
-        .query(&query, &[min_x, min_y, max_x, max_y])
-        .expect("db data")
-    {
-        let geom: MultiLineString = row.get("geometry");
+    let rows = client
+        .query(&query, &ctx.bbox_query_params(None).as_params())
+        .expect("db data");
+
+    for row in rows {
+        let geom = geometry_multi_line_string(&row).project_to_tile(&ctx.tile_projector);
 
         let (zo, wf) = match zoom {
             ..=11 => (1.0, 1.5),
@@ -319,13 +307,10 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
                 if off > 0 {
                     let offset = (zo + (off as f64 - 1.0) * wf * df) + 0.5;
 
-                    for part in geom.lines.iter() {
-                        let projected: Vec<Coord> =
-                            part.points.iter().map(|p| p.project(ctx)).collect();
-
+                    for part in &geom {
                         draw_polyline_outline_scaled(
                             ctx,
-                            &offset_line(projected, offset)[..],
+                            &offset_line(part, offset),
                             0.5,
                             &format!("images/horse.svg|path {{ fill: #{} }}", color.1),
                             wf / 2.0,
@@ -346,13 +331,10 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
                 if off > 0 {
                     let offset = -(zo + (off as f64 - 1.0) * wf * 2.0) - 1.0;
 
-                    for part in geom.lines.iter() {
-                        let projected: Vec<Coord> =
-                            part.points.iter().map(|p| p.project(ctx)).collect();
-
+                    for part in &geom {
                         draw_polyline_outline_scaled(
                             ctx,
-                            &offset_line(projected, offset)[..],
+                            &offset_line(part, offset),
                             0.5,
                             &format!("images/ski.svg|path {{ fill: #{} }}", color.1),
                             wf / 2.0,
@@ -373,8 +355,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
                 if off > 0 {
                     let offset = -(zo + (off as f64 - 1.0) * wf * 2.0) - 1.0;
 
-                    for part in geom.lines.iter() {
-                        draw_line_off(ctx, part.points.iter(), offset);
+                    for part in &geom {
+                        draw_line_off(context, part, offset);
                     }
 
                     context.set_line_width(wf * 2.0);
@@ -387,7 +369,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
 
                     context.stroke().unwrap();
 
-                    // for part in geom.lines.iter() {
+                    // for part in geom {
                     //     draw_polyline_outline_scaled(
                     //         ctx,
                     //         &offset_line(ctx, part.points.iter(), 10.0)[..],
@@ -406,8 +388,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
                     if off > 0 {
                         let offset = (zo + (off as f64 - 1.0) * wf * df) + 0.5;
 
-                        for part in geom.lines.iter() {
-                            draw_line_off(ctx, part.points.iter(), offset);
+                        for part in &geom {
+                            draw_line_off(context, part, offset);
                         }
                         context.set_line_width(wf);
                         context.set_line_join(cairo::LineJoin::Round);
@@ -426,8 +408,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
                     if off > 0 {
                         let offset = (zo + (off as f64 - 1.0) * wf * df) + 0.5;
 
-                        for part in geom.lines.iter() {
-                            draw_line_off(ctx, part.points.iter(), offset);
+                        for part in &geom {
+                            draw_line_off(context, part, offset);
                         }
 
                         context.set_line_width(wf);

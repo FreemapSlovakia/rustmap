@@ -51,13 +51,13 @@ thread_local! {
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let _span = tracy_client::span!("shading_and_contours::render");
 
-    let Ctx { context, zoom, .. } = ctx;
+    let fade_alpha = 1.0f64.min(1.0 - (ctx.zoom as f64 - 7.0).ln() / 5.0);
 
-    let fade_alpha = 1.0f64.min(1.0 - (*zoom as f64 - 7.0).ln() / 5.0);
+    let context = ctx.context;
 
     context.push_group(); // top
 
-    if *zoom >= 15 {
+    if ctx.zoom >= 15 {
         bridge_areas::render(ctx, client, true); // mask
     }
 
@@ -86,7 +86,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         {
             let _span = tracy_client::span!("shading_and_contours::contours");
 
-            if CONTOURS && *zoom >= 12 {
+            if CONTOURS && ctx.zoom >= 12 {
                 context.push_group(); // contours
                 contours::render(ctx, client, country);
                 context.pop_group_to_source().unwrap(); // contours
@@ -121,7 +121,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         {
             let _span = tracy_client::span!("shading_and_contours::contours");
 
-            if CONTOURS && *zoom >= 12 {
+            if CONTOURS && ctx.zoom >= 12 {
                 context.push_group(); // contours
                 contours::render(ctx, client, "contour_split");
                 context.pop_group_to_source().unwrap(); // contours

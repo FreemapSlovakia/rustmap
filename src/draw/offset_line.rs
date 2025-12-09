@@ -1,7 +1,7 @@
 use cavalier_contours::polyline::{PlineSource, PlineSourceMut, PlineVertex, Polyline};
-use geo::Coord;
+use geo::{Coord, LineString};
 
-pub fn offset_line(iter: impl IntoIterator<Item = Coord>, offset: f64) -> Vec<Coord> {
+pub fn offset_line(iter: &LineString, offset: f64) -> LineString {
     let mut result = Vec::<Coord>::new();
 
     let mut polyline = Polyline::new();
@@ -16,5 +16,5 @@ pub fn offset_line(iter: impl IntoIterator<Item = Coord>, offset: f64) -> Vec<Co
         }
     }
 
-    result
+    LineString(result)
 }

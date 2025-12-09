@@ -1,51 +1,44 @@
-use postgis::ewkb::Geometry;
 use postgres::Client;
 
 use crate::{
-    bbox::BBox,
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::draw::draw_geometry,
+    projectable::{TileProjectable, geometry_geometry},
 };
 
 pub fn render(ctx: &Ctx, client: &mut Client, mask: bool) {
-    let Ctx {
-        bbox:
-            BBox {
-                min_x,
-                min_y,
-                max_x,
-                max_y,
-            },
-        context,
-        size,
-        ..
-    } = ctx;
+    let context = ctx.context;
+    let size = ctx.size;
 
     let query = concat!(
         "SELECT geometry FROM osm_landusages ",
         "WHERE geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857) AND type = 'bridge'"
     );
 
+    let rows = client
+        .query(query, &ctx.bbox_query_params(None).as_params())
+        .expect("db data");
+
+    context.save().expect("context saved");
+
     if mask {
         context.set_fill_rule(cairo::FillRule::EvenOdd);
     }
 
-    context.save().expect("context saved");
-
-    let rows = client
-        .query(query, &[min_x, min_y, max_x, max_y])
-        .expect("db data");
-
     for row in rows {
-        let geom: Geometry = row.get("geometry");
+        let Some(geometry) =
+            geometry_geometry(&row).map(|geom| geom.project_to_tile(&ctx.tile_projector))
+        else {
+            continue;
+        };
 
         if mask {
             context.rectangle(0.0, 0.0, size.width as f64, size.height as f64);
-            draw_geometry(ctx, &geom);
+            draw_geometry(context, &geometry);
             context.clip();
         } else {
-            draw_geometry(ctx, &geom);
+            draw_geometry(context, &geometry);
             context.set_source_color(colors::INDUSTRIAL);
             context.fill_preserve().unwrap();
 

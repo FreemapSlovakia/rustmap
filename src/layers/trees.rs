@@ -1,19 +1,11 @@
-use crate::{bbox::BBox, ctx::Ctx, projectable::Projectable};
-use postgis::ewkb::Point;
+use crate::{
+    ctx::Ctx,
+    projectable::{TileProjectable, geometry_point},
+};
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
-    let Ctx {
-        bbox:
-            BBox {
-                min_x,
-                min_y,
-                max_x,
-                max_y,
-            },
-        context,
-        ..
-    } = ctx;
+    let context = ctx.context;
 
     let mut svg_cache = ctx.svg_cache.borrow_mut();
 
@@ -28,15 +20,15 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         )
         ORDER BY type, st_x(geometry)";
 
-    for row in &client
-        .query(sql, &[min_x, min_y, max_x, max_y, &(zoom as i32)])
-        .expect("db data")
-    {
-        let geometry: Point = row.get("geometry");
+    let mut params = ctx.bbox_query_params(None);
+    params.push(zoom as i32);
 
+    let rows = client.query(sql, &params.as_params()).expect("db data");
+
+    for row in rows {
         let typ: &str = row.get("type");
 
-        let point = geometry.project(ctx);
+        let point = geometry_point(&row).project_to_tile(&ctx.tile_projector);
 
         let scale =
             (2.0 + 2f64.powf(zoom as f64 - 15.0)) * (if typ == "shrub" { 0.1 } else { 0.2 });
@@ -48,8 +40,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         context.save().unwrap();
 
         context.translate(
-            point.x - scale * rect.width() / 2.0,
-            point.y - scale * rect.height() / 2.0,
+            point.x() - scale * rect.width() / 2.0,
+            point.y() - scale * rect.height() / 2.0,
         );
 
         context.scale(scale, scale);

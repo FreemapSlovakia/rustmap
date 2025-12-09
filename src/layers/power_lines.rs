@@ -1,25 +1,13 @@
 use crate::{
-    bbox::BBox,
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::draw::draw_line,
-    projectable::Projectable,
+    projectable::{TileProjectable, geometry_line_string, geometry_point},
 };
-use postgis::ewkb::{LineString, Point};
 use postgres::Client;
 
 pub fn render_lines(ctx: &Ctx, client: &mut Client) {
-    let Ctx {
-        context,
-        bbox:
-            BBox {
-                min_x,
-                min_y,
-                max_x,
-                max_y,
-            },
-        ..
-    } = ctx;
+    let context = ctx.context;
 
     let zoom = ctx.zoom;
 
@@ -33,12 +21,10 @@ pub fn render_lines(ctx: &Ctx, client: &mut Client) {
     );
 
     let rows = client
-        .query(sql, &[min_x, min_y, max_x, max_y])
+        .query(sql, &ctx.bbox_query_params(None).as_params())
         .expect("db data");
 
     for row in rows {
-        let geom: LineString = row.get("geometry");
-
         context.set_source_color_a(
             if row.get::<_, &str>("type") == "line" {
                 colors::POWER_LINE
@@ -51,25 +37,18 @@ pub fn render_lines(ctx: &Ctx, client: &mut Client) {
         context.set_dash(&[], 0.0);
         context.set_line_width(1.0);
 
-        draw_line(ctx, geom.points);
+        draw_line(
+            context,
+            &geometry_line_string(&row).project_to_tile(&ctx.tile_projector),
+        );
 
         context.stroke().unwrap();
     }
 }
 
 pub fn render_towers_poles(ctx: &Ctx, client: &mut Client) {
-    let Ctx {
-        context,
-        bbox:
-            BBox {
-                min_x,
-                min_y,
-                max_x,
-                max_y,
-            },
-        scale,
-        ..
-    } = ctx;
+    let context = ctx.context;
+    let scale = ctx.scale;
 
     let zoom = ctx.zoom;
 
@@ -80,24 +59,24 @@ pub fn render_towers_poles(ctx: &Ctx, client: &mut Client) {
         if zoom < 15 { "" } else { ", 'pylon', 'pole'" }
     );
 
-    let rows = client
-        .query(&sql, &[min_x, min_y, max_x, max_y, &(zoom as i32)])
-        .expect("db data");
+    let mut params = ctx.bbox_query_params(None);
+    params.push(zoom as i32);
+    let query_params = params.as_params();
+
+    let rows = client.query(&sql, &query_params).expect("db data");
 
     for row in rows {
-        let geom: Point = row.get("geometry");
-
         context.set_source_color(if row.get::<_, &str>("type") == "pole" {
             colors::POWER_LINE_MINOR
         } else {
             colors::POWER_LINE
         });
 
-        let p = geom.project(ctx);
+        let p = geometry_point(&row).project_to_tile(&ctx.tile_projector);
 
         context.rectangle(
-            ((p.x - 1.5) * scale).round() / scale,
-            ((p.y - 1.5) * scale).round() / scale,
+            ((p.x() - 1.5) * scale).round() / scale,
+            ((p.y() - 1.5) * scale).round() / scale,
             3.0,
             3.0,
         );

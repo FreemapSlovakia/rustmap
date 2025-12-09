@@ -1,24 +1,13 @@
 use crate::{
-    bbox::BBox,
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::draw::draw_geometry,
+    projectable::{TileProjectable, geometry_geometry},
 };
-use postgis::ewkb::Geometry;
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
-    let Ctx {
-        context,
-        bbox:
-            BBox {
-                min_x,
-                min_y,
-                max_x,
-                max_y,
-            },
-        ..
-    } = ctx;
+    let context = ctx.context;
 
     let zoom = ctx.zoom;
 
@@ -38,10 +27,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         SELECT ST_LineMerge(ST_Collect(geometry)) AS geometry
         FROM segs";
 
-    let buffer = ctx.meters_per_pixel() * 10.0;
-
     let rows = client
-        .query(sql, &[min_x, min_y, max_x, max_y, &buffer])
+        .query(sql, &ctx.bbox_query_params(Some(10.0)).as_params())
         .expect("db data");
 
     context.save().expect("context saved");
@@ -49,9 +36,9 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     ctx.context.push_group();
 
     for row in rows {
-        let geom: Option<Geometry> = row.get("geometry");
-
-        let Some(geometry) = geom else {
+        let Some(geometry) =
+            geometry_geometry(&row).map(|geom| geom.project_to_tile(&ctx.tile_projector))
+        else {
             continue;
         };
 
@@ -63,7 +50,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             6.0
         });
         ctx.context.set_line_join(cairo::LineJoin::Round);
-        draw_geometry(ctx, &geometry);
+        draw_geometry(context, &geometry);
         ctx.context.stroke().unwrap();
     }
 

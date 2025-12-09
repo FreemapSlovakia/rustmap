@@ -1,4 +1,4 @@
-use crate::{bbox::BBox, ctx::Ctx};
+use crate::ctx::Ctx;
 use cairo::{Format, ImageSurface};
 use gdal::Dataset;
 
@@ -11,23 +11,14 @@ fn read_rgba_from_gdal(
     gt_y_width: f64,
     scale: f64,
 ) -> ImageSurface {
-    let Ctx {
-        bbox:
-            BBox {
-                min_x,
-                min_y,
-                max_x,
-                max_y,
-            },
-        size,
-        ..
-    } = ctx;
+    let bbox = ctx.bbox;
+    let size = ctx.size;
 
     // Convert geographic coordinates (min_x, min_y, max_x, max_y) to pixel coordinates
-    let pixel_min_x = ((min_x - gt_x_off) / gt_x_width).round() as isize;
-    let pixel_max_x = ((max_x - gt_x_off) / gt_x_width).round() as isize;
-    let pixel_max_y = ((min_y - gt_y_off) / gt_y_width).round() as isize;
-    let pixel_min_y = ((max_y - gt_y_off) / gt_y_width).round() as isize;
+    let pixel_min_x = ((bbox.min_x - gt_x_off) / gt_x_width).round() as isize;
+    let pixel_max_x = ((bbox.max_x - gt_x_off) / gt_x_width).round() as isize;
+    let pixel_max_y = ((bbox.min_y - gt_y_off) / gt_y_width).round() as isize;
+    let pixel_min_y = ((bbox.max_y - gt_y_off) / gt_y_width).round() as isize;
 
     let window_x = pixel_min_x;
     let window_y = pixel_min_y;
@@ -157,14 +148,7 @@ fn read_rgba_from_gdal(
 }
 
 pub fn render(ctx: &Ctx, country: &str, alpha: f64) {
-    let Ctx {
-        context,
-        shading_data,
-        scale,
-        ..
-    } = ctx;
-
-    let shading_data = &shading_data.borrow_mut();
+    let shading_data = &ctx.shading_data.borrow_mut();
 
     let hillshading_dataset = shading_data.get(country).expect("no such dataset");
 
@@ -178,8 +162,10 @@ pub fn render(ctx: &Ctx, country: &str, alpha: f64) {
         gt_x_width,
         gt_y_off,
         gt_y_width,
-        *scale,
+        ctx.scale,
     );
+
+    let context = ctx.context;
 
     context.save().expect("context saved");
 

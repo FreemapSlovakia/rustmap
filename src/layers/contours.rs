@@ -1,5 +1,4 @@
 use crate::{
-    bbox::BBox,
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::{
@@ -7,27 +6,15 @@ use crate::{
         smooth_line::draw_smooth_bezier_spline,
         text_on_line::{TextOnLineOptions, Upright, text_on_line},
     },
-    projectable::Projectable,
+    projectable::{TileProjectable, geometry_line_string},
 };
-use geo::Coord;
-use postgis::ewkb::LineString;
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client, country: &str) {
-    let Ctx {
-        bbox:
-            BBox {
-                min_x,
-                min_y,
-                max_x,
-                max_y,
-            },
-        context,
-        zoom,
-        ..
-    } = ctx;
+    let context = ctx.context;
+    let zoom = ctx.zoom;
 
-    if *zoom < 12 {
+    if zoom < 12 {
         return;
     }
 
@@ -45,7 +32,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: &str) {
 
     let sql = format!(
         "SELECT ST_SimplifyVW((ST_Dump(ST_LineMerge(ST_Collect(ST_ClipByBox2D(wkb_geometry,
-            ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), 100)))))).geom, $5) AS geom,
+            ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), 100)))))).geom, $5) AS geometry,
             height
             FROM contour_{}_split
             WHERE wkb_geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)
@@ -53,9 +40,11 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: &str) {
         country
     );
 
-    let rows = client
-        .query(&sql, &[min_x, min_y, max_x, max_y, &simplify_factor])
-        .unwrap_or_default();
+    let mut params = ctx.bbox_query_params(None);
+    params.push(simplify_factor);
+    let query_params = params.as_params();
+
+    let rows = client.query(&sql, &query_params).unwrap_or_default();
 
     for row in rows {
         let height: f64 = row.get("height");
@@ -78,7 +67,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: &str) {
             _ => false,
         };
 
-        let geom: LineString = row.get("geom");
+        let geom = geometry_line_string(&row).project_to_tile(&ctx.tile_projector);
 
         if width > 0.0 {
             context.set_dash(&[], 0.0);
@@ -87,17 +76,15 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: &str) {
 
             context.set_source_color(colors::CONTOUR);
 
-            draw_smooth_bezier_spline(ctx, geom.points.iter(), 1.0);
+            draw_smooth_bezier_spline(context, &geom, 1.0);
 
             context.stroke().unwrap();
         }
 
         if labels {
-            let projected: Vec<Coord> = geom.points.iter().map(|p| p.project(ctx)).collect();
-
             text_on_line(
-                ctx,
-                projected,
+                context,
+                &geom,
                 &format!("{}", height),
                 None,
                 &TextOnLineOptions {

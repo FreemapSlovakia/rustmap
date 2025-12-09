@@ -5,7 +5,7 @@ use crate::{
     draw::create_pango_layout::{FontAndLayoutOptions, create_pango_layout_with_attrs},
 };
 use cairo::Context;
-use geo::Coord;
+use geo::Point;
 use pangocairo::{
     functions::layout_path,
     pango::{AttrList, SCALE},
@@ -45,7 +45,7 @@ impl Default for TextOptions<'_> {
 pub fn draw_text(
     context: &Context,
     collision: &mut Collision<f64>,
-    point: Coord,
+    point: &Point,
     text: &str,
     options: &TextOptions,
 ) -> bool {
@@ -55,7 +55,7 @@ pub fn draw_text(
 pub fn draw_text_with_attrs(
     context: &Context,
     collision: &mut Collision<f64>,
-    point: Coord,
+    point: &Point,
     text: &str,
     attrs: Option<AttrList>,
     options: &TextOptions,
@@ -90,14 +90,14 @@ pub fn draw_text_with_attrs(
 
     let layout_height = ext.height() as f64 / SCALE as f64;
 
-    let x = point.x - (layout_x + layout_width / 2.0);
+    let x = point.x() - (layout_x + layout_width / 2.0);
 
     let mut cap_height: Option<f64> = None;
     let mut first_baseline: Option<f64> = None;
     let mut last_baseline: Option<f64> = None;
 
     'outer: for &dy in *placements {
-        let anchor_y = dy + point.y;
+        let anchor_y = dy + point.y();
         let y = if *valign_by_placement {
             let ch = *cap_height.get_or_insert_with(|| {
                 layout

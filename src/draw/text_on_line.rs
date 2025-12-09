@@ -2,10 +2,10 @@ use crate::{
     bbox::BBox,
     collision::Collision,
     colors::{self, Color, ContextExt},
-    ctx::Ctx,
     draw::create_pango_layout::{FontAndLayoutOptions, create_pango_layout},
 };
-use geo::{Coord, Distance, Euclidean, InterpolatePoint};
+use cairo::Context;
+use geo::{Coord, Distance, Euclidean, InterpolatePoint, LineString};
 use pangocairo::{
     functions::glyph_string_path,
     pango::{Font, GlyphItem, GlyphString, Layout, SCALE},
@@ -388,13 +388,13 @@ fn label_offsets(
 }
 
 pub fn text_on_line(
-    ctx: &Ctx,
-    iter: impl IntoIterator<Item = Coord>,
+    context: &Context,
+    iter: &LineString,
     text: &str,
     mut collision: Option<&mut Collision<f64>>,
     options: &TextOnLineOptions,
 ) {
-    let mut pts: Vec<Coord> = iter.into_iter().collect();
+    let mut pts: Vec<Coord> = iter.into_iter().copied().collect();
 
     pts.dedup_by(|a, b| a == b);
 
@@ -420,7 +420,7 @@ pub fn text_on_line(
         ..
     } = options;
 
-    let layout = create_pango_layout(&ctx.context, text, flo);
+    let layout = create_pango_layout(context, text, flo);
 
     layout.set_width(-1); // no width constraint, so no wrapping happens at all
 
@@ -571,7 +571,6 @@ pub fn text_on_line(
         placements.push(label_placements);
     }
 
-    let context = &ctx.context;
     for label in placements {
         draw_label(context, &label, options);
     }
