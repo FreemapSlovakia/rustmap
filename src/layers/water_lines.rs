@@ -36,6 +36,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     let rect = arrow.extents().unwrap();
 
+    context.save().expect("context saved");
+
     for pass in 0..=1 {
         let glow = pass == 0;
 
@@ -103,4 +105,6 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             }
         }
     }
+
+    context.restore().expect("context restored");
 }

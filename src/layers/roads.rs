@@ -551,5 +551,5 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         }
     }
 
-    context.save().expect("context saved");
+    context.restore().expect("context restored");
 }

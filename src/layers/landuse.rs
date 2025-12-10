@@ -38,6 +38,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         .query(query, &ctx.bbox_query_params(None).as_params())
         .expect("db data");
 
+    context.save().unwrap();
+
     for row in rows {
         let Some(geom) =
             geometry_geometry(&row).map(|geom| geom.project_to_tile(&ctx.tile_projector))
@@ -273,4 +275,6 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             _ => (),
         }
     }
+
+    context.restore().unwrap();
 }

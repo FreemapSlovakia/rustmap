@@ -26,6 +26,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         .query(&sql, &ctx.bbox_query_params(Some(8.0)).as_params())
         .expect("db data");
 
+    context.save().expect("context saved");
+
     for row in rows {
         context.push_group();
 
@@ -52,4 +54,6 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             .paint_with_alpha(if row.get("below") { 0.33 } else { 1.0 })
             .unwrap();
     }
+
+    context.restore().expect("context restored");
 }

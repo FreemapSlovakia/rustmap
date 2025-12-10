@@ -137,15 +137,11 @@ fn render(
 
         let ctx = &ctx;
 
+        context.save().unwrap();
         context.scale(scale, scale);
-
         context.set_source_rgb(1.0, 1.0, 1.0);
-
         context.paint().unwrap();
-
-        // let path = context.copy_path_flat().unwrap();
-
-        // draw_text_on_path(context, &path, "fimip");
+        context.restore().unwrap();
 
         // TODO sea
 
