@@ -11,8 +11,8 @@ use crate::{
 use geo::LineString;
 use postgres::Client;
 
-fn draw_protected_area_border(ctx: &Ctx, iter: &LineString) {
-    draw_line_pattern(ctx, iter, 0.8, "images/protected_area.svg");
+fn draw_protected_area_border(ctx: &Ctx, line_string: &LineString) {
+    draw_line_pattern(ctx, line_string, 0.8, "images/protected_area.svg");
 }
 
 pub fn render(ctx: &Ctx, client: &mut Client) {

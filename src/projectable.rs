@@ -1,4 +1,4 @@
-use crate::{bbox::BBox, size::Size};
+use crate::size::Size;
 use geo::{
     Coord, Geometry, GeometryCollection, Line, LineString, MultiLineString, MultiPoint,
     MultiPolygon, Point, Polygon, Rect, Triangle,
@@ -14,12 +14,14 @@ pub struct TileProjector {
 }
 
 impl TileProjector {
-    pub fn new(bbox: BBox<f64>, size: Size<u32>) -> Self {
+    pub fn new(bbox: Rect<f64>, size: Size<u32>) -> Self {
+        let min = bbox.min();
+
         Self {
-            min_x: bbox.min_x,
-            min_y: bbox.min_y,
-            scale_x: size.width as f64 / bbox.get_width(),
-            scale_y: size.height as f64 / bbox.get_height(),
+            min_x: min.x,
+            min_y: min.y,
+            scale_x: size.width as f64 / bbox.width(),
+            scale_y: size.height as f64 / bbox.height(),
             height: size.height as f64,
         }
     }

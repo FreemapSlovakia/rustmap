@@ -11,8 +11,7 @@ use postgres::Client;
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let zoom = ctx.zoom;
     let context = ctx.context;
-    let min_x = ctx.bbox.min_x;
-    let min_y = ctx.bbox.min_y;
+    let min = ctx.bbox.min();
 
     let mut svg_cache = ctx.svg_cache.borrow_mut();
 
@@ -57,7 +56,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
             let pattern = SurfacePattern::create(tile);
 
-            let (x, y) = to_absolute_pixel_coords(min_x, min_y, zoom as u8);
+            let (x, y) = to_absolute_pixel_coords(min.x, min.y, zoom as u8);
 
             let rect = tile.extents().unwrap();
 

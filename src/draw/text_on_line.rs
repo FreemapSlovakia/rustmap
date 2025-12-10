@@ -1,11 +1,10 @@
 use crate::{
-    bbox::BBox,
     collision::Collision,
     colors::{self, Color, ContextExt},
     draw::create_pango_layout::{FontAndLayoutOptions, create_pango_layout},
 };
 use cairo::Context;
-use geo::{Coord, Distance, Euclidean, InterpolatePoint, LineString};
+use geo::{Coord, Distance, Euclidean, InterpolatePoint, LineString, Rect};
 use pangocairo::{
     functions::glyph_string_path,
     pango::{Font, GlyphItem, GlyphString, Layout, SCALE},
@@ -59,6 +58,7 @@ pub enum Align {
     Left,
     Center,
     Right,
+    Justify,
 }
 
 // TODO check geo crate
@@ -360,6 +360,10 @@ fn label_offsets(
         return Vec::new();
     }
 
+    if matches!(align, Align::Justify) {
+        return vec![0.0];
+    }
+
     // Step between label starts: either requested repeat distance or just "one label".
     let step = repeat_distance
         .map(|d| d.max(total_advance + spacing))
@@ -382,6 +386,7 @@ fn label_offsets(
         Align::Left => 0.0,
         Align::Center => ((total_length - total_span) / 2.0).max(0.0),
         Align::Right => (total_length - total_span).max(0.0),
+        Align::Justify => 0.0,
     };
 
     (0..count).map(|i| start + i as f64 * step).collect()
@@ -389,12 +394,12 @@ fn label_offsets(
 
 pub fn text_on_line(
     context: &Context,
-    iter: &LineString,
+    line_string: &LineString,
     text: &str,
     mut collision: Option<&mut Collision<f64>>,
     options: &TextOnLineOptions,
 ) {
-    let mut pts: Vec<Coord> = iter.into_iter().copied().collect();
+    let mut pts: Vec<Coord> = line_string.into_iter().copied().collect();
 
     pts.dedup_by(|a, b| a == b);
 
@@ -429,10 +434,18 @@ pub fn text_on_line(
         return;
     }
 
-    let total_advance: f64 = clusters.iter().map(|c| c.0).sum();
-    if total_advance == 0.0 {
+    let base_total_advance: f64 = clusters.iter().map(|c| c.0).sum();
+    if base_total_advance == 0.0 {
         return;
     }
+
+    let (advance_scale, extra_spacing_per_glyph) = match align {
+        Align::Justify => ((total_length / base_total_advance).max(0.0), 0.0),
+        _ => (1.0, 0.0),
+    };
+
+    let total_advance =
+        base_total_advance * advance_scale + extra_spacing_per_glyph * clusters.len() as f64;
 
     let offsets = label_offsets(
         total_length,
@@ -477,16 +490,18 @@ pub fn text_on_line(
 
         let mut offset = start_use;
         let mut label_placements = Vec::new();
-        let mut glyph_bboxes: Vec<BBox<f64>> = Vec::new();
+        let mut glyph_bboxes: Vec<Rect<f64>> = Vec::new();
 
         for (advance, glyph_string, font) in clusters.iter() {
+            let eff_advance = *advance * advance_scale + extra_spacing_per_glyph;
             let span_start = offset;
-            let span_end = offset + *advance;
-            if span_end > total_length {
+            let span_end = offset + eff_advance;
+            if span_end > total_length && !matches!(align, Align::Justify) {
                 continue 'outer;
             }
 
-            let (_, tangent) = match position_at(&pts_use, &cum_use, span_start + *advance / 2.0) {
+            let (_, tangent) = match position_at(&pts_use, &cum_use, span_start + eff_advance / 2.0)
+            {
                 Some(v) => v,
                 None => {
                     continue 'outer;
@@ -517,13 +532,13 @@ pub fn text_on_line(
 
             // Extra space proportional to curvature to avoid glyph tops touching on bends.
             let ratio = (max_bend / 180.0).clamp(0.0, 1.0);
-            let concave_spacing = *advance * *concave_spacing_factor * ratio;
+            let concave_spacing = eff_advance * *concave_spacing_factor * ratio;
 
             let shifted_start = span_start + concave_spacing;
-            let shifted_end = shifted_start + *advance;
-            let shifted_center = shifted_start + *advance / 2.0;
+            let shifted_end = shifted_start + eff_advance;
+            let shifted_center = shifted_start + eff_advance / 2.0;
 
-            if shifted_end > total_length {
+            if shifted_end > total_length && !matches!(align, Align::Justify) {
                 continue 'outer;
             }
 
@@ -551,12 +566,12 @@ pub fn text_on_line(
             let sin = angle.sin().abs();
             let rx = hw * cos + hh * sin;
             let ry = hw * sin + hh * cos;
-            let glyph_bbox = BBox::new(pos.x - rx, pos.y - ry, pos.x + rx, pos.y + ry);
+            let glyph_bbox = Rect::new((pos.x - rx, pos.y - ry), (pos.x + rx, pos.y + ry));
             glyph_bboxes.push(glyph_bbox);
 
             label_placements.push((glyph_string.clone(), font.clone(), pos, angle));
 
-            offset += *advance + concave_spacing;
+            offset += eff_advance + concave_spacing;
         }
 
         if let Some(col) = collision.as_deref_mut() {

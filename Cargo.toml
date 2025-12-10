@@ -12,7 +12,7 @@ cairo-rs = { version = "0.21", features = ["png", "svg"] }
 cavalier_contours = { version = "0.6.0" }
 colorsys = "0.7"
 gdal = { git = "https://github.com/georust/gdal.git", features = ["bindgen"] }
-geo = { version = "0.32.0", features = ["proj"] }
+geo = { version = "0.32.0" }
 geo-postgis = "0.2.2"
 geojson = "0.24.2"
 librsvg = { version = "2.61" }
@@ -20,6 +20,7 @@ oxhttp = { version = "0.3" }
 pangocairo = "0.21"
 postgis = "0.9"
 postgres = "0.19"
+proj = "0.31.0"
 r2d2 = "0.8"
 r2d2_postgres = "0.18"
 regex = "1.11"

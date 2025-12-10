@@ -1,12 +1,12 @@
 use cavalier_contours::polyline::{PlineSource, PlineSourceMut, PlineVertex, Polyline};
 use geo::{Coord, LineString};
 
-pub fn offset_line(iter: &LineString, offset: f64) -> LineString {
+pub fn offset_line(line_string: &LineString, offset: f64) -> LineString {
     let mut result = Vec::<Coord>::new();
 
     let mut polyline = Polyline::new();
 
-    for p in iter {
+    for p in line_string {
         polyline.add_vertex(PlineVertex::new(p.x, p.y, 0.0));
     }
 

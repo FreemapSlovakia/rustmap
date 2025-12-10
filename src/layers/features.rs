@@ -2,9 +2,9 @@ use crate::colors::{self, Color};
 use crate::draw::create_pango_layout::FontAndLayoutOptions;
 use crate::draw::text::{TextOptions, draw_text, draw_text_with_attrs};
 use crate::projectable::{TileProjectable, geometry_point};
-use crate::{bbox::BBox, collision::Collision, ctx::Ctx};
+use crate::{collision::Collision, ctx::Ctx};
 use core::f64;
-use geo::Point;
+use geo::{Point, Rect};
 use pangocairo::pango::{AttrList, AttrSize, SCALE, Style, Weight};
 use postgres::Client;
 use regex::Regex;
@@ -719,12 +719,10 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
                     let dx = if i == 0 { 0.0 } else { r * f64::sin(a) };
                     let dy = if i == 0 { 0.0 } else { r * f64::cos(a) };
 
-                    let bbox = BBox {
-                        min_x: x + dx,
-                        min_y: y + dy,
-                        max_x: x + dx + rect.width(),
-                        max_y: y + dy + rect.height(),
-                    };
+                    let bbox = Rect::new(
+                        (x + dx, y + dy),
+                        (x + dx + rect.width(), y + dy + rect.height()),
+                    );
 
                     if collision.collides(&bbox) {
                         continue;

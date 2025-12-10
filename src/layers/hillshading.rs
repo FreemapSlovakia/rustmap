@@ -14,11 +14,14 @@ fn read_rgba_from_gdal(
     let bbox = ctx.bbox;
     let size = ctx.size;
 
+    let min = bbox.min();
+    let max = bbox.max();
+
     // Convert geographic coordinates (min_x, min_y, max_x, max_y) to pixel coordinates
-    let pixel_min_x = ((bbox.min_x - gt_x_off) / gt_x_width).round() as isize;
-    let pixel_max_x = ((bbox.max_x - gt_x_off) / gt_x_width).round() as isize;
-    let pixel_max_y = ((bbox.min_y - gt_y_off) / gt_y_width).round() as isize;
-    let pixel_min_y = ((bbox.max_y - gt_y_off) / gt_y_width).round() as isize;
+    let pixel_min_x = ((min.x - gt_x_off) / gt_x_width).round() as isize;
+    let pixel_max_x = ((max.x - gt_x_off) / gt_x_width).round() as isize;
+    let pixel_max_y = ((min.y - gt_y_off) / gt_y_width).round() as isize;
+    let pixel_min_y = ((max.y - gt_y_off) / gt_y_width).round() as isize;
 
     let window_x = pixel_min_x;
     let window_y = pixel_min_y;

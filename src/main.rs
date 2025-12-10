@@ -2,7 +2,7 @@ use crate::{
     collision::Collision,
     layers::{
         aerialway_names, aerialways, aeroways, barrierways, borders, bridge_areas, building_names,
-        buildings, cutlines, features,
+        buildings, country_names, cutlines, features,
         highway_names::highway_names,
         housenumbers, landuse, locality_names, military_areas, pipelines, place_names, power_lines,
         protected_area_names, protected_areas, road_access_restrictions, roads, routes,
@@ -29,7 +29,6 @@ use std::{
 use tracy_client::Client;
 use xyz::{bbox_size_in_pixels, tile_bounds_to_epsg3857};
 
-mod bbox;
 mod collision;
 mod colors;
 mod ctx;
@@ -222,7 +221,9 @@ fn render(
             protected_areas::render(ctx, client);
         }
 
-        borders::render(ctx, client);
+        if zoom >= 8 {
+            borders::render(ctx, client);
+        }
 
         if zoom >= 10 {
             military_areas::render(ctx, client);
@@ -262,7 +263,9 @@ fn render(
             housenumbers::render(ctx, client, &mut collision);
         }
 
-        highway_names(ctx, client, &mut collision);
+        if zoom >= 15 {
+            highway_names(ctx, client, &mut collision);
+        }
 
         // <RouteNames {...routeProps} />
 
@@ -276,7 +279,9 @@ fn render(
 
         // <PlaceNames2 />
 
-        // <CountryNames />
+        if zoom < 8 {
+            country_names::render(ctx, client);
+        }
     };
 
     let w = size.width as f64 * scale;

@@ -1,11 +1,10 @@
 use crate::{
-    bbox::BBox,
     collision::Collision,
     colors::{self, Color, ContextExt},
     draw::create_pango_layout::{FontAndLayoutOptions, create_pango_layout_with_attrs},
 };
 use cairo::Context;
-use geo::Point;
+use geo::{Point, Rect};
 use pangocairo::{
     functions::layout_path,
     pango::{AttrList, SCALE},
@@ -150,11 +149,12 @@ pub fn draw_text_with_attrs(
 
             let line_height = ext.height() as f64 / SCALE as f64;
 
-            let ci = BBox::new(
-                x - halo_width + line_x,
-                y - halo_width + line_y,
-                x + halo_width + line_x + line_width,
-                y + halo_width + line_y + line_height,
+            let ci = Rect::new(
+                (x - halo_width + line_x, y - halo_width + line_y),
+                (
+                    x + halo_width + line_x + line_width,
+                    y + halo_width + line_y + line_height,
+                ),
             );
 
             if let Some(omit_idx) = *omit_bbox {
