@@ -2,6 +2,7 @@ use crate::colors::{self, ContextExt};
 use crate::ctx::Ctx;
 use crate::draw::create_pango_layout::FontAndLayoutOptions;
 use crate::draw::offset_line::offset_line;
+use crate::draw::smooth_line;
 use crate::draw::text_on_line::{Align, TextOnLineOptions, text_on_line};
 use crate::layers::borders;
 use crate::projectable::TileProjectable;

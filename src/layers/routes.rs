@@ -1,8 +1,6 @@
 use crate::{
     ctx::Ctx,
-    draw::{
-        draw::draw_line_off, line_pattern::draw_polyline_outline_scaled, offset_line::offset_line,
-    },
+    draw::{draw::draw_line_off, line_pattern::draw_line_pattern_scaled, offset_line::offset_line},
     projectable::{TileProjectable, geometry_multi_line_string},
 };
 use bitflags::bitflags;
@@ -308,7 +306,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
                     let offset = (zo + (off as f64 - 1.0) * wf * df) + 0.5;
 
                     for part in &geom {
-                        draw_polyline_outline_scaled(
+                        draw_line_pattern_scaled(
                             ctx,
                             &offset_line(part, offset),
                             0.5,
@@ -332,7 +330,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
                     let offset = -(zo + (off as f64 - 1.0) * wf * 2.0) - 1.0;
 
                     for part in &geom {
-                        draw_polyline_outline_scaled(
+                        draw_line_pattern_scaled(
                             ctx,
                             &offset_line(part, offset),
                             0.5,

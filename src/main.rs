@@ -3,7 +3,7 @@ use crate::{
     colors::ContextExt,
     layers::{
         aerialway_names, aerialways, aeroways, barrierways, borders, bridge_areas, building_names,
-        buildings, country_names, cutlines, features,
+        buildings, country_names, cutlines, feature_lines, features,
         highway_names::highway_names,
         housenumbers, landuse, locality_names, military_areas, pipelines, place_names, power_lines,
         protected_area_names, protected_areas, road_access_restrictions, roads, routes, sea,
@@ -169,7 +169,9 @@ fn render(
             pipelines::render(ctx, client);
         }
 
-        // TODO feature lines
+        if zoom >= 13 {
+            feature_lines::render(ctx, client);
+        }
 
         // TODO feature lines maskable
 

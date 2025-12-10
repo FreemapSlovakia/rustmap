@@ -47,8 +47,8 @@ where
     }
 }
 
-pub fn draw_line(context: &Context, points: &LineString) {
-    for (i, p) in points.into_iter().enumerate() {
+pub fn draw_line(context: &Context, line_string: &LineString) {
+    for (i, p) in line_string.into_iter().enumerate() {
         if i == 0 {
             context.move_to(p.x, p.y);
         } else {
@@ -57,10 +57,10 @@ pub fn draw_line(context: &Context, points: &LineString) {
     }
 }
 
-pub fn draw_line_off(context: &Context, points: &LineString, offset: f64) {
+pub fn draw_line_off(context: &Context, line_string: &LineString, offset: f64) {
     let mut polyline = Polyline::new();
 
-    for p in points {
+    for p in line_string {
         polyline.add_vertex(PlineVertex::new(p.x, p.y, 0.0));
     }
 
