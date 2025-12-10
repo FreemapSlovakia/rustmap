@@ -24,6 +24,7 @@ pub mod protected_areas;
 pub mod road_access_restrictions;
 pub mod roads;
 pub mod routes;
+pub mod sea;
 pub mod shading_and_contours;
 pub mod solar_power_plants;
 pub mod trees;

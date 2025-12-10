@@ -27,9 +27,25 @@ TMS URL is then `http://localhost:3050/{zoom}/{x}/{y}@2x[|.png|.svg]` (adjust yo
 
 ## TODO
 
-- Texts along line
-- Icons
 - Porting missing features from freemap-mapnik styles
 - Nodejs binding
 - support for PDF, WebP, Avif, Jpeg
 - ...and other things still missing but present in freemap-mapnik
+
+## Land polygons
+
+```sh
+wget https://osmdata.openstreetmap.de/download/land-polygons-complete-3857.zip
+unzip land-polygons-complete-3857.zip
+ogr2ogr \
+  -f PostgreSQL \
+  PG:"host=localhost dbname=martin user=martin password=b0n0" \
+  land-polygons-complete-3857 \
+  -nln land_polygons_raw \
+  -lco GEOMETRY_NAME=geom \
+  -lco FID=osm_id \
+  -lco SPATIAL_INDEX=GIST \
+  -t_srs EPSG:3857 \
+  -nlt PROMOTE_TO_MULTI \
+  -overwrite
+```

@@ -1,11 +1,12 @@
 use crate::{
     collision::Collision,
+    colors::ContextExt,
     layers::{
         aerialway_names, aerialways, aeroways, barrierways, borders, bridge_areas, building_names,
         buildings, country_names, cutlines, features,
         highway_names::highway_names,
         housenumbers, landuse, locality_names, military_areas, pipelines, place_names, power_lines,
-        protected_area_names, protected_areas, road_access_restrictions, roads, routes,
+        protected_area_names, protected_areas, road_access_restrictions, roads, routes, sea,
         shading_and_contours::{self, SHADING_THREAD_LOCAL},
         solar_power_plants, trees, water_area_names, water_areas, water_line_names, water_lines,
     },
@@ -137,13 +138,14 @@ fn render(
 
         let ctx = &ctx;
 
-        context.save().unwrap();
         context.scale(scale, scale);
-        context.set_source_rgb(1.0, 1.0, 1.0);
+
+        context.save().unwrap();
+        context.set_source_color(colors::WATER);
         context.paint().unwrap();
         context.restore().unwrap();
 
-        // TODO sea
+        sea::render(ctx, client);
 
         landuse::render(ctx, client);
 
