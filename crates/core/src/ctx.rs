@@ -1,9 +1,7 @@
-use crate::{projectable::TileProjector, size::Size, svg_cache::SvgCache};
+use crate::{projectable::TileProjector, size::Size};
 use cairo::Context;
-use gdal::Dataset;
 use geo::Rect;
 use postgres::types::ToSql;
-use std::{cell::RefCell, collections::HashMap};
 
 pub struct SqlParams {
     params: Vec<Box<dyn ToSql + Sync>>,
@@ -31,8 +29,6 @@ pub struct Ctx<'a> {
     pub size: Size<u32>,
     pub zoom: u32,
     pub scale: f64,
-    pub svg_cache: &'a RefCell<SvgCache>,
-    pub shading_data: &'a RefCell<HashMap<String, Dataset>>,
     pub tile_projector: TileProjector,
 }
 

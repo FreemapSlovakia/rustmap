@@ -1,4 +1,5 @@
 use crate::{
+    SvgCache,
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::{
@@ -8,14 +9,9 @@ use crate::{
     },
     projectable::{TileProjectable, geometry_geometry},
 };
-use geo::LineString;
 use postgres::Client;
 
-fn draw_protected_area_border(ctx: &Ctx, line_string: &LineString) {
-    draw_line_pattern(ctx, line_string, 0.8, "images/protected_area.svg");
-}
-
-pub fn render(ctx: &Ctx, client: &mut Client) {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
     let context = ctx.context;
 
     let zoom = ctx.zoom;
@@ -75,7 +71,11 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         let protect_class: &str = row.get("protect_class");
 
         if typ == "nature_reserve" || typ == "protected_area" && protect_class != "2" {
-            draw_geometry_uni(&projected, &|iter| draw_protected_area_border(ctx, iter));
+            let sample = svg_cache.get("protected_area.svg");
+
+            draw_geometry_uni(&projected, &|line_string| {
+                draw_line_pattern(ctx, line_string, 0.8, sample)
+            });
         }
     }
 

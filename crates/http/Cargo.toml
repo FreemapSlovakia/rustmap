@@ -1,0 +1,15 @@
+[package]
+name = "maprender-http"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+maprender-core = { path = "../core" }
+oxhttp = { workspace = true }
+postgres = { workspace = true }
+r2d2 = { workspace = true }
+r2d2_postgres = { workspace = true }
+regex = { workspace = true }
+tracy-client = { workspace = true }
+gdal = { workspace = true }

@@ -1,5 +1,5 @@
 use crate::ctx::Ctx;
-use cairo::{Matrix, SurfacePattern};
+use cairo::{Matrix, RecordingSurface, SurfacePattern};
 use geo::{Coord, LineString};
 
 fn get_perpendicular(dx: f64, dy: f64, length: f64, stroke_width: f64) -> (f64, f64) {
@@ -109,16 +109,21 @@ fn compute_corners(p0: Coord, p1: Coord, stroke_width: f64) -> (Coord, Coord, Co
     )
 }
 
-pub fn draw_line_pattern(ctx: &Ctx, line_string: &LineString, miter_limit: f64, image: &str) {
-    draw_line_pattern_scaled(ctx, line_string, miter_limit, image, 1.0);
+pub fn draw_line_pattern(
+    ctx: &Ctx,
+    line_string: &LineString,
+    miter_limit: f64,
+    sample: &RecordingSurface,
+) {
+    draw_line_pattern_scaled(ctx, line_string, miter_limit, 1.0, sample);
 }
 
 pub fn draw_line_pattern_scaled(
     ctx: &Ctx,
     line_string: &LineString,
     miter_limit: f64,
-    image: &str,
     scale: f64,
+    sample: &RecordingSurface,
 ) {
     let mut vertices = line_string.0.clone();
 
@@ -130,13 +135,9 @@ pub fn draw_line_pattern_scaled(
         return;
     }
 
-    let mut svg_cache = ctx.svg_cache.borrow_mut();
+    let pattern = SurfacePattern::create(sample);
 
-    let tile = svg_cache.get(image);
-
-    let pattern = SurfacePattern::create(tile);
-
-    let rect = tile.extents().unwrap();
+    let rect = sample.extents().unwrap();
 
     let (width, height) = (rect.width(), rect.height());
 

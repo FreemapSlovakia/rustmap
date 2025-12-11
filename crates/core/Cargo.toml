@@ -1,0 +1,30 @@
+[package]
+name = "maprender-core"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[features]
+test_feature = []
+
+[lib]
+name = "maprender_core"
+path = "src/lib.rs"
+
+[dependencies]
+bitflags = { workspace = true }
+cairo-rs = { workspace = true }
+cavalier_contours = { workspace = true }
+colorsys = { workspace = true }
+gdal = { workspace = true }
+geo = { workspace = true }
+geo-postgis = { workspace = true }
+geojson = { workspace = true }
+image = { workspace = true }
+librsvg = { workspace = true }
+pangocairo = { workspace = true }
+postgis = { workspace = true }
+postgres = { workspace = true }
+proj = { workspace = true }
+regex = { workspace = true }
+tracy-client = { workspace = true }

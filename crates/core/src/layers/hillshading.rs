@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::ctx::Ctx;
 use cairo::{Format, ImageSurface};
 use gdal::Dataset;
@@ -150,9 +152,7 @@ fn read_rgba_from_gdal(
     surface
 }
 
-pub fn render(ctx: &Ctx, country: &str, alpha: f64) {
-    let shading_data = &ctx.shading_data.borrow_mut();
-
+pub fn render(ctx: &Ctx, country: &str, alpha: f64, shading_data: &mut HashMap<String, Dataset>) {
     let hillshading_dataset = shading_data.get(country).expect("no such dataset");
 
     let [gt_x_off, gt_x_width, _, gt_y_off, _, gt_y_width] =

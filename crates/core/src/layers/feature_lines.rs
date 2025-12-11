@@ -1,4 +1,5 @@
 use crate::{
+    SvgCache,
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::{draw::draw_line, line_pattern::draw_line_pattern_scaled},
@@ -6,7 +7,7 @@ use crate::{
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client) {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
     let context = ctx.context;
     let zoom = ctx.zoom;
 
@@ -47,8 +48,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                     ctx,
                     &geom,
                     0.8,
-                    "images/tree2.svg",
                     (2.0 + 2f64.powf(zoom as f64 - 15.0)) / 4.5,
+                    svg_cache.get("tree2.svg"),
                 );
             }
             _ => panic!("unexpected type"),

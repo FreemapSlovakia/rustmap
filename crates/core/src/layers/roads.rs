@@ -1,10 +1,11 @@
+use crate::SvgCache;
 use crate::colors::{Color, ContextExt};
 use crate::draw::markers_on_path::draw_markers_on_path;
 use crate::projectable::{TileProjectable, geometry_line_string};
 use crate::{colors, ctx::Ctx, draw::draw::draw_line};
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client) {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
     let context = ctx.context;
 
     let zoom = ctx.zoom;
@@ -51,10 +52,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         _ => 0.00,
     };
 
-    let mut cache = ctx.svg_cache.borrow_mut();
-
     // TODO lazy
-    let arrow = cache.get("images/highway-arrow.svg");
+    let arrow = svg_cache.get("highway-arrow.svg");
 
     let rect = arrow.extents().unwrap();
 
@@ -501,6 +500,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 let width = ke() * 1.2;
 
                 apply_highway_defaults(width);
+
                 context.set_dash(
                     match row.get::<_, &str>("tracktype") {
                         "grade1" => &[],
@@ -512,20 +512,14 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                     },
                     0.0,
                 );
+
                 context.set_source_color_a(colors::TRACK, row.get("trail_visibility"));
+
                 draw();
 
                 draw_bridges_tunnels(width + 1.0);
             }
 
-            // <RuleEx minZoom={14} filter="[oneway] <> 0">
-            //   <MarkersSymbolizer
-            //     file="images/highway-arrow.svg"
-            //     spacing={100}
-            //     placement="line"
-            //     transform="rotate(90 - [oneway] * 90, 0, 0)"
-            //   />
-            // </RuleEx>
             _ => (),
         };
 

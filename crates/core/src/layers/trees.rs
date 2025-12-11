@@ -1,13 +1,12 @@
 use crate::{
+    SvgCache,
     ctx::Ctx,
     projectable::{TileProjectable, geometry_point},
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client) {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
     let context = ctx.context;
-
-    let mut svg_cache = ctx.svg_cache.borrow_mut();
 
     let zoom = ctx.zoom;
 
@@ -33,7 +32,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         let scale =
             (2.0 + 2f64.powf(zoom as f64 - 15.0)) * (if typ == "shrub" { 0.1 } else { 0.2 });
 
-        let surface = svg_cache.get("images/tree2.svg");
+        let surface = svg_cache.get("tree2.svg");
 
         let rect = surface.extents().unwrap();
 

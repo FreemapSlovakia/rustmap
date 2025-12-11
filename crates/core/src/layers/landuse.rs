@@ -1,4 +1,5 @@
 use crate::{
+    SvgCache,
     colors::{self, Color, ContextExt},
     ctx::Ctx,
     draw::draw::draw_geometry,
@@ -8,12 +9,10 @@ use crate::{
 use cairo::{Extend, Matrix, SurfacePattern};
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client) {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
     let zoom = ctx.zoom;
     let context = ctx.context;
     let min = ctx.bbox.min();
-
-    let mut svg_cache = ctx.svg_cache.borrow_mut();
 
     let query = &format!(
         "SELECT
@@ -83,25 +82,25 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             }
             "cemetery" => {
                 colour_area(colors::GRASSY);
-                pattern_area("images/grave.svg");
+                pattern_area("grave.svg");
             }
             "clearcut" => {
-                pattern_area("images/clearcut2.svg");
+                pattern_area("clearcut2.svg");
             }
             "bare_rock" => {
-                pattern_area("images/bare_rock.svg");
+                pattern_area("bare_rock.svg");
             }
             "beach" => {
                 colour_area(colors::BEACH);
-                pattern_area("images/sand.svg");
+                pattern_area("sand.svg");
             }
             "brownfield" => {
                 colour_area(colors::BROWNFIELD);
             }
             "bog" => {
                 colour_area(colors::GRASSY);
-                pattern_area("images/wetland.svg");
-                pattern_area("images/bog.svg");
+                pattern_area("wetland.svg");
+                pattern_area("bog.svg");
             }
             "college" => {
                 colour_area(colors::COLLEGE);
@@ -123,8 +122,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             }
             "marsh" | "wet_meadow" | "fen" => {
                 colour_area(colors::GRASSY);
-                pattern_area("images/wetland.svg");
-                pattern_area("images/marsh.svg");
+                pattern_area("wetland.svg");
+                pattern_area("marsh.svg");
             }
             "footway" => {
                 colour_area(colors::NONE);
@@ -169,15 +168,15 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             }
             "mangrove" => {
                 colour_area(colors::GRASSY);
-                pattern_area("images/wetland.svg");
-                pattern_area("images/mangrove.svg");
+                pattern_area("wetland.svg");
+                pattern_area("mangrove.svg");
             }
             "meadow" => {
                 colour_area(colors::GRASSY);
             }
             "orchard" => {
                 colour_area(colors::ORCHARD);
-                pattern_area("images/orchard.svg");
+                pattern_area("orchard.svg");
             }
             "park" => {
                 colour_area(colors::GRASSY);
@@ -203,19 +202,19 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             }
             "plant_nursery" => {
                 colour_area(colors::SCRUB);
-                pattern_area("images/plant_nursery.svg");
+                pattern_area("plant_nursery.svg");
             }
             "quarry" => {
                 colour_area(colors::QUARRY);
-                pattern_area("images/quarry.svg");
+                pattern_area("quarry.svg");
             }
             "railway" => {
                 colour_area(colors::NONE);
             }
             "reedbed" => {
                 colour_area(colors::GRASSY);
-                pattern_area("images/wetland.svg");
-                pattern_area("images/reedbed.svg");
+                pattern_area("wetland.svg");
+                pattern_area("reedbed.svg");
             }
             "recreation_ground" => {
                 colour_area(colors::NONE);
@@ -239,16 +238,16 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             }
             "scree" => {
                 colour_area(colors::SCREE);
-                pattern_area("images/scree.svg");
+                pattern_area("scree.svg");
             }
             "scrub" => {
                 colour_area(colors::SCRUB);
-                pattern_area("images/scrub.svg");
+                pattern_area("scrub.svg");
             }
             "swamp" => {
                 colour_area(colors::GRASSY);
-                pattern_area("images/wetland.svg");
-                pattern_area("images/swamp.svg");
+                pattern_area("wetland.svg");
+                pattern_area("swamp.svg");
             }
             "university" => {
                 colour_area(colors::COLLEGE);
@@ -258,7 +257,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             }
             "vineyard" => {
                 colour_area(colors::ORCHARD);
-                pattern_area("images/grapes.svg");
+                pattern_area("grapes.svg");
             }
             "wastewater_plant" => {
                 colour_area(colors::INDUSTRIAL);
@@ -267,7 +266,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 colour_area(colors::DAM);
             }
             "wetland" => {
-                pattern_area("images/wetland.svg");
+                pattern_area("wetland.svg");
             }
             "wood" => {
                 colour_area(colors::FOREST);

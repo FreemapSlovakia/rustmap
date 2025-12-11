@@ -1,4 +1,5 @@
 use crate::{
+    SvgCache,
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::{markers_on_path::draw_markers_on_path, smooth_line::draw_smooth_bezier_spline},
@@ -6,7 +7,7 @@ use crate::{
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client) {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
     let context = ctx.context;
     let zoom = ctx.zoom;
 
@@ -29,10 +30,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         .query(sql, &ctx.bbox_query_params(Some(8.0)).as_params())
         .expect("db data");
 
-    let mut svg_cache = ctx.svg_cache.borrow_mut();
-
     // TODO lazy
-    let arrow = svg_cache.get("images/waterway-arrow.svg");
+    let arrow = svg_cache.get("waterway-arrow.svg");
 
     let rect = arrow.extents().unwrap();
 

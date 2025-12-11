@@ -1,14 +1,18 @@
-[package]
-name = "maprender"
-version = "0.1.0"
+[workspace]
+resolver = "2"
+members = [
+    "crates/core",
+    "crates/http",
+    "crates/node",
+]
+
+[workspace.package]
 edition = "2024"
+version = "0.1.0"
 
-[features]
-test_feature = []
-
-[dependencies]
+[workspace.dependencies]
 bitflags = "2.9"
-cairo-rs = { version = "0.21", features = ["png", "svg"] }
+cairo-rs = { version = "0.21", features = ["png", "svg", "pdf"] }
 cavalier_contours = { version = "0.6.0" }
 colorsys = "0.7"
 gdal = { git = "https://github.com/georust/gdal.git", features = ["bindgen"] }
@@ -25,3 +29,6 @@ r2d2 = "0.8"
 r2d2_postgres = "0.18"
 regex = "1.11"
 tracy-client = "0.18.3"
+napi = "2.16"
+napi-derive = "2.16"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }

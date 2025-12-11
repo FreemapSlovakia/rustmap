@@ -1,3 +1,4 @@
+use crate::SvgCache;
 use crate::colors::{self, Color};
 use crate::draw::create_pango_layout::FontAndLayoutOptions;
 use crate::draw::text::{TextOptions, draw_text, draw_text_with_attrs};
@@ -355,7 +356,12 @@ static POIS: LazyLock<HashMap<&'static str, Def>> = LazyLock::new(|| {
         .collect()
 });
 
-pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
+pub fn render(
+    ctx: &Ctx,
+    client: &mut Client,
+    collision: &mut Collision<f64>,
+    svg_cache: &mut SvgCache,
+) {
     let _span = tracy_client::span!("features::render");
 
     let context = ctx.context;
@@ -657,8 +663,6 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         "#,
     );
 
-    let mut svg_cache = ctx.svg_cache.borrow_mut();
-
     let rows = {
         let _span = tracy_client::span!("features::query");
         client
@@ -686,10 +690,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
 
             let point = geometry_point(&row).project_to_tile(&ctx.tile_projector);
 
-            let surface = svg_cache.get(&format!(
-                "images/{}.svg",
-                def.extra.icon.unwrap_or_else(|| typ)
-            ));
+            let surface = svg_cache.get(&format!("{}.svg", def.extra.icon.unwrap_or_else(|| typ)));
 
             let rect = surface.extents().unwrap();
 

@@ -1,4 +1,5 @@
 use crate::{
+    SvgCache,
     ctx::Ctx,
     draw::{draw::draw_line_off, line_pattern::draw_line_pattern_scaled, offset_line::offset_line},
     projectable::{TileProjectable, geometry_multi_line_string},
@@ -257,7 +258,7 @@ GROUP BY
     )
 }
 
-pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
+pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes, svg_cache: &mut SvgCache) {
     let _span = tracy_client::span!("routes::render");
 
     let context = ctx.context;
@@ -305,13 +306,15 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
                 if off > 0 {
                     let offset = (zo + (off as f64 - 1.0) * wf * df) + 0.5;
 
+                    let sample = svg_cache.get(&format!("horse.svg|path {{ fill: #{} }}", color.1));
+
                     for part in &geom {
                         draw_line_pattern_scaled(
                             ctx,
                             &offset_line(part, offset),
                             0.5,
-                            &format!("images/horse.svg|path {{ fill: #{} }}", color.1),
                             wf / 2.0,
+                            sample,
                         );
                     }
 
@@ -330,12 +333,15 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
                     let offset = -(zo + (off as f64 - 1.0) * wf * 2.0) - 1.0;
 
                     for part in &geom {
+                        let pattern =
+                            svg_cache.get(&format!("ski.svg|path {{ fill: #{} }}", color.1));
+
                         draw_line_pattern_scaled(
                             ctx,
                             &offset_line(part, offset),
                             0.5,
-                            &format!("images/ski.svg|path {{ fill: #{} }}", color.1),
                             wf / 2.0,
+                            pattern,
                         );
                     }
 
@@ -372,7 +378,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes) {
                     //         ctx,
                     //         &offset_line(ctx, part.points.iter(), 10.0)[..],
                     //         0.5,
-                    //         &format!("images/ski.svg|path {{ fill: #{} }}", color.1),
+                    //         &format!("ski.svg|path {{ fill: #{} }}", color.1),
                     //         wf / 2.0
                     //     );
                     // }

@@ -2,12 +2,13 @@ use postgres::Client;
 use std::cell::Cell;
 
 use crate::{
+    SvgCache,
     ctx::Ctx,
     draw::{draw::draw_line, markers_on_path::draw_markers_on_path},
     projectable::{TileProjectable, geometry_line_string},
 };
 
-pub fn render(ctx: &Ctx, client: &mut Client) {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
     let context = ctx.context;
 
     let sql = "
@@ -29,13 +30,9 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     // TODO lazy
 
-    let no_bicycle_icon = &ctx
-        .svg_cache
-        .borrow_mut()
-        .get("images/no_bicycle.svg")
-        .clone();
+    let no_bicycle_icon = &svg_cache.get("no_bicycle.svg").clone();
 
-    let no_foot_icon = &ctx.svg_cache.borrow_mut().get("images/no_foot.svg").clone();
+    let no_foot_icon = &svg_cache.get("no_foot.svg").clone();
 
     let no_bicycle_rect = no_bicycle_icon.extents().unwrap();
     let no_foot_rect = no_foot_icon.extents().unwrap();

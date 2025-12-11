@@ -4,51 +4,56 @@ use crate::{
 };
 use gdal::Dataset;
 use postgres::Client;
-use std::{cell::RefCell, collections::HashMap};
+use std::{collections::HashMap, path::Path};
 
 const FALLBACK: bool = true;
 const CONTOURS: bool = true;
 
-thread_local! {
-    pub static SHADING_THREAD_LOCAL: RefCell<HashMap<String, Dataset>> = {
-        let datasets = [
-            (String::from("sk"), "/home/martin/14TB/hillshading/sk/final.tif"),
-            (String::from("sk-mask"), "/home/martin/14TB/hillshading/sk/mask.tif"),
-            (String::from("cz"), "/home/martin/14TB/hillshading/cz/final.tif"),
-            (String::from("cz-mask"), "/home/martin/14TB/hillshading/cz/mask.tif"),
-            (String::from("at"), "/home/martin/14TB/hillshading/at/final.tif"),
-            (String::from("at-mask"), "/home/martin/14TB/hillshading/at/mask.tif"),
-            (String::from("pl"), "/home/martin/14TB/hillshading/pl/final.tif"),
-            (String::from("pl-mask"), "/home/martin/14TB/hillshading/pl/mask.tif"),
-            (String::from("it"), "/home/martin/14TB/hillshading/it/final.tif"),
-            (String::from("it-mask"), "/home/martin/14TB/hillshading/it/mask.tif"),
-            (String::from("ch"), "/home/martin/14TB/hillshading/ch/final.tif"),
-            (String::from("ch-mask"), "/home/martin/14TB/hillshading/ch/mask.tif"),
-            (String::from("si"), "/home/martin/14TB/hillshading/si/final.tif"),
-            (String::from("si-mask"), "/home/martin/14TB/hillshading/si/mask.tif"),
-            (String::from("fr"), "/home/martin/14TB/hillshading/fr/final.tif"),
-            (String::from("fr-mask"), "/home/martin/14TB/hillshading/fr/mask.tif"),
-            (String::from("_"), "/home/martin/14TB/hillshading/final.tiff"),
-        ];
+pub fn load_hillshading_datasets(base: impl AsRef<Path>) -> HashMap<String, Dataset> {
+    let base = base.as_ref();
+    let datasets = [
+        (String::from("sk"), "sk/final.tif"),
+        (String::from("sk-mask"), "sk/mask.tif"),
+        (String::from("cz"), "cz/final.tif"),
+        (String::from("cz-mask"), "cz/mask.tif"),
+        (String::from("at"), "at/final.tif"),
+        (String::from("at-mask"), "at/mask.tif"),
+        (String::from("pl"), "pl/final.tif"),
+        (String::from("pl-mask"), "pl/mask.tif"),
+        (String::from("it"), "it/final.tif"),
+        (String::from("it-mask"), "it/mask.tif"),
+        (String::from("ch"), "ch/final.tif"),
+        (String::from("ch-mask"), "ch/mask.tif"),
+        (String::from("si"), "si/final.tif"),
+        (String::from("si-mask"), "si/mask.tif"),
+        (String::from("fr"), "fr/final.tif"),
+        (String::from("fr-mask"), "fr/mask.tif"),
+        (String::from("_"), "final.tiff"),
+    ];
 
-        let mut hillshading_datasets = HashMap::new();
+    let mut hillshading_datasets = HashMap::new();
 
-        for (name, path) in datasets {
-            match Dataset::open(path) {
-                Ok(dataset) => {
-                    hillshading_datasets.insert(name.clone(), dataset);
-                }
-                Err(err) => {
-                    eprintln!("Error opening hillshading geotiff {}: {}", path, err);
-                }
+    for (name, path) in datasets {
+        let full_path = base.join(path);
+
+        match Dataset::open(&full_path) {
+            Ok(dataset) => {
+                hillshading_datasets.insert(name.clone(), dataset);
+            }
+            Err(err) => {
+                eprintln!(
+                    "Error opening hillshading geotiff {}: {}",
+                    full_path.display(),
+                    err
+                );
             }
         }
+    }
 
-        RefCell::new(hillshading_datasets)
-    };
+    hillshading_datasets
 }
 
-pub fn render(ctx: &Ctx, client: &mut Client) {
+pub fn render(ctx: &Ctx, client: &mut Client, hillshading_datasets: &mut HashMap<String, Dataset>) {
     let _span = tracy_client::span!("shading_and_contours::render");
 
     let fade_alpha = 1.0f64.min(1.0 - (ctx.zoom as f64 - 7.0).ln() / 5.0);
@@ -79,7 +84,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     for (country, ccs) in config {
         context.push_group(); // country-contours-and-shading
 
-        hillshading::render(ctx, &format!("{}-mask", country), 1.0);
+        hillshading::render(ctx, &format!("{}-mask", country), 1.0, hillshading_datasets);
 
         context.push_group(); // contours-and-shading
 
@@ -94,7 +99,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             }
         }
 
-        hillshading::render(ctx, country, fade_alpha);
+        hillshading::render(ctx, country, fade_alpha, hillshading_datasets);
 
         context.pop_group_to_source().unwrap(); // contours-and-shading
         context.set_operator(cairo::Operator::In);
@@ -102,7 +107,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         for cc in ccs {
             context.set_operator(cairo::Operator::DestOut);
-            hillshading::render(ctx, &format!("{}-mask", cc), 1.0);
+            hillshading::render(ctx, &format!("{}-mask", cc), 1.0, hillshading_datasets);
         }
 
         context.pop_group_to_source().unwrap(); // // country-contours-and-shading
@@ -113,7 +118,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         context.push_group(); // mask
 
         for country in vec!["it", "at", "ch", "si", "pl", "sk", "cz", "fr"] {
-            hillshading::render(ctx, &format!("{}-mask", country), 1.0);
+            hillshading::render(ctx, &format!("{}-mask", country), 1.0, hillshading_datasets);
         }
 
         context.push_group(); // fallback
@@ -129,7 +134,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             }
         }
 
-        hillshading::render(ctx, "_", fade_alpha);
+        hillshading::render(ctx, "_", fade_alpha, hillshading_datasets);
 
         context.pop_group_to_source().unwrap(); // fallback
         context.set_operator(cairo::Operator::Out);
