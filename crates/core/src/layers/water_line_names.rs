@@ -10,6 +10,11 @@ use crate::{
 };
 use pangocairo::pango::Style;
 use postgres::Client;
+use regex::Regex;
+use std::sync::LazyLock;
+
+static RE1: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\b[Pp]otok$").unwrap());
+static RE2: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[Pp]otok\b *").unwrap());
 
 pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     let zoom = ctx.zoom;
@@ -38,8 +43,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
             letter_spacing: 2.0,
             ..FontAndLayoutOptions::default()
         },
-        repeat_distance: Some(200.0),
-        spacing: 200.0,
+        spacing: Some(300.0),
         color: colors::WATER_LABEL,
         halo_color: colors::WATER_LABEL_HALO,
         ..TextOnLineOptions::default()
@@ -50,6 +54,12 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
 
         let name: &str = row.get("name");
 
-        text_on_line(ctx.context, &geom, name, Some(collision), &options);
+        text_on_line(
+            ctx.context,
+            &geom,
+            &RE2.replace(&RE1.replace(name, "p."), ""),
+            Some(collision),
+            &options,
+        );
     }
 }

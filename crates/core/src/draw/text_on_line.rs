@@ -16,8 +16,7 @@ use std::f64::consts::{PI, TAU};
 pub struct TextOnLineOptions {
     pub upright: Upright,
     pub align: Align,
-    pub repeat_distance: Option<f64>,
-    pub spacing: f64,
+    pub spacing: Option<f64>,
     pub alpha: f64,
     pub color: Color,
     pub halo_color: Color,
@@ -33,8 +32,7 @@ impl Default for TextOnLineOptions {
         TextOnLineOptions {
             upright: Upright::Auto,
             align: Align::Center,
-            repeat_distance: None,
-            spacing: 0.0,
+            spacing: None,
             alpha: 1.0,
             color: colors::BLACK,
             halo_color: colors::WHITE,
@@ -327,8 +325,7 @@ fn draw_label(
 fn label_offsets(
     total_length: f64,
     total_advance: f64,
-    spacing: f64,
-    repeat_distance: Option<f64>,
+    spacing: Option<f64>,
     align: Align,
 ) -> Vec<f64> {
     if matches!(align, Align::Justify) {
@@ -339,13 +336,15 @@ fn label_offsets(
         return Vec::new();
     }
 
-    // Step between label starts: either requested repeat distance or just "one label".
-    let step = repeat_distance
-        .map(|d| d.max(total_advance + spacing))
-        .unwrap_or(total_length + spacing);
+    // Step between label starts when repeating is enabled: pack by (advance + spacing).
+    let step = if let Some(s) = spacing {
+        (total_advance + s).max(total_advance * 0.2)
+    } else {
+        total_length
+    };
 
-    // How many full labels can we fit.
-    let count = if repeat_distance.is_some() {
+    // How many full labels can we fit (repetition only if spacing is Some).
+    let count = if spacing.is_some() {
         ((total_length - total_advance) / step).floor() as usize + 1
     } else {
         1
@@ -443,7 +442,6 @@ pub fn text_on_line(
 
     let TextOnLineOptions {
         spacing,
-        repeat_distance,
         align,
         upright,
         max_curvature_degrees,
@@ -476,7 +474,6 @@ pub fn text_on_line(
         total_length,
         total_advance,
         *spacing,
-        *repeat_distance,
         *align,
     );
 

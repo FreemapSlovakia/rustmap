@@ -25,8 +25,7 @@ pub fn highway_names(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f
         .expect("db data");
 
     let options = TextOnLineOptions {
-        repeat_distance: Some(200.0),
-        spacing: 200.0,
+        spacing: Some(200.0),
         color: colors::TRACK,
         ..TextOnLineOptions::default()
     };

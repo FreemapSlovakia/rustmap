@@ -21,8 +21,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         .expect("db data");
 
     let options = TextOnLineOptions {
-        repeat_distance: Some(200.0),
-        spacing: 200.0,
+        spacing: Some(200.0),
         color: colors::BLACK,
         ..TextOnLineOptions::default()
     };
