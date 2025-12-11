@@ -283,13 +283,13 @@ fn draw(
         place_names::render(ctx, client, &mut collision);
     }
 
+    // <NationalParkNames />
+
     features::render(ctx, client, &mut collision, svg_cache);
 
     if request.zoom >= 10 {
         water_area_names::render(ctx, client, &mut collision);
     }
-
-    // TODO national_park_border_names
 
     if request.zoom >= 17 {
         building_names::render(ctx, client, &mut collision);

@@ -8,6 +8,7 @@ use crate::{
     },
     projectable::{TileProjectable, geometry_point},
 };
+use pangocairo::pango::Style;
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
@@ -22,11 +23,11 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
 
     let text_options = TextOptions {
         flo: FontAndLayoutOptions {
-            size: 11.0,
+            style: Style::Italic,
             ..FontAndLayoutOptions::default()
         },
-        halo_opacity: 0.2,
-        color: colors::LOCALITY_LABEL,
+        halo_opacity: 0.75,
+        color: colors::PROTECTED,
         ..TextOptions::default()
     };
 
