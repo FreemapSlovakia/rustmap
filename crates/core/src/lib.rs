@@ -279,7 +279,9 @@ fn draw(
 
     // TODO geonames
 
-    place_names::render(ctx, client, &mut collision);
+    if request.zoom >= 8 {
+        place_names::render(ctx, client, &mut collision);
+    }
 
     features::render(ctx, client, &mut collision, svg_cache);
 
@@ -313,9 +315,13 @@ fn draw(
 
     // <RouteNames {...routeProps} />
 
-    aerialway_names::render(ctx, client, &mut collision);
+    if request.zoom >= 16 {
+        aerialway_names::render(ctx, client, &mut collision);
+    }
 
-    water_line_names::render(ctx, client, &mut collision);
+    if request.zoom >= 12 {
+        water_line_names::render(ctx, client, &mut collision);
+    }
 
     // <Fixmes />
 

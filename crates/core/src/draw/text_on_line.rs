@@ -338,12 +338,12 @@ fn label_offsets(
     repeat_distance: Option<f64>,
     align: Align,
 ) -> Vec<f64> {
-    if total_length < total_advance {
-        return Vec::new();
-    }
-
     if matches!(align, Align::Justify) {
         return vec![0.0];
+    }
+
+    if total_length < total_advance {
+        return Vec::new();
     }
 
     // Step between label starts: either requested repeat distance or just "one label".
@@ -374,6 +374,57 @@ fn label_offsets(
     (0..count).map(|i| start + i as f64 * step).collect()
 }
 
+fn justify_spacing(
+    align: Align,
+    total_length: f64,
+    base_total_advance: f64,
+    clusters: &[(f64, GlyphString, Font)],
+) -> (f64, f64) {
+    if !matches!(align, Align::Justify) {
+        return (1.0, 0.0);
+    }
+
+    let gaps = clusters.len().saturating_sub(1) as f64;
+    if gaps == 0.0 {
+        return (1.0, 0.0);
+    }
+
+    let raw_extra = (total_length - base_total_advance) / gaps;
+    let min_adv = clusters
+        .iter()
+        .map(|c| c.0)
+        .fold(f64::INFINITY, f64::min)
+        .max(0.0);
+
+    // Allow slight compression (down to -80% of the narrowest advance), but keep spacing even.
+    let min_gap = if min_adv.is_finite() {
+        -min_adv * 0.8
+    } else {
+        raw_extra
+    };
+
+    (1.0, raw_extra.max(min_gap))
+}
+
+fn center_offset_for_glyph(
+    idx: usize,
+    glyph_count: usize,
+    eff_advance: f64,
+    ink_left_rel: f64,
+    ink_right_rel: f64,
+) -> f64 {
+    if glyph_count == 1 || idx == 0 {
+        // Anchor the first glyph's ink left edge to the start of the span.
+        -ink_left_rel
+    } else if idx + 1 == glyph_count {
+        // Pull the last glyph so its ink right edge sits on the span end.
+        eff_advance - ink_right_rel
+    } else {
+        // Middle glyphs stay centered in their advance plus uniform gap.
+        eff_advance / 2.0
+    }
+}
+
 pub fn text_on_line(
     context: &Context,
     line_string: &LineString,
@@ -381,6 +432,7 @@ pub fn text_on_line(
     mut collision: Option<&mut Collision<f64>>,
     options: &TextOnLineOptions,
 ) {
+    let ps = 1.0 / SCALE as f64;
     let mut pts: Vec<Coord> = line_string.into_iter().copied().collect();
 
     pts.dedup_by(|a, b| a == b);
@@ -421,13 +473,11 @@ pub fn text_on_line(
         return;
     }
 
-    let (advance_scale, extra_spacing_per_glyph) = match align {
-        Align::Justify => ((total_length / base_total_advance).max(0.0), 0.0),
-        _ => (1.0, 0.0),
-    };
+    let (advance_scale, extra_spacing_between_glyphs) =
+        justify_spacing(*align, total_length, base_total_advance, &clusters);
 
-    let total_advance =
-        base_total_advance * advance_scale + extra_spacing_per_glyph * clusters.len() as f64;
+    let total_advance = base_total_advance * advance_scale
+        + extra_spacing_between_glyphs * clusters.len().saturating_sub(1) as f64;
 
     let offsets = label_offsets(
         total_length,
@@ -443,6 +493,7 @@ pub fn text_on_line(
 
     let mut placements: Vec<Vec<(GlyphString, Font, Coord, f64)>> = Vec::new();
 
+    // For each label repeat, walk glyphs along the line while keeping edge-alignment and curvature limits.
     'outer: for start in offsets {
         // Decide per-repeat if we need to flip to stay upright.
         let overall_span_start = start;
@@ -475,8 +526,8 @@ pub fn text_on_line(
         let mut label_placements = Vec::new();
         let mut glyph_bboxes: Vec<Rect<f64>> = Vec::new();
 
-        for (advance, glyph_string, font) in clusters.iter() {
-            let eff_advance = *advance * advance_scale + extra_spacing_per_glyph;
+        for (idx, (advance, glyph_string, font)) in clusters.iter().enumerate() {
+            let eff_advance = *advance * advance_scale;
             let span_start = offset;
             let span_end = offset + eff_advance;
             if span_end > total_length && !matches!(align, Align::Justify) {
@@ -517,9 +568,28 @@ pub fn text_on_line(
             let ratio = (max_bend / 180.0).clamp(0.0, 1.0);
             let concave_spacing = eff_advance * *concave_spacing_factor * ratio;
 
-            let shifted_start = span_start + concave_spacing;
+            let shifted_start = span_start;
             let shifted_end = shifted_start + eff_advance;
-            let shifted_center = shifted_start + eff_advance / 2.0;
+
+            let mut gs_bbox = glyph_string.clone();
+            let (ink, logical) = gs_bbox.extents(font);
+            let logical_w = logical.width() as f64 * ps;
+            let logical_h = logical.height() as f64 * ps;
+            let ink_left = ink.x() as f64 * ps;
+            let ink_right = (ink.x() as f64 + ink.width() as f64) * ps;
+            let logical_cx = (logical.x() as f64 + logical.width() as f64 / 2.0) * ps;
+            let ink_left_rel = ink_left - logical_cx;
+            let ink_right_rel = ink_right - logical_cx;
+
+            let center_offset = center_offset_for_glyph(
+                idx,
+                clusters.len(),
+                eff_advance,
+                ink_left_rel,
+                ink_right_rel,
+            );
+
+            let shifted_center = shifted_start + center_offset;
 
             if shifted_end > total_length && !matches!(align, Align::Justify) {
                 continue 'outer;
@@ -539,10 +609,8 @@ pub fn text_on_line(
             let angle = normalize_angle(weighted_tangent.y.atan2(weighted_tangent.x) + flip_offset);
 
             // Track an axis-aligned bbox for the rotated glyph.
-            let mut gs_bbox = glyph_string.clone();
-            let (_, logical) = gs_bbox.extents(font);
-            let hw = logical.width() as f64 / SCALE as f64 / 2.0;
-            let hh = logical.height() as f64 / SCALE as f64 / 2.0;
+            let hw = logical_w / 2.0;
+            let hh = logical_h / 2.0;
             let cos = angle.cos().abs();
             let sin = angle.sin().abs();
             let rx = hw * cos + hh * sin;
@@ -555,7 +623,11 @@ pub fn text_on_line(
 
             label_placements.push((glyph_string.clone(), font.clone(), pos, angle));
 
-            offset += eff_advance + concave_spacing;
+            if idx + 1 == clusters.len() {
+                offset += eff_advance;
+            } else {
+                offset += eff_advance + concave_spacing + extra_spacing_between_glyphs;
+            }
         }
 
         if let Some(col) = collision.as_deref_mut() {

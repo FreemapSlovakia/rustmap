@@ -1,7 +1,6 @@
 use crate::colors::{self, ContextExt};
 use crate::ctx::Ctx;
 use crate::draw::create_pango_layout::FontAndLayoutOptions;
-use crate::draw::draw::{draw_geometry, draw_line_string};
 use crate::draw::offset_line::offset_line;
 use crate::draw::text_on_line::{Align, TextOnLineOptions, text_on_line};
 use crate::layers::borders;
@@ -117,6 +116,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                     },
                     halo_width: 2.0,
                     align: Align::Justify,
+                    concave_spacing_factor: 0.0,
                     ..Default::default()
                 },
             );
@@ -134,6 +134,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                     halo_width: 2.0,
                     color: colors::AREA_LABEL,
                     align: Align::Justify,
+                    concave_spacing_factor: 0.0,
                     ..Default::default()
                 },
             );

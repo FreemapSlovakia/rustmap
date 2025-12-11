@@ -14,10 +14,6 @@ use postgres::Client;
 pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     let zoom = ctx.zoom;
 
-    if zoom < 12 {
-        return;
-    }
-
     let sql = format!(
         "WITH merged AS (
             SELECT
