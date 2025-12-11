@@ -4,7 +4,7 @@ use crate::{
     ctx::Ctx,
     draw::{
         create_pango_layout::FontAndLayoutOptions,
-        text::{TextOptions, draw_text},
+        text::{DEFAULT_PLACEMENTS, TextOptions, draw_text},
     },
     projectable::{TileProjectable, geometry_point},
 };
@@ -25,6 +25,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         },
         halo_opacity: 0.2,
         color: colors::LOCALITY_LABEL,
+        placements: DEFAULT_PLACEMENTS,
         ..TextOptions::default()
     };
 
