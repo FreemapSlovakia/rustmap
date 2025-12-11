@@ -4,7 +4,7 @@ use std::cell::Cell;
 use crate::{
     SvgCache,
     ctx::Ctx,
-    draw::{draw::draw_line, markers_on_path::draw_markers_on_path},
+    draw::{draw::draw_line_string, markers_on_path::draw_markers_on_path},
     projectable::{TileProjectable, geometry_line_string},
 };
 
@@ -42,7 +42,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
         .expect("db data");
 
     for row in rows {
-        draw_line(
+        draw_line_string(
             context,
             &geometry_line_string(&row).project_to_tile(&ctx.tile_projector),
         );

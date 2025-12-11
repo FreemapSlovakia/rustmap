@@ -1,7 +1,10 @@
 use crate::{
     SvgCache,
     ctx::Ctx,
-    draw::{draw::draw_line_off, line_pattern::draw_line_pattern_scaled, offset_line::offset_line},
+    draw::{
+        draw::draw_line_string_with_offset, line_pattern::draw_line_pattern_scaled,
+        offset_line::offset_line,
+    },
     projectable::{TileProjectable, geometry_multi_line_string},
 };
 use bitflags::bitflags;
@@ -360,7 +363,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes, svg_cach
                     let offset = -(zo + (off as f64 - 1.0) * wf * 2.0) - 1.0;
 
                     for part in &geom {
-                        draw_line_off(context, part, offset);
+                        draw_line_string_with_offset(context, part, offset);
                     }
 
                     context.set_line_width(wf * 2.0);
@@ -393,7 +396,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes, svg_cach
                         let offset = (zo + (off as f64 - 1.0) * wf * df) + 0.5;
 
                         for part in &geom {
-                            draw_line_off(context, part, offset);
+                            draw_line_string_with_offset(context, part, offset);
                         }
                         context.set_line_width(wf);
                         context.set_line_join(cairo::LineJoin::Round);
@@ -413,7 +416,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes, svg_cach
                         let offset = (zo + (off as f64 - 1.0) * wf * df) + 0.5;
 
                         for part in &geom {
-                            draw_line_off(context, part, offset);
+                            draw_line_string_with_offset(context, part, offset);
                         }
 
                         context.set_line_width(wf);

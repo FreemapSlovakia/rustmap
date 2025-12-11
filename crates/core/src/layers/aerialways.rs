@@ -1,6 +1,6 @@
 use crate::{
     ctx::Ctx,
-    draw::draw::draw_line,
+    draw::draw::draw_line_string,
     projectable::{TileProjectable, geometry_line_string},
 };
 use postgres::Client;
@@ -24,7 +24,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         context.set_dash(&[], 0.0);
         context.set_line_width(1.0);
 
-        draw_line(
+        draw_line_string(
             context,
             &geometry_line_string(&row).project_to_tile(&ctx.tile_projector),
         );

@@ -3,7 +3,7 @@ use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::{
-        draw::{draw_geometry, draw_geometry_uni, draw_line_off},
+        draw::{draw_geometry, draw_geometry_uni, draw_line_string_with_offset},
         hatch::hatch_geometry,
         line_pattern::draw_line_pattern,
     },
@@ -101,7 +101,9 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
 
             context.set_line_width(wb);
             context.set_source_color_a(colors::PROTECTED, 0.5);
-            draw_geometry_uni(&projected, &|iter| draw_line_off(context, iter, wb * 0.75));
+            draw_geometry_uni(&projected, &|iter| {
+                draw_line_string_with_offset(context, iter, wb * 0.75)
+            });
             context.stroke().unwrap();
         }
     }

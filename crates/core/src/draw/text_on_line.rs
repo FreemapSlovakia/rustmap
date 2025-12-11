@@ -4,6 +4,7 @@ use crate::{
     draw::create_pango_layout::{FontAndLayoutOptions, create_pango_layout},
 };
 use cairo::Context;
+use geo::Vector2DOps;
 use geo::{Coord, Distance, Euclidean, InterpolatePoint, LineString, Rect};
 use pangocairo::{
     functions::glyph_string_path,
@@ -61,27 +62,17 @@ pub enum Align {
     Justify,
 }
 
-// TODO check geo crate
 fn normalize(v: Coord) -> Coord {
-    let len = v.x.hypot(v.y);
-    if len == 0.0 {
-        Coord { x: 0.0, y: 0.0 }
-    } else {
-        Coord {
-            x: v.x / len,
-            y: v.y / len,
-        }
-    }
+    v.try_normalize().unwrap_or(Coord { x: 0.0, y: 0.0 })
 }
 
-// TODO check geo crate
 fn angle_between(a: Coord, b: Coord) -> f64 {
-    let dot = a.x * b.x + a.y * b.y;
-    let det = a.x * b.y - a.y * b.x;
-    det.atan2(dot).abs().to_degrees()
+    a.wedge_product(b)
+        .atan2(a.dot_product(b))
+        .abs()
+        .to_degrees()
 }
 
-// TODO check geo crate
 fn normalize_angle(a: f64) -> f64 {
     if a > PI {
         a - TAU
@@ -192,20 +183,14 @@ fn position_at(pts: &[Coord], cum: &[f64], dist: f64) -> Option<(Coord, Coord)> 
     }
 
     if dist <= 0.0 {
-        let tangent = normalize(Coord {
-            x: pts[1].x - pts[0].x,
-            y: pts[1].y - pts[0].y,
-        });
+        let tangent = normalize(pts[1] - pts[0]);
         return Some((pts[0], tangent));
     }
 
     if let Some(total) = cum.last() {
         if dist >= *total {
             let len = pts.len();
-            let tangent = normalize(Coord {
-                x: pts[len - 1].x - pts[len - 2].x,
-                y: pts[len - 1].y - pts[len - 2].y,
-            });
+            let tangent = normalize(pts[len - 1] - pts[len - 2]);
             return Some((pts[len - 1], tangent));
         }
     }
@@ -224,10 +209,7 @@ fn position_at(pts: &[Coord], cum: &[f64], dist: f64) -> Option<(Coord, Coord)> 
     let p1 = pts[idx];
     let p2 = pts[idx + 1];
     let pos = Euclidean.point_at_ratio_between(p1.into(), p2.into(), t).0;
-    let tangent = normalize(Coord {
-        x: p2.x - p1.x,
-        y: p2.y - p1.y,
-    });
+    let tangent = normalize(p2 - p1);
 
     Some((pos, tangent))
 }
@@ -454,6 +436,7 @@ pub fn text_on_line(
         *repeat_distance,
         *align,
     );
+
     if offsets.is_empty() {
         return;
     }
@@ -558,16 +541,17 @@ pub fn text_on_line(
             // Track an axis-aligned bbox for the rotated glyph.
             let mut gs_bbox = glyph_string.clone();
             let (_, logical) = gs_bbox.extents(font);
-            let w = logical.width() as f64 / SCALE as f64;
-            let h = logical.height() as f64 / SCALE as f64;
-            let hw = w / 2.0;
-            let hh = h / 2.0;
+            let hw = logical.width() as f64 / SCALE as f64 / 2.0;
+            let hh = logical.height() as f64 / SCALE as f64 / 2.0;
             let cos = angle.cos().abs();
             let sin = angle.sin().abs();
             let rx = hw * cos + hh * sin;
             let ry = hw * sin + hh * cos;
-            let glyph_bbox = Rect::new((pos.x - rx, pos.y - ry), (pos.x + rx, pos.y + ry));
-            glyph_bboxes.push(glyph_bbox);
+
+            glyph_bboxes.push(Rect::new(
+                (pos.x - rx, pos.y - ry),
+                (pos.x + rx, pos.y + ry),
+            ));
 
             label_placements.push((glyph_string.clone(), font.clone(), pos, angle));
 
@@ -578,6 +562,7 @@ pub fn text_on_line(
             if glyph_bboxes.iter().any(|bb| col.collides(bb)) {
                 continue 'outer;
             }
+
             for bb in glyph_bboxes {
                 let _ = col.add(bb);
             }

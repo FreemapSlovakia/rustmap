@@ -1,4 +1,4 @@
-use crate::draw::draw::draw_line;
+use crate::draw::draw::draw_line_string;
 use cairo::Context;
 use geo::{Coord, LineString};
 
@@ -6,7 +6,7 @@ use geo::{Coord, LineString};
 // https://agg.sourceforge.net/antigrain.com/research/bezier_interpolation/index.html
 pub fn draw_smooth_bezier_spline(context: &Context, line_string: &LineString, smooth_value: f64) {
     if smooth_value == 0.0 {
-        draw_line(context, &line_string);
+        draw_line_string(context, &line_string);
 
         return;
     }

@@ -1,11 +1,12 @@
 use crate::colors::{self, ContextExt};
 use crate::ctx::Ctx;
 use crate::draw::create_pango_layout::FontAndLayoutOptions;
+use crate::draw::draw::{draw_geometry, draw_line_string};
 use crate::draw::offset_line::offset_line;
 use crate::draw::text_on_line::{Align, TextOnLineOptions, text_on_line};
 use crate::layers::borders;
 use crate::projectable::TileProjectable;
-use geo::{BoundingRect, Geometry, Intersects, LineString};
+use geo::{BoundingRect, Coord, Geometry, Intersects, LineString};
 use geojson::{FeatureCollection, GeoJson};
 use postgres::Client;
 use proj::{Proj, Transform};
@@ -65,15 +66,31 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     let sr = 1.5f64.powf(ctx.zoom as f64 - 6.0);
 
+    let min = rect.min();
+    let max = rect.max();
+
+    let margin = ctx.meters_per_pixel() * sr * 20.0;
+
+    let rect = geo::Rect::new(
+        Coord {
+            x: min.x - margin,
+            y: min.y - margin,
+        },
+        Coord {
+            x: max.x + margin,
+            y: max.y + margin,
+        },
+    );
+
     FEATURES.with(|features| {
         for (geom, name, name_en) in features.iter() {
+            let geom = geom.project_to_tile(&ctx.tile_projector);
+
             let bounds = geom.bounding_rect().unwrap();
 
-            if !ctx.bbox.intersects(&bounds) {
+            if !rect.intersects(&bounds) {
                 continue;
             }
-
-            let geom = geom.project_to_tile(&ctx.tile_projector);
 
             // context.save().unwrap();
             // draw_line(context, &geom);

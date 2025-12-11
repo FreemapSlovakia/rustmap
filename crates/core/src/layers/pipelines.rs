@@ -1,7 +1,7 @@
 use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::draw::draw_line,
+    draw::draw::draw_line_string,
     projectable::{TileProjectable, geometry_line_string},
 };
 use postgres::Client;
@@ -31,7 +31,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     for row in rows {
         context.push_group();
 
-        draw_line(
+        draw_line_string(
             context,
             &geometry_line_string(&row).project_to_tile(&ctx.tile_projector),
         );

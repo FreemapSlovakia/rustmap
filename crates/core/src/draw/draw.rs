@@ -3,7 +3,7 @@ use cavalier_contours::polyline::{PlineSource, PlineSourceMut, PlineVertex, Poly
 use geo::{Geometry, LineString, Polygon};
 
 pub fn draw_geometry(context: &Context, geom: &Geometry) {
-    draw_geometry_uni(geom, &|iter| draw_line(context, iter));
+    draw_geometry_uni(geom, &|line_string| draw_line_string(context, line_string));
 }
 
 pub fn draw_geometry_uni<F>(geom: &Geometry, dl: &F)
@@ -32,7 +32,16 @@ where
         Geometry::LineString(ls) => {
             dl(ls);
         }
-        _ => {}
+        Geometry::Rect(r) => {
+            dl(r.to_polygon().exterior());
+        }
+        Geometry::Triangle(r) => {
+            dl(r.to_polygon().exterior());
+        }
+        Geometry::Line(line) => {
+            dl(&LineString::new(vec![line.start, line.end]));
+        }
+        Geometry::Point(_) | Geometry::MultiPoint(_) => {}
     }
 }
 
@@ -47,7 +56,7 @@ where
     }
 }
 
-pub fn draw_line(context: &Context, line_string: &LineString) {
+pub fn draw_line_string(context: &Context, line_string: &LineString) {
     for (i, p) in line_string.into_iter().enumerate() {
         if i == 0 {
             context.move_to(p.x, p.y);
@@ -57,7 +66,7 @@ pub fn draw_line(context: &Context, line_string: &LineString) {
     }
 }
 
-pub fn draw_line_off(context: &Context, line_string: &LineString, offset: f64) {
+pub fn draw_line_string_with_offset(context: &Context, line_string: &LineString, offset: f64) {
     let mut polyline = Polyline::new();
 
     for p in line_string {
