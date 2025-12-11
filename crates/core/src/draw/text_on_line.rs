@@ -124,13 +124,9 @@ fn weighted_tangent_for_span(
         }
 
         let weight = overlap_end - overlap_start;
-        let tangent = normalize(Coord {
-            x: pts[i + 1].x - pts[i].x,
-            y: pts[i + 1].y - pts[i].y,
-        });
+        let tangent = normalize(pts[i + 1] - pts[i]);
 
-        accum.x += tangent.x * weight;
-        accum.y += tangent.y * weight;
+        accum = accum + tangent * weight;
         total += weight;
     }
 
@@ -155,10 +151,7 @@ fn tangents_for_span(pts: &[Coord], cum: &[f64], span_start: f64, span_end: f64)
             continue;
         }
 
-        let tangent = normalize(Coord {
-            x: pts[i + 1].x - pts[i].x,
-            y: pts[i + 1].y - pts[i].y,
-        });
+        let tangent = normalize(pts[i + 1] - pts[i]);
 
         result.push(tangent);
     }
@@ -623,10 +616,10 @@ pub fn text_on_line(
 
             label_placements.push((glyph_string.clone(), font.clone(), pos, angle));
 
-            if idx + 1 == clusters.len() {
-                offset += eff_advance;
-            } else {
-                offset += eff_advance + concave_spacing + extra_spacing_between_glyphs;
+            offset += eff_advance;
+
+            if idx + 1 < clusters.len() {
+                offset += concave_spacing + extra_spacing_between_glyphs;
             }
         }
 
