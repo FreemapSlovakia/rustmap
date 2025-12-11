@@ -20,10 +20,13 @@ fn read_rgba_from_gdal(
     let max = bbox.max();
 
     // Convert geographic coordinates (min_x, min_y, max_x, max_y) to pixel coordinates
-    let pixel_min_x = ((min.x - gt_x_off) / gt_x_width).round() as isize;
-    let pixel_max_x = ((max.x - gt_x_off) / gt_x_width).round() as isize;
-    let pixel_max_y = ((min.y - gt_y_off) / gt_y_width).round() as isize;
-    let pixel_min_y = ((max.y - gt_y_off) / gt_y_width).round() as isize;
+    let pixel_min_x = ((min.x - gt_x_off) / gt_x_width).floor() as isize;
+    let pixel_max_x = ((max.x - gt_x_off) / gt_x_width).ceil() as isize;
+
+    let pixel_y0 = (min.y - gt_y_off) / gt_y_width;
+    let pixel_y1 = (max.y - gt_y_off) / gt_y_width;
+    let pixel_min_y = pixel_y0.min(pixel_y1).floor() as isize;
+    let pixel_max_y = pixel_y0.max(pixel_y1).ceil() as isize;
 
     let window_x = pixel_min_x;
     let window_y = pixel_min_y;
@@ -54,8 +57,19 @@ fn read_rgba_from_gdal(
         - adj_window_y)
         .max(0) as usize;
 
-    let ww = (w_scaled as f64 * (adj_source_width as f64 / source_width as f64)) as usize;
-    let hh = (h_scaled as f64 * (adj_source_height as f64 / source_height as f64)) as usize;
+    let ww = (w_scaled as f64 * (adj_source_width as f64 / source_width as f64)).ceil() as usize;
+    let hh = (h_scaled as f64 * (adj_source_height as f64 / source_height as f64)).ceil() as usize;
+
+    let offset_x = (((adj_window_x - window_x) as f64 / source_width as f64) * w_scaled as f64)
+        .floor()
+        .max(0.0) as usize;
+
+    let offset_y = (((adj_window_y - window_y) as f64 / source_height as f64) * h_scaled as f64)
+        .floor()
+        .max(0.0) as usize;
+
+    let copy_w = ww.min(w_scaled.saturating_sub(offset_x));
+    let copy_h = hh.min(h_scaled.saturating_sub(offset_y));
 
     let mut data = vec![0u8; hh * ww];
 
@@ -67,32 +81,17 @@ fn read_rgba_from_gdal(
         band.read_into_slice::<u8>(
             (adj_window_x, adj_window_y),
             (adj_source_width, adj_source_height),
-            (
-                (w_scaled as f64 * (adj_source_width as f64 / source_width as f64)) as usize,
-                (h_scaled as f64 * (adj_source_height as f64 / source_height as f64)) as usize,
-            ), // Resampled size
+            (ww, hh), // Resampled size
             &mut data,
             Some(gdal::raster::ResampleAlg::Lanczos),
         )
         .unwrap();
 
-        for y in 0..w_scaled.min(hh) {
-            for x in 0..h_scaled.min(ww) {
+        for y in 0..copy_h {
+            for x in 0..copy_w {
                 let data_index = y * ww + x;
 
-                let off_y = if window_y == adj_window_y {
-                    0
-                } else {
-                    h_scaled - hh
-                };
-
-                let off_x = if window_x == adj_window_x {
-                    0
-                } else {
-                    w_scaled - ww
-                };
-
-                let rgba_index = ((y + off_y) * w_scaled + (x + off_x)) * 4;
+                let rgba_index = ((y + offset_y) * w_scaled + (x + offset_x)) * 4;
 
                 let value = data[data_index];
 
