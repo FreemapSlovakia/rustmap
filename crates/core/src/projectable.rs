@@ -6,6 +6,8 @@ use geo::{
 use geo_postgis::FromPostgis;
 use postgres::Row;
 
+const GEOMETRY_COLUMN: &'static str = "geometry";
+
 pub struct TileProjector {
     min_x: f64,
     min_y: f64,
@@ -128,25 +130,25 @@ impl TileProjectable for Geometry {
 }
 
 pub fn geometry_point(row: &Row) -> Point {
-    Point::from_postgis(&row.get::<_, postgis::ewkb::Point>("geometry"))
+    Point::from_postgis(&row.get::<_, postgis::ewkb::Point>(GEOMETRY_COLUMN))
 }
 
 pub fn geometry_line_string(row: &Row) -> LineString {
-    LineString::from_postgis(&row.get::<_, postgis::ewkb::LineString>("geometry"))
+    LineString::from_postgis(&row.get::<_, postgis::ewkb::LineString>(GEOMETRY_COLUMN))
 }
 
 pub fn geometry_multi_line_string(row: &Row) -> MultiLineString {
-    MultiLineString::from_postgis(&row.get::<_, postgis::ewkb::MultiLineString>("geometry"))
+    MultiLineString::from_postgis(&row.get::<_, postgis::ewkb::MultiLineString>(GEOMETRY_COLUMN))
 }
 
 pub fn geometry_polygon(row: &Row) -> Option<Polygon> {
-    row.get::<_, Option<postgis::ewkb::Polygon>>("geometry")
+    row.get::<_, Option<postgis::ewkb::Polygon>>(GEOMETRY_COLUMN)
         .as_ref()
         .and_then(Option::from_postgis)
 }
 
 pub fn geometry_geometry(row: &Row) -> Option<Geometry> {
-    row.get::<_, Option<postgis::ewkb::Geometry>>("geometry")
+    row.get::<_, Option<postgis::ewkb::Geometry>>(GEOMETRY_COLUMN)
         .as_ref()
         .and_then(Option::from_postgis)
 }
