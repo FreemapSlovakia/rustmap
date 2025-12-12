@@ -84,7 +84,7 @@ pub fn create_pango_layout_with_attrs(
 
     let mut attr_list = attrs;
 
-    if *letter_spacing != 1.0 {
+    if *letter_spacing > 0.0 {
         let list = attr_list.unwrap_or_else(AttrList::new);
         list.insert(AttrInt::new_letter_spacing(
             (SCALE as f64 * *letter_spacing) as i32,
