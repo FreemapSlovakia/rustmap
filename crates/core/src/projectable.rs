@@ -4,6 +4,7 @@ use geo::{
     MultiPolygon, Point, Polygon, Rect, Triangle,
 };
 use geo_postgis::FromPostgis;
+use postgres::Row;
 
 pub struct TileProjector {
     min_x: f64,
@@ -126,27 +127,25 @@ impl TileProjectable for Geometry {
     }
 }
 
-/////////////////
-
-pub fn geometry_point(row: &postgres::Row) -> Point {
+pub fn geometry_point(row: &Row) -> Point {
     Point::from_postgis(&row.get::<_, postgis::ewkb::Point>("geometry"))
 }
 
-pub fn geometry_line_string(row: &postgres::Row) -> LineString {
+pub fn geometry_line_string(row: &Row) -> LineString {
     LineString::from_postgis(&row.get::<_, postgis::ewkb::LineString>("geometry"))
 }
 
-pub fn geometry_multi_line_string(row: &postgres::Row) -> MultiLineString {
+pub fn geometry_multi_line_string(row: &Row) -> MultiLineString {
     MultiLineString::from_postgis(&row.get::<_, postgis::ewkb::MultiLineString>("geometry"))
 }
 
-pub fn geometry_polygon(row: &postgres::Row) -> Option<Polygon> {
+pub fn geometry_polygon(row: &Row) -> Option<Polygon> {
     row.get::<_, Option<postgis::ewkb::Polygon>>("geometry")
         .as_ref()
         .and_then(Option::from_postgis)
 }
 
-pub fn geometry_geometry(row: &postgres::Row) -> Option<Geometry> {
+pub fn geometry_geometry(row: &Row) -> Option<Geometry> {
     row.get::<_, Option<postgis::ewkb::Geometry>>("geometry")
         .as_ref()
         .and_then(Option::from_postgis)
