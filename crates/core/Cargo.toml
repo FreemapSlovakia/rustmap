@@ -19,12 +19,10 @@ colorsys = { workspace = true }
 gdal = { workspace = true }
 geo = { workspace = true }
 geo-postgis = { workspace = true }
-geojson = { workspace = true }
 image = { workspace = true }
 librsvg = { workspace = true }
 pangocairo = { workspace = true }
 postgis = { workspace = true }
 postgres = { workspace = true }
-proj = { workspace = true }
 regex = { workspace = true }
 tracy-client = { workspace = true }

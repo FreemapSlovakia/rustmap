@@ -97,10 +97,10 @@ COMMIT;
 
 CREATE MATERIALIZED VIEW geonames_smooth AS
 SELECT
-  g.ogc_fid,
-  ST_ChaikinSmoothing(g.geometry, 3)::geometry(LineString, 3857) AS geometry,
-  g.name
-FROM geonames g;
+  ogc_fid,
+  ST_ChaikinSmoothing(geometry, 3)::geometry(LineString, 3857) AS geometry,
+  name
+FROM geonames;
 
 CREATE UNIQUE INDEX geonames_smooth_pk
 ON geonames_smooth (ogc_fid);
