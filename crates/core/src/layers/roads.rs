@@ -231,9 +231,9 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
             |color: Color, weight: f64, sleeper_weight: f64, spacing: f64, glow_width: f64| {
                 context.set_line_join(cairo::LineJoin::Round);
 
-                let gw = weight + glow_width * 2.0;
+                let gw = glow_width.mul_add(2.0, weight);
 
-                let sgw = sleeper_weight + glow_width * 2.0;
+                let sgw = glow_width.mul_add(2.0, sleeper_weight);
 
                 context.set_source_color(colors::RAIL_GLOW);
                 context.set_dash(&[], 0.0);

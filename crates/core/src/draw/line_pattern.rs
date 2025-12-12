@@ -15,20 +15,20 @@ fn get_intersection1(p1: Coord, p2: Coord, p3: Coord, p4: Coord) -> Option<Coord
     let s2_x = p4.x - p3.x;
     let s2_y = p4.y - p3.y;
 
-    let denom = s1_x * s2_y - s2_x * s1_y;
+    let denom = s1_x.mul_add(s2_y, -(s2_x * s1_y));
 
     if denom.abs() < f64::EPSILON {
         return None;
     }
 
-    let s = (s1_x * (p1.y - p3.y) - s1_y * (p1.x - p3.x)) / denom;
+    let s = s1_x.mul_add(p1.y - p3.y, -(s1_y * (p1.x - p3.x))) / denom;
 
-    let t = (s2_x * (p1.y - p3.y) - s2_y * (p1.x - p3.x)) / denom;
+    let t = s2_x.mul_add(p1.y - p3.y, -(s2_y * (p1.x - p3.x))) / denom;
 
     if (0.0..=1.0).contains(&s) && (0.0..=1.0).contains(&t) {
         Some(Coord {
-            x: p1.x + t * s1_x,
-            y: p1.y + t * s1_y,
+            x: t.mul_add(s1_x, p1.x),
+            y: t.mul_add(s1_y, p1.y),
         })
     } else {
         None
@@ -41,17 +41,17 @@ fn get_intersection(p1: Coord, p2: Coord, p3: Coord, p4: Coord) -> Option<Coord>
     let s2_x = p4.x - p3.x;
     let s2_y = p4.y - p3.y;
 
-    let denom = s1_x * s2_y - s2_x * s1_y;
+    let denom = s1_x.mul_add(s2_y, -(s2_x * s1_y));
 
     if denom.abs() < f64::EPSILON {
         return None;
     }
 
-    let s = (s1_x * (p1.y - p3.y) - s1_y * (p1.x - p3.x)) / denom;
+    let s = s1_x.mul_add(p1.y - p3.y, -(s1_y * (p1.x - p3.x))) / denom;
 
     Some(Coord {
-        x: p3.x + s * s2_x,
-        y: p3.y + s * s2_y,
+        x: s.mul_add(s2_x, p3.x),
+        y: s.mul_add(s2_y, p3.y),
     })
 }
 
@@ -65,13 +65,13 @@ fn should_use_bevel_join(
     let v1 = (p1.x - p0.x, p1.y - p0.y);
     let v2 = (p2.x - p1.x, p2.y - p1.y);
 
-    let len_v1 = (v1.0.powi(2) + v1.1.powi(2)).sqrt();
-    let len_v2 = (v2.0.powi(2) + v2.1.powi(2)).sqrt();
+    let len_v1 = v1.0.hypot(v1.1);
+    let len_v2 = v2.0.hypot(v2.1);
 
     let v1_norm = (v1.0 / len_v1, v1.1 / len_v1);
     let v2_norm = (v2.0 / len_v2, v2.1 / len_v2);
 
-    let dot = v1_norm.0 * v2_norm.0 + v1_norm.1 * v2_norm.1;
+    let dot = v1_norm.0.mul_add(v2_norm.0, v1_norm.1 * v2_norm.1);
     let angle = dot.clamp(-1.0, 1.0).acos();
 
     let miter_length = stroke_width / (2.0 * (angle / 2.0).sin());
@@ -80,13 +80,13 @@ fn should_use_bevel_join(
 }
 
 fn cross_product(v1: Coord, v2: Coord, v3: Coord) -> f64 {
-    (v2.x - v1.x) * (v3.y - v2.y) - (v2.y - v1.y) * (v3.x - v2.x)
+    (v2.x - v1.x).mul_add(v3.y - v2.y, -((v2.y - v1.y) * (v3.x - v2.x)))
 }
 
 fn compute_corners(p0: Coord, p1: Coord, stroke_width: f64) -> (Coord, Coord, Coord, Coord) {
     let dx0 = p1.x - p0.x;
     let dy0 = p1.y - p0.y;
-    let length0 = (dx0.powi(2) + dy0.powi(2)).sqrt();
+    let length0 = dx0.hypot(dy0);
     let perp0 = get_perpendicular(dx0, dy0, length0, stroke_width);
 
     (
@@ -161,8 +161,8 @@ pub fn draw_line_pattern_scaled(
 
         let min_x = -width * 10.0;
         let min_y = -height * 10.0;
-        let max_x = ctx.size.width as f64 + width * 10.0;
-        let max_y = ctx.size.height as f64 + height * 10.0;
+        let max_x = width.mul_add(10.0, ctx.size.width as f64);
+        let max_y = height.mul_add(10.0, ctx.size.height as f64);
 
         if p1.x < min_x && p2.x < min_x
             || p1.y < min_y && p2.y < min_y

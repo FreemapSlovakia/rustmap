@@ -88,9 +88,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: &str) {
                 &format!("{}", height),
                 None,
                 &TextOnLineOptions {
-                    flo: FontAndLayoutOptions {
-                        ..FontAndLayoutOptions::default()
-                    },
+                    flo: FontAndLayoutOptions::default(),
                     upright: Upright::Left,
                     color: colors::CONTOUR,
                     ..TextOnLineOptions::default()

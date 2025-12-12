@@ -130,25 +130,23 @@ fn read_rgba_from_gdal(
     for i in (0..rgba_data.len()).step_by(4) {
         let alpha = rgba_data[i + 3] as f32 / 255.0;
 
-        let r = (rgba_data[i + 0] as f32 * alpha) as u8;
+        let r = (rgba_data[i] as f32 * alpha) as u8;
         let g = (rgba_data[i + 1] as f32 * alpha) as u8;
         let b = (rgba_data[i + 2] as f32 * alpha) as u8;
 
-        rgba_data[i + 0] = b;
+        rgba_data[i] = b;
         rgba_data[i + 1] = g;
         rgba_data[i + 2] = r;
     }
 
-    let surface = ImageSurface::create_for_data(
+    ImageSurface::create_for_data(
         rgba_data.to_vec(),
         Format::ARgb32,
         (size.width as f64 * scale) as i32,
         (size.height as f64 * scale) as i32,
         (size.width as f64 * scale) as i32 * 4,
     )
-    .unwrap();
-
-    surface
+    .unwrap()
 }
 
 pub fn render(ctx: &Ctx, country: &str, alpha: f64, shading_data: &mut HashMap<String, Dataset>) {

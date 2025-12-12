@@ -30,7 +30,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     let geometries: Vec<_> = rows
         .iter()
-        .filter_map(|row| geometry_geometry(&row))
+        .filter_map(geometry_geometry)
         .map(|geom| (geom.project_to_tile(&ctx.tile_projector), geom))
         .collect();
 

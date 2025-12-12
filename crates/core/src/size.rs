@@ -1,6 +1,6 @@
 use std::ops::Sub;
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Eq, Copy, Clone)]
 pub struct Size<T>
 where
     T: Sub<Output = T> + PartialOrd + Copy,
@@ -13,10 +13,7 @@ impl<T> Size<T>
 where
     T: Sub<Output = T> + PartialOrd + Copy,
 {
-    pub fn new(width: T, height: T) -> Self {
-        Self {
-            width,
-            height,
-        }
+    pub const fn new(width: T, height: T) -> Self {
+        Self { width, height }
     }
 }

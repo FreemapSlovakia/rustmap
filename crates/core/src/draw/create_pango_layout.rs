@@ -19,7 +19,7 @@ pub struct FontAndLayoutOptions {
 
 impl Default for FontAndLayoutOptions {
     fn default() -> Self {
-        FontAndLayoutOptions {
+        Self {
             letter_spacing: 0.0,
             max_width: 100.0,
             narrow: false,
@@ -85,7 +85,7 @@ pub fn create_pango_layout_with_attrs(
     let mut attr_list = attrs;
 
     if *letter_spacing > 0.0 {
-        let list = attr_list.unwrap_or_else(AttrList::new);
+        let list = attr_list.unwrap_or_default();
         list.insert(AttrInt::new_letter_spacing(
             (SCALE as f64 * *letter_spacing) as i32,
         ));

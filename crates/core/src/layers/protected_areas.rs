@@ -32,7 +32,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
     let geometries: Vec<_> = rows
         .iter()
         .filter_map(|row| {
-            geometry_geometry(&row)
+            geometry_geometry(row)
                 .map(|geom| (geom.project_to_tile(&ctx.tile_projector), geom, row))
         })
         .collect();
@@ -48,11 +48,11 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
             if typ == "national_park" || typ == "protected_area" && protect_class == "2" {
                 context.push_group();
 
-                draw_geometry(context, &projected);
+                draw_geometry(context, projected);
 
                 context.clip();
 
-                hatch_geometry(ctx, &unprojected, 3.0, -45.0);
+                hatch_geometry(ctx, unprojected, 3.0, -45.0);
 
                 context.set_source_color_a(colors::PROTECTED, if zoom < 11 { 0.5 } else { 0.4 });
                 context.set_dash(&[], 0.0);
@@ -73,7 +73,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
         if typ == "nature_reserve" || typ == "protected_area" && protect_class != "2" {
             let sample = svg_cache.get("protected_area.svg");
 
-            draw_geometry_uni(&projected, &|line_string| {
+            draw_geometry_uni(projected, &|line_string| {
                 draw_line_pattern(ctx, line_string, 0.8, sample)
             });
         }
@@ -87,7 +87,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
 
         if typ == "national_park" || typ == "protected_area" && protect_class == "2" {
             let wb = if zoom > 10 {
-                0.5 * (zoom as f64 - 10.0) + 2.0
+                0.5f64.mul_add(zoom as f64 - 10.0, 2.0)
             } else {
                 2.0
             };
@@ -96,12 +96,12 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
             context.set_dash(&[], 0.0);
             context.set_line_width(wb * 0.75);
             context.set_line_join(cairo::LineJoin::Round);
-            draw_geometry(context, &projected);
+            draw_geometry(context, projected);
             context.stroke().unwrap();
 
             context.set_line_width(wb);
             context.set_source_color_a(colors::PROTECTED, 0.5);
-            draw_geometry_uni(&projected, &|iter| {
+            draw_geometry_uni(projected, &|iter| {
                 draw_line_string_with_offset(context, iter, wb * 0.75)
             });
             context.stroke().unwrap();

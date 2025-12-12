@@ -41,7 +41,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
         let glow = pass == 0;
 
         for row in rows {
-            let geom = geometry_line_string(&row).project_to_tile(&ctx.tile_projector);
+            let geom = geometry_line_string(row).project_to_tile(&ctx.tile_projector);
 
             let typ: &str = row.get("type");
 

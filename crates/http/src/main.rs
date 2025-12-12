@@ -6,7 +6,6 @@ use oxhttp::{
     model::{Body, Request, Response, StatusCode},
 };
 use postgres::{Config, NoTls};
-use r2d2;
 use r2d2_postgres::PostgresConnectionManager;
 use regex::Regex;
 use std::{

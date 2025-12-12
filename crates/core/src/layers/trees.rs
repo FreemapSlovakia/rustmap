@@ -29,8 +29,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
 
         let point = geometry_point(&row).project_to_tile(&ctx.tile_projector);
 
-        let scale =
-            (2.0 + 2f64.powf(zoom as f64 - 15.0)) * (if typ == "shrub" { 0.1 } else { 0.2 });
+        let scale = (2.0 + (zoom as f64 - 15.0).exp2()) * (if typ == "shrub" { 0.1 } else { 0.2 });
 
         let surface = svg_cache.get("tree2.svg");
 

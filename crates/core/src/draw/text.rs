@@ -209,5 +209,5 @@ pub fn draw_text_with_attrs(
 
     context.restore().expect("context restored");
 
-    return true;
+    true
 }

@@ -30,7 +30,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         context.set_source_color(colors::SCRUB);
         context.set_dash(&[], 0.0);
-        context.set_line_width(2.0 + 0.33 * 2f64.powf((zoom - 12) as f64));
+        context.set_line_width(0.33f64.mul_add(((zoom - 12) as f64).exp2(), 2.0));
         context.stroke_preserve().unwrap();
         context.stroke().unwrap();
     }

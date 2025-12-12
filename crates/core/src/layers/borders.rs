@@ -45,7 +45,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         ctx.context.set_dash(&[], 0.0);
         ctx.context.set_source_color(colors::ADMIN_BORDER);
         ctx.context.set_line_width(if zoom <= 10 {
-            0.5 + 6.0 * 1.4f64.powf(zoom as f64 - 11.0)
+            6.0f64.mul_add(1.4f64.powf(zoom as f64 - 11.0), 0.5)
         } else {
             6.0
         });

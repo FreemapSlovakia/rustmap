@@ -75,7 +75,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         context.push_group();
 
-        for (name, mut offset, options) in vec![
+        for (name, mut offset, options) in [
             (name, sr * -14.0, &options_upper),
             (name_en, sr * 8.0, &options_lower),
         ] {

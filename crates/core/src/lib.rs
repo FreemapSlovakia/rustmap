@@ -281,7 +281,7 @@ fn draw(
     routes::render(ctx, client, &routes::RouteTypes::all(), svg_cache);
     context.restore().unwrap();
 
-    if zoom >= 8 && zoom <= 11 {
+    if (8..=11).contains(&zoom) {
         geonames::render(ctx, client);
     }
 
@@ -359,7 +359,7 @@ pub struct RenderRequest {
 }
 
 impl RenderRequest {
-    pub fn new(bbox: Rect<f64>, zoom: u32, scale: f64, format: TileFormat) -> Self {
+    pub const fn new(bbox: Rect<f64>, zoom: u32, scale: f64, format: TileFormat) -> Self {
         Self {
             bbox,
             zoom,

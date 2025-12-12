@@ -23,8 +23,8 @@ where
 
                 while m >= spacing {
                     let t = off / d;
-                    let xx = px + t * (x - px);
-                    let yy = py + t * (y - py);
+                    let xx = t.mul_add(x - px, px);
+                    let yy = t.mul_add(y - py, py);
 
                     let angle = (y - py).atan2(x - px);
 

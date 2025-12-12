@@ -24,7 +24,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     let mut params = ctx.bbox_query_params(None);
 
-    params.push(2.0f64.powf(20.0 - zoom as f64) / 25.0);
+    params.push((20.0 - zoom as f64).exp2() / 25.0);
 
     let rows = client.query(&sql, &params.as_params()).expect("db data");
 

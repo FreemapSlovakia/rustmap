@@ -76,14 +76,13 @@ pub fn draw_line_string_with_offset(context: &Context, line_string: &LineString,
     for pc in polyline.parallel_offset(offset) {
         let mut first = true;
         let mut p1 = (0.0, 0.0);
-        let mut prev_bulge = 0.0;
+        let mut prev_bulge = 0.0f64;
 
         for v in pc.vertex_data {
             if first {
                 context.move_to(v.x, v.y);
                 first = false;
                 p1 = (v.x, v.y);
-                prev_bulge = v.bulge;
             } else {
                 let p2 = (v.x, v.y);
 
@@ -91,20 +90,22 @@ pub fn draw_line_string_with_offset(context: &Context, line_string: &LineString,
                     context.line_to(p2.0, p2.1);
                 } else {
                     let theta = 4.0 * prev_bulge.atan();
-                    let dist = ((p2.0 - p1.0).powi(2) + (p2.1 - p1.1).powi(2)).sqrt();
+                    let dist = (p2.0 - p1.0).hypot(p2.1 - p1.1);
                     let radius = dist / (2.0 * (theta / 2.0).sin());
 
                     // Calculate center of the arc
                     let mx = (p1.0 + p2.0) / 2.0;
                     let my = (p1.1 + p2.1) / 2.0;
-                    let l = (radius.powi(2) - (dist / 2.0).powi(2)).sqrt();
+                    let l = (dist / 2.0).mul_add(-(dist / 2.0), radius.powi(2)).sqrt();
                     let direction = if prev_bulge > 0.0 { 1.0 } else { -1.0 };
                     let ox = mx - direction * l * (p2.1 - p1.1) / dist;
                     let oy = my + direction * l * (p2.0 - p1.0) / dist;
 
                     // Calculate start and end angles
-                    let mut start_angle = (p1.1 - oy).atan2(p1.0 - ox) + 5.0 * std::f64::consts::PI;
-                    let mut end_angle = (p2.1 - oy).atan2(p2.0 - ox) + 5.0 * std::f64::consts::PI;
+                    let mut start_angle =
+                        5.0f64.mul_add(std::f64::consts::PI, (p1.1 - oy).atan2(p1.0 - ox));
+                    let mut end_angle =
+                        5.0f64.mul_add(std::f64::consts::PI, (p2.1 - oy).atan2(p2.0 - ox));
 
                     if prev_bulge > 0.0 {
                         start_angle += std::f64::consts::PI;
@@ -119,7 +120,10 @@ pub fn draw_line_string_with_offset(context: &Context, line_string: &LineString,
                         while angle < end_angle {
                             angle += std::f64::consts::PI / 10.0;
 
-                            context.line_to(ox + radius * angle.cos(), oy + radius * angle.sin());
+                            context.line_to(
+                                radius.mul_add(angle.cos(), ox),
+                                radius.mul_add(angle.sin(), oy),
+                            );
                         }
                     } else {
                         while end_angle > start_angle {
@@ -131,7 +135,10 @@ pub fn draw_line_string_with_offset(context: &Context, line_string: &LineString,
                         while angle > end_angle {
                             angle -= std::f64::consts::PI / 10.0;
 
-                            context.line_to(ox + radius * angle.cos(), oy + radius * angle.sin());
+                            context.line_to(
+                                radius.mul_add(angle.cos(), ox),
+                                radius.mul_add(angle.sin(), oy),
+                            );
                         }
                     }
                     // if prev_bulge > 0.0 {
@@ -142,8 +149,9 @@ pub fn draw_line_string_with_offset(context: &Context, line_string: &LineString,
                 }
 
                 p1 = p2;
-                prev_bulge = v.bulge;
             }
+
+            prev_bulge = v.bulge;
         }
     }
 }

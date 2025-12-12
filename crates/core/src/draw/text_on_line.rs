@@ -29,7 +29,7 @@ pub struct TextOnLineOptions {
 
 impl Default for TextOnLineOptions {
     fn default() -> Self {
-        TextOnLineOptions {
+        Self {
             upright: Upright::Auto,
             align: Align::Center,
             spacing: None,
@@ -178,12 +178,12 @@ fn position_at(pts: &[Coord], cum: &[f64], dist: f64) -> Option<(Coord, Coord)> 
         return Some((pts[0], tangent));
     }
 
-    if let Some(total) = cum.last() {
-        if dist >= *total {
-            let len = pts.len();
-            let tangent = normalize(pts[len - 1] - pts[len - 2]);
-            return Some((pts[len - 1], tangent));
-        }
+    if let Some(total) = cum.last()
+        && dist >= *total
+    {
+        let len = pts.len();
+        let tangent = normalize(pts[len - 1] - pts[len - 2]);
+        return Some((pts[len - 1], tangent));
     }
 
     let mut idx = 0;
@@ -338,11 +338,9 @@ fn label_offsets(
     }
 
     // Step between label starts when repeating is enabled: pack by (advance + spacing).
-    let step = if let Some(s) = spacing {
+    let step = spacing.map_or(total_length, |s| {
         (total_advance + s).max(total_advance * 0.2)
-    } else {
-        total_length
-    };
+    });
 
     // How many full labels can we fit (repetition only if spacing is Some).
     let count = if spacing.is_some() {
@@ -352,7 +350,7 @@ fn label_offsets(
     };
 
     let total_span = if count > 0 {
-        total_advance + step * (count.saturating_sub(1)) as f64
+        step.mul_add((count.saturating_sub(1)) as f64, total_advance)
     } else {
         0.0
     };
@@ -364,7 +362,9 @@ fn label_offsets(
         Align::Justify { .. } => 0.0,
     };
 
-    (0..count).map(|i| start + i as f64 * step).collect()
+    (0..count)
+        .map(|i| (i as f64).mul_add(step, start))
+        .collect()
 }
 
 fn justify_spacing(
@@ -478,8 +478,10 @@ pub fn text_on_line(
         return false;
     }
 
-    let total_advance = base_total_advance * advance_scale
-        + extra_spacing_between_glyphs * clusters.len().saturating_sub(1) as f64;
+    let total_advance = base_total_advance.mul_add(
+        advance_scale,
+        extra_spacing_between_glyphs * clusters.len().saturating_sub(1) as f64,
+    );
 
     let offsets = label_offsets(total_length, total_advance, *spacing, *align);
 
@@ -609,8 +611,8 @@ pub fn text_on_line(
             let hh = logical_h / 2.0;
             let cos = angle.cos().abs();
             let sin = angle.sin().abs();
-            let rx = hw * cos + hh * sin;
-            let ry = hw * sin + hh * cos;
+            let rx = hw.mul_add(cos, hh * sin);
+            let ry = hw.mul_add(sin, hh * cos);
 
             glyph_bboxes.push(Rect::new(
                 (pos.x - rx, pos.y - ry),

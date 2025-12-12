@@ -8,7 +8,7 @@ pub struct SvgCache {
 }
 
 impl SvgCache {
-    pub fn new(base: impl Into<PathBuf>) -> SvgCache {
+    pub fn new(base: impl Into<PathBuf>) -> Self {
         Self {
             base: base.into(),
             svg_map: HashMap::new(),

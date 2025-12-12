@@ -307,7 +307,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes, svg_cach
                 let off = row.get::<_, i32>(&format!("r_{}", color.0)[..]);
 
                 if off > 0 {
-                    let offset = (zo + (off as f64 - 1.0) * wf * df) + 0.5;
+                    let offset = ((off as f64 - 1.0) * wf).mul_add(df, zo) + 0.5;
 
                     let sample = svg_cache.get(&format!("horse.svg|path {{ fill: #{} }}", color.1));
 
@@ -333,7 +333,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes, svg_cach
                 let off = row.get::<_, i32>(&format!("s_{}", color.0)[..]);
 
                 if off > 0 {
-                    let offset = -(zo + (off as f64 - 1.0) * wf * 2.0) - 1.0;
+                    let offset = -((off as f64 - 1.0) * wf).mul_add(2.0, zo) - 1.0;
 
                     for part in &geom {
                         let pattern =
@@ -360,7 +360,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes, svg_cach
                 let off = row.get::<_, i32>(&format!("b_{}", color.0)[..]);
 
                 if off > 0 {
-                    let offset = -(zo + (off as f64 - 1.0) * wf * 2.0) - 1.0;
+                    let offset = -((off as f64 - 1.0) * wf).mul_add(2.0, zo) - 1.0;
 
                     for part in &geom {
                         draw_line_string_with_offset(context, part, offset);
@@ -393,7 +393,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes, svg_cach
                     let off = row.get::<_, i32>(&format!("h_{}", color.0)[..]);
 
                     if off > 0 {
-                        let offset = (zo + (off as f64 - 1.0) * wf * df) + 0.5;
+                        let offset = ((off as f64 - 1.0) * wf).mul_add(df, zo) + 0.5;
 
                         for part in &geom {
                             draw_line_string_with_offset(context, part, offset);
@@ -413,7 +413,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes, svg_cach
                     let off = row.get::<_, i32>(&format!("h_{}_loc", color.0)[..]);
 
                     if off > 0 {
-                        let offset = (zo + (off as f64 - 1.0) * wf * df) + 0.5;
+                        let offset = ((off as f64 - 1.0) * wf).mul_add(df, zo) + 0.5;
 
                         for part in &geom {
                             draw_line_string_with_offset(context, part, offset);

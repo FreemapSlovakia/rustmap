@@ -9,7 +9,6 @@ use geo::{Point, Rect};
 use pangocairo::pango::{AttrList, AttrSize, SCALE, Style, Weight};
 use postgres::Client;
 use regex::Regex;
-use std::u32;
 use std::{borrow::Cow, collections::HashMap, sync::LazyLock};
 
 struct Extra<'a> {
@@ -409,7 +408,7 @@ pub fn render(
         );
     }
 
-    if zoom >= 12 && zoom < 14 {
+    if (12..=13).contains(&zoom) {
         sql.push_str(
             r#"
                 UNION ALL
@@ -690,7 +689,7 @@ pub fn render(
 
             let point = geometry_point(&row).project_to_tile(&ctx.tile_projector);
 
-            let surface = svg_cache.get(&format!("{}.svg", def.extra.icon.unwrap_or_else(|| typ)));
+            let surface = svg_cache.get(&format!("{}.svg", def.extra.icon.unwrap_or(typ)));
 
             let rect = surface.extents().unwrap();
 
@@ -804,7 +803,7 @@ pub fn render(
                     context,
                     collision,
                     &point,
-                    &format!("{}\n{}", name, ele).trim(),
+                    format!("{}\n{}", name, ele).trim(),
                     Some(attr_list),
                     &text_options,
                 )

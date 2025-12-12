@@ -117,7 +117,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, hillshading_datasets: &mut HashMap
     if FALLBACK {
         context.push_group(); // mask
 
-        for country in vec!["it", "at", "ch", "si", "pl", "sk", "cz", "fr"] {
+        for country in ["it", "at", "ch", "si", "pl", "sk", "cz", "fr"] {
             hillshading::render(ctx, &format!("{}-mask", country), 1.0, hillshading_datasets);
         }
 
