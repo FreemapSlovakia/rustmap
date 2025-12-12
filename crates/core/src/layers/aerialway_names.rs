@@ -3,8 +3,8 @@ use crate::{
     colors,
     ctx::Ctx,
     draw::{
-        offset_line::offset_line,
-        text_on_line::{TextOnLineOptions, text_on_line},
+        offset_line::offset_line_string,
+        text_on_line::{TextOnLineOptions, draw_text_on_line},
     },
     projectable::{TileProjectable, geometry_line_string},
 };
@@ -31,8 +31,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
 
         let geom = geometry_line_string(&row).project_to_tile(&ctx.tile_projector);
 
-        let geom = offset_line(&geom, 10.0);
+        let geom = offset_line_string(&geom, 10.0);
 
-        text_on_line(ctx.context, &geom, name, Some(collision), &options);
+        draw_text_on_line(ctx.context, &geom, name, Some(collision), &options);
     }
 }

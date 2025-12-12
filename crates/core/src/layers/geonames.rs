@@ -3,7 +3,7 @@ use crate::{
     ctx::Ctx,
     draw::{
         create_pango_layout::FontAndLayoutOptions,
-        text_on_line::{Align, TextOnLineOptions, text_on_line},
+        text_on_line::{Align, TextOnLineOptions, draw_text_on_line},
     },
     projectable::{TileProjectable, geometry_line_string},
 };
@@ -47,7 +47,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         let mut options = options;
 
         for _ in 0..3 {
-            if text_on_line(context, &geom, name, None, &options) {
+            if draw_text_on_line(context, &geom, name, None, &options) {
                 break;
             }
 

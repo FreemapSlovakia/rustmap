@@ -2,7 +2,7 @@ use crate::SvgCache;
 use crate::colors::{Color, ContextExt};
 use crate::draw::markers_on_path::draw_markers_on_path;
 use crate::projectable::{TileProjectable, geometry_line_string};
-use crate::{colors, ctx::Ctx, draw::draw::draw_line_string};
+use crate::{colors, ctx::Ctx, draw::path_geom::path_line_string};
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
@@ -75,7 +75,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
         let class: &str = row.get("class");
 
         let draw = || {
-            draw_line_string(context, geom);
+            path_line_string(context, geom);
 
             context.stroke().unwrap();
         };
@@ -165,7 +165,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
         let service: &str = row.get("service");
 
         let draw = || {
-            draw_line_string(context, geom);
+            path_line_string(context, geom);
 
             context.stroke().unwrap();
         };
@@ -238,18 +238,18 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
                 context.set_source_color(colors::RAIL_GLOW);
                 context.set_dash(&[], 0.0);
                 context.set_line_width(gw);
-                draw_line_string(context, geom);
+                path_line_string(context, geom);
                 context.stroke().unwrap();
 
                 context.set_dash(&[0.0, (spacing - gw) / 2.0, gw, (spacing - gw) / 2.0], 0.0);
                 context.set_line_width(sgw);
-                draw_line_string(context, geom);
+                path_line_string(context, geom);
                 context.stroke().unwrap();
 
                 context.set_source_color(color);
                 context.set_dash(&[], 0.0);
                 context.set_line_width(weight);
-                draw_line_string(context, geom);
+                path_line_string(context, geom);
                 context.stroke().unwrap();
 
                 context.set_dash(
@@ -262,7 +262,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
                     0.0,
                 );
                 context.set_line_width(sleeper_weight);
-                draw_line_string(context, geom);
+                path_line_string(context, geom);
                 context.stroke().unwrap();
 
                 draw_bridges_tunnels(sleeper_weight + glow_width);
@@ -526,7 +526,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
         let oneway = row.get::<_, i16>("oneway");
 
         if zoom >= 14 && oneway != 0 {
-            draw_line_string(context, geom);
+            path_line_string(context, geom);
 
             let path = context.copy_path().unwrap();
 

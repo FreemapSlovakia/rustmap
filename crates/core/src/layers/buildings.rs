@@ -2,7 +2,7 @@ use postgres::Client;
 
 use crate::{
     ctx::Ctx,
-    draw::draw::draw_geometry,
+    draw::path_geom::path_geometry,
     projectable::{TileProjectable, geometry_geometry},
 };
 
@@ -29,7 +29,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         context.set_source_rgb(0.5, 0.5, 0.5);
 
-        draw_geometry(context, &geom);
+        path_geometry(context, &geom);
 
         context.fill().unwrap();
     }

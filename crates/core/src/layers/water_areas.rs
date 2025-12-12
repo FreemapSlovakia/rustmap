@@ -1,7 +1,7 @@
 use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::draw::draw_geometry,
+    draw::path_geom::path_geometry,
     projectable::{TileProjectable, geometry_geometry},
 };
 use postgres::Client;
@@ -26,7 +26,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         context.set_source_color(colors::WATER);
 
-        draw_geometry(context, &geom);
+        path_geometry(context, &geom);
 
         context.fill().unwrap();
     }

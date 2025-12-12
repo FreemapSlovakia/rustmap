@@ -2,7 +2,7 @@ use crate::{
     collision::Collision,
     colors::{self},
     ctx::Ctx,
-    draw::text_on_line::{TextOnLineOptions, text_on_line},
+    draw::text_on_line::{TextOnLineOptions, draw_text_on_line},
     projectable::{TileProjectable, geometry_line_string},
 };
 
@@ -35,6 +35,6 @@ pub fn highway_names(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f
 
         let name: &str = row.get("name");
 
-        text_on_line(ctx.context, &geom, name, Some(collision), &options);
+        draw_text_on_line(ctx.context, &geom, name, Some(collision), &options);
     }
 }

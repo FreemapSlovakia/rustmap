@@ -3,7 +3,7 @@ use postgres::Client;
 use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::{draw::draw_geometry, hatch::hatch_geometry},
+    draw::{path_geom::path_geometry, hatch::hatch_geometry},
     projectable::{TileProjectable, geometry_geometry},
 };
 
@@ -32,7 +32,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         let projected = geom.project_to_tile(&ctx.tile_projector);
 
-        draw_geometry(context, &projected);
+        path_geometry(context, &projected);
 
         context.clip();
 

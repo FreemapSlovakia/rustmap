@@ -422,7 +422,7 @@ fn center_offset_for_glyph(
     }
 }
 
-pub fn text_on_line(
+pub fn draw_text_on_line(
     context: &Context,
     line_string: &LineString,
     text: &str,

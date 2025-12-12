@@ -2,26 +2,26 @@ use cairo::Context;
 use cavalier_contours::polyline::{PlineSource, PlineSourceMut, PlineVertex, Polyline};
 use geo::{Geometry, LineString, Polygon};
 
-pub fn draw_geometry(context: &Context, geom: &Geometry) {
-    draw_geometry_uni(geom, &|line_string| draw_line_string(context, line_string));
+pub fn path_geometry(context: &Context, geom: &Geometry) {
+    walk_geometry_line_strings(geom, &|line_string| path_line_string(context, line_string));
 }
 
-pub fn draw_geometry_uni<F>(geom: &Geometry, dl: &F)
+pub fn walk_geometry_line_strings<F>(geom: &Geometry, dl: &F)
 where
     F: Fn(&LineString),
 {
     match geom {
         Geometry::GeometryCollection(gc) => {
             for geometry in gc {
-                draw_geometry_uni(geometry, dl);
+                walk_geometry_line_strings(geometry, dl);
             }
         }
         Geometry::Polygon(p) => {
-            draw_poly(p, dl);
+            path_polygon(p, dl);
         }
         Geometry::MultiPolygon(mp) => {
             for p in mp {
-                draw_poly(p, dl);
+                path_polygon(p, dl);
             }
         }
         Geometry::MultiLineString(mls) => {
@@ -45,7 +45,7 @@ where
     }
 }
 
-fn draw_poly<F>(poly: &Polygon, dl: &F)
+fn path_polygon<F>(poly: &Polygon, dl: &F)
 where
     F: Fn(&LineString),
 {
@@ -56,7 +56,7 @@ where
     }
 }
 
-pub fn draw_line_string(context: &Context, line_string: &LineString) {
+pub fn path_line_string(context: &Context, line_string: &LineString) {
     for (i, p) in line_string.into_iter().enumerate() {
         if i == 0 {
             context.move_to(p.x, p.y);
@@ -66,7 +66,7 @@ pub fn draw_line_string(context: &Context, line_string: &LineString) {
     }
 }
 
-pub fn draw_line_string_with_offset(context: &Context, line_string: &LineString, offset: f64) {
+pub fn path_line_string_with_offset(context: &Context, line_string: &LineString, offset: f64) {
     let mut polyline = Polyline::new();
 
     for p in line_string {

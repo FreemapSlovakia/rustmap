@@ -3,7 +3,7 @@ use postgres::Client;
 use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::draw::draw_geometry,
+    draw::path_geom::path_geometry,
     projectable::{TileProjectable, geometry_geometry},
 };
 
@@ -35,10 +35,10 @@ pub fn render(ctx: &Ctx, client: &mut Client, mask: bool) {
 
         if mask {
             context.rectangle(0.0, 0.0, size.width as f64, size.height as f64);
-            draw_geometry(context, &geometry);
+            path_geometry(context, &geometry);
             context.clip();
         } else {
-            draw_geometry(context, &geometry);
+            path_geometry(context, &geometry);
             context.set_source_color(colors::INDUSTRIAL);
             context.fill_preserve().unwrap();
 

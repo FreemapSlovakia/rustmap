@@ -4,7 +4,7 @@ use crate::{
     draw::{
         create_pango_layout::FontAndLayoutOptions,
         smooth_line::draw_smooth_bezier_spline,
-        text_on_line::{TextOnLineOptions, Upright, text_on_line},
+        text_on_line::{TextOnLineOptions, Upright, draw_text_on_line},
     },
     projectable::{TileProjectable, geometry_line_string},
 };
@@ -82,7 +82,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: &str) {
         }
 
         if labels {
-            text_on_line(
+            draw_text_on_line(
                 context,
                 &geom,
                 &format!("{}", height),

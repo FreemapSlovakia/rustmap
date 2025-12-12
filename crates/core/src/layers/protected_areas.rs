@@ -3,7 +3,7 @@ use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::{
-        draw::{draw_geometry, draw_geometry_uni, draw_line_string_with_offset},
+        path_geom::{path_geometry, path_line_string_with_offset, walk_geometry_line_strings},
         hatch::hatch_geometry,
         line_pattern::draw_line_pattern,
     },
@@ -48,7 +48,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
             if typ == "national_park" || typ == "protected_area" && protect_class == "2" {
                 context.push_group();
 
-                draw_geometry(context, projected);
+                path_geometry(context, projected);
 
                 context.clip();
 
@@ -73,7 +73,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
         if typ == "nature_reserve" || typ == "protected_area" && protect_class != "2" {
             let sample = svg_cache.get("protected_area.svg");
 
-            draw_geometry_uni(projected, &|line_string| {
+            walk_geometry_line_strings(projected, &|line_string| {
                 draw_line_pattern(ctx, line_string, 0.8, sample)
             });
         }
@@ -96,13 +96,13 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
             context.set_dash(&[], 0.0);
             context.set_line_width(wb * 0.75);
             context.set_line_join(cairo::LineJoin::Round);
-            draw_geometry(context, projected);
+            path_geometry(context, projected);
             context.stroke().unwrap();
 
             context.set_line_width(wb);
             context.set_source_color_a(colors::PROTECTED, 0.5);
-            draw_geometry_uni(projected, &|iter| {
-                draw_line_string_with_offset(context, iter, wb * 0.75)
+            walk_geometry_line_strings(projected, &|iter| {
+                path_line_string_with_offset(context, iter, wb * 0.75)
             });
             context.stroke().unwrap();
         }

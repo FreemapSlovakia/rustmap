@@ -1,7 +1,7 @@
 use cavalier_contours::polyline::{PlineSource, PlineSourceMut, PlineVertex, Polyline};
 use geo::{Coord, LineString};
 
-pub fn offset_line(line_string: &LineString, offset: f64) -> LineString {
+pub fn offset_line_string(line_string: &LineString, offset: f64) -> LineString {
     let mut result = Vec::<Coord>::new();
 
     let mut polyline = Polyline::new();

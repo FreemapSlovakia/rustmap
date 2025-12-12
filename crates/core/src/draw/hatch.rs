@@ -1,18 +1,18 @@
 use crate::{
     ctx::Ctx,
-    draw::draw::draw_geometry_uni,
+    draw::path_geom::walk_geometry_line_strings,
     projectable::TileProjectable,
     xyz::{perpendicular_distance, to_absolute_pixel_coords},
 };
 use geo::{BoundingRect, Geometry, LineString};
 
 pub fn hatch_geometry(ctx: &Ctx, geom: &Geometry, spacing: f64, angle: f64) {
-    draw_geometry_uni(geom, &|iter| {
+    walk_geometry_line_strings(geom, &|iter| {
         hatch(ctx, iter, spacing, angle);
     });
 }
 
-pub fn hatch(ctx: &Ctx, line_string: &LineString, spacing: f64, angle: f64) {
+fn hatch(ctx: &Ctx, line_string: &LineString, spacing: f64, angle: f64) {
     let projected = line_string.project_to_tile(&ctx.tile_projector);
 
     let Some(bounds) = projected.bounding_rect() else {

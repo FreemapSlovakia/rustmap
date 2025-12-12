@@ -1,8 +1,8 @@
 use crate::colors::{self, ContextExt};
 use crate::ctx::Ctx;
 use crate::draw::create_pango_layout::FontAndLayoutOptions;
-use crate::draw::offset_line::offset_line;
-use crate::draw::text_on_line::{Align, TextOnLineOptions, text_on_line};
+use crate::draw::offset_line::offset_line_string;
+use crate::draw::text_on_line::{Align, TextOnLineOptions, draw_text_on_line};
 use crate::layers::borders;
 use crate::projectable::{TileProjectable, geometry_line_string};
 use postgres::Client;
@@ -82,9 +82,9 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             let mut options = *options;
 
             for _ in 0..4 {
-                let geom = offset_line(&geom, offset);
+                let geom = offset_line_string(&geom, offset);
 
-                if text_on_line(context, &geom, name, None, &options) {
+                if draw_text_on_line(context, &geom, name, None, &options) {
                     break;
                 }
 

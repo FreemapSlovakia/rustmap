@@ -1,7 +1,7 @@
 use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::{draw::draw_geometry, hatch::hatch_geometry},
+    draw::{hatch::hatch_geometry, path_geom::path_geometry},
     projectable::{TileProjectable, geometry_geometry},
 };
 use postgres::Client;
@@ -38,7 +38,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     for (projected, unprojected) in &geometries {
         ctx.context.push_group();
 
-        draw_geometry(context, projected);
+        path_geometry(context, projected);
 
         context.clip();
 
@@ -64,7 +64,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         ctx.context.set_source_color(colors::MILITARY);
         ctx.context.set_dash(&[25.0, 7.0], 0.0);
         ctx.context.set_line_width(3.0);
-        draw_geometry(context, projected);
+        path_geometry(context, projected);
         ctx.context.stroke().unwrap();
     }
 

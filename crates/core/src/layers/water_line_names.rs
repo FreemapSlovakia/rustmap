@@ -4,7 +4,7 @@ use crate::{
     ctx::Ctx,
     draw::{
         create_pango_layout::FontAndLayoutOptions,
-        text_on_line::{TextOnLineOptions, text_on_line},
+        text_on_line::{TextOnLineOptions, draw_text_on_line},
     },
     projectable::{TileProjectable, geometry_line_string},
 };
@@ -54,7 +54,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
 
         let name: &str = row.get("name");
 
-        text_on_line(
+        draw_text_on_line(
             ctx.context,
             &geom,
             &RE2.replace(&RE1.replace(name, "p."), ""),

@@ -2,7 +2,7 @@ use crate::{
     SvgCache,
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::{draw::draw_line_string, line_pattern::draw_line_pattern_scaled},
+    draw::{path_geom::path_line_string, line_pattern::draw_line_pattern_scaled},
     projectable::{TileProjectable, geometry_line_string},
 };
 use postgres::Client;
@@ -31,7 +31,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
                     context.set_dash(&[9.0, 3.0], 0.0);
                     context.set_source_color(colors::DAM_LINE);
                     context.set_line_width(3.0);
-                    draw_line_string(context, &geom);
+                    path_line_string(context, &geom);
                     context.stroke().unwrap();
                 }
             }
@@ -39,7 +39,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
                 if zoom >= 16 {
                     context.set_source_color(colors::DAM_LINE);
                     context.set_line_width(3.0);
-                    draw_line_string(context, &geom);
+                    path_line_string(context, &geom);
                     context.stroke().unwrap();
                 }
             }

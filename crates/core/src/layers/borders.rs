@@ -1,7 +1,7 @@
 use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::draw::draw_geometry,
+    draw::path_geom::path_geometry,
     projectable::{TileProjectable, geometry_geometry},
 };
 use postgres::Client;
@@ -50,7 +50,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             6.0
         });
         ctx.context.set_line_join(cairo::LineJoin::Round);
-        draw_geometry(context, &geometry);
+        path_geometry(context, &geometry);
         ctx.context.stroke().unwrap();
     }
 

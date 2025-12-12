@@ -1,5 +1,5 @@
 pub mod create_pango_layout;
-pub mod draw;
+pub mod path_geom;
 pub mod hatch;
 pub mod line_pattern;
 pub mod markers_on_path;

@@ -2,8 +2,8 @@ use crate::{
     SvgCache,
     ctx::Ctx,
     draw::{
-        draw::draw_line_string_with_offset, line_pattern::draw_line_pattern_scaled,
-        offset_line::offset_line,
+        line_pattern::draw_line_pattern_scaled, offset_line::offset_line_string,
+        path_geom::path_line_string_with_offset,
     },
     projectable::{TileProjectable, geometry_multi_line_string},
 };
@@ -314,7 +314,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes, svg_cach
                     for part in &geom {
                         draw_line_pattern_scaled(
                             ctx,
-                            &offset_line(part, offset),
+                            &offset_line_string(part, offset),
                             0.5,
                             wf / 2.0,
                             sample,
@@ -341,7 +341,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes, svg_cach
 
                         draw_line_pattern_scaled(
                             ctx,
-                            &offset_line(part, offset),
+                            &offset_line_string(part, offset),
                             0.5,
                             wf / 2.0,
                             pattern,
@@ -363,7 +363,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes, svg_cach
                     let offset = -((off as f64 - 1.0) * wf).mul_add(2.0, zo) - 1.0;
 
                     for part in &geom {
-                        draw_line_string_with_offset(context, part, offset);
+                        path_line_string_with_offset(context, part, offset);
                     }
 
                     context.set_line_width(wf * 2.0);
@@ -396,7 +396,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes, svg_cach
                         let offset = ((off as f64 - 1.0) * wf).mul_add(df, zo) + 0.5;
 
                         for part in &geom {
-                            draw_line_string_with_offset(context, part, offset);
+                            path_line_string_with_offset(context, part, offset);
                         }
                         context.set_line_width(wf);
                         context.set_line_join(cairo::LineJoin::Round);
@@ -416,7 +416,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes, svg_cach
                         let offset = ((off as f64 - 1.0) * wf).mul_add(df, zo) + 0.5;
 
                         for part in &geom {
-                            draw_line_string_with_offset(context, part, offset);
+                            path_line_string_with_offset(context, part, offset);
                         }
 
                         context.set_line_width(wf);
