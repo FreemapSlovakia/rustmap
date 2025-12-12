@@ -196,6 +196,7 @@ pub fn draw_text_with_attrs(
 
     context.set_source_color_a(*halo_color, *halo_opacity);
     context.set_dash(&[], 0.0);
+    context.set_line_join(cairo::LineJoin::Round);
     context.set_line_width(halo_width * 2.0);
     context.stroke_preserve().unwrap();
     context.set_source_color(*color);

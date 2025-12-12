@@ -81,6 +81,33 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         },
     );
 
+    let options_upper = TextOnLineOptions {
+        flo: FontAndLayoutOptions {
+            size: sr * 20.0,
+            ..Default::default()
+        },
+        halo_width: 2.0,
+        align: Align::Justify {
+            min_spacing: Some(0.0),
+        },
+        concave_spacing_factor: 0.0,
+        ..Default::default()
+    };
+
+    let options_lower = TextOnLineOptions {
+        flo: FontAndLayoutOptions {
+            size: sr * 16.0,
+            ..Default::default()
+        },
+        halo_width: 2.0,
+        color: colors::AREA_LABEL,
+        align: Align::Justify {
+            min_spacing: Some(0.0),
+        },
+        concave_spacing_factor: 0.0,
+        ..Default::default()
+    };
+
     FEATURES.with(|features| {
         for (geom, name, name_en) in features.iter() {
             let geom = geom.project_to_tile(&ctx.tile_projector);
@@ -98,46 +125,26 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             // context.stroke().unwrap();
             // context.restore().unwrap();
 
-            let upper = offset_line(&geom, sr * -14.0);
-
-            let lower = offset_line(&geom, sr * 8.0);
-
             context.push_group();
 
-            text_on_line(
-                context,
-                &upper,
-                name,
-                None,
-                &TextOnLineOptions {
-                    flo: FontAndLayoutOptions {
-                        size: sr * 20.0,
-                        ..Default::default()
-                    },
-                    halo_width: 2.0,
-                    align: Align::Justify,
-                    concave_spacing_factor: 0.0,
-                    ..Default::default()
-                },
-            );
+            for (name, mut offset, options) in vec![
+                (name, sr * -14.0, &options_upper),
+                (name_en, sr * 8.0, &options_lower),
+            ] {
+                let mut options = *options;
 
-            text_on_line(
-                context,
-                &lower,
-                name_en,
-                None,
-                &TextOnLineOptions {
-                    flo: FontAndLayoutOptions {
-                        size: sr * 16.0,
-                        ..Default::default()
-                    },
-                    halo_width: 2.0,
-                    color: colors::AREA_LABEL,
-                    align: Align::Justify,
-                    concave_spacing_factor: 0.0,
-                    ..Default::default()
-                },
-            );
+                for _ in 0..4 {
+                    let geom = offset_line(&geom, offset);
+
+                    if text_on_line(context, &geom, name, None, &options) {
+                        break;
+                    }
+
+                    options.flo.size *= 0.9;
+                    options.halo_width *= 0.9;
+                    offset *= 0.9;
+                }
+            }
 
             context.pop_group_to_source().unwrap();
             context.paint_with_alpha(0.66).unwrap();

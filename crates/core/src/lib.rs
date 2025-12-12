@@ -31,6 +31,8 @@ pub mod xyz;
 pub use shading_and_contours::load_hillshading_datasets;
 pub use svg_cache::SvgCache;
 
+use crate::layers::geonames;
+
 pub struct Renderer;
 
 pub fn render_tile(
@@ -171,11 +173,13 @@ fn draw(
     // let mut collision = Collision::<f64>::new(Some(&context));
     let mut collision = Collision::<f64>::new(None);
 
+    let zoom = request.zoom;
+
     let ctx = &Ctx {
         context: &context,
         bbox,
         size,
-        zoom: request.zoom,
+        zoom,
         scale: request.scale,
         tile_projector: TileProjector::new(bbox, size),
     };
@@ -193,7 +197,7 @@ fn draw(
 
     landuse::render(ctx, client, svg_cache);
 
-    if request.zoom >= 13 {
+    if zoom >= 13 {
         cutlines::render(ctx, client);
     }
 
@@ -201,19 +205,19 @@ fn draw(
 
     water_areas::render(ctx, client);
 
-    if request.zoom >= 15 {
+    if zoom >= 15 {
         bridge_areas::render(ctx, client, false);
     }
 
-    if request.zoom >= 16 {
+    if zoom >= 16 {
         trees::render(ctx, client, svg_cache);
     }
 
-    if request.zoom >= 12 {
+    if zoom >= 12 {
         pipelines::render(ctx, client);
     }
 
-    if request.zoom >= 13 {
+    if zoom >= 13 {
         feature_lines::render(ctx, client, svg_cache);
     }
 
@@ -221,11 +225,11 @@ fn draw(
 
     // TODO embankments
 
-    if request.zoom >= 8 {
+    if zoom >= 8 {
         roads::render(ctx, client, svg_cache);
     }
 
-    if request.zoom >= 14 {
+    if zoom >= 14 {
         road_access_restrictions::render(ctx, client, svg_cache);
     }
 
@@ -233,43 +237,43 @@ fn draw(
         shading_and_contours::render(ctx, client, hillshading_datasets);
     }
 
-    if request.zoom >= 11 {
+    if zoom >= 11 {
         aeroways::render(ctx, client);
     }
 
-    if request.zoom >= 12 {
+    if zoom >= 12 {
         solar_power_plants::render(ctx, client);
     }
 
-    if request.zoom >= 13 {
+    if zoom >= 13 {
         buildings::render(ctx, client);
     }
 
-    if request.zoom >= 16 {
+    if zoom >= 16 {
         barrierways::render(ctx, client);
     }
 
-    if request.zoom >= 12 {
+    if zoom >= 12 {
         aerialways::render(ctx, client);
     }
 
-    if request.zoom >= 13 {
+    if zoom >= 13 {
         power_lines::render_lines(ctx, client);
     }
 
-    if request.zoom >= 14 {
+    if zoom >= 14 {
         power_lines::render_towers_poles(ctx, client);
     }
 
-    if request.zoom >= 8 {
+    if zoom >= 8 {
         protected_areas::render(ctx, client, svg_cache);
     }
 
-    if request.zoom >= 8 {
+    if zoom >= 8 {
         borders::render(ctx, client);
     }
 
-    if request.zoom >= 10 {
+    if zoom >= 10 {
         military_areas::render(ctx, client);
     }
 
@@ -277,9 +281,11 @@ fn draw(
     routes::render(ctx, client, &routes::RouteTypes::all(), svg_cache);
     context.restore().unwrap();
 
-    // TODO geonames
+    if zoom >= 8 && zoom <= 11 {
+        geonames::render(ctx, client);
+    }
 
-    if request.zoom >= 8 {
+    if zoom >= 8 {
         place_names::render(ctx, client, &mut collision);
     }
 
@@ -287,39 +293,39 @@ fn draw(
 
     features::render(ctx, client, &mut collision, svg_cache);
 
-    if request.zoom >= 10 {
+    if zoom >= 10 {
         water_area_names::render(ctx, client, &mut collision);
     }
 
-    if request.zoom >= 17 {
+    if zoom >= 17 {
         building_names::render(ctx, client, &mut collision);
     }
 
-    if request.zoom >= 12 {
+    if zoom >= 12 {
         protected_area_names::render(ctx, client, &mut collision);
     }
 
     // TODO <LandcoverNames />
 
-    if request.zoom >= 15 {
+    if zoom >= 15 {
         locality_names::render(ctx, client, &mut collision);
     }
 
-    if request.zoom >= 18 {
+    if zoom >= 18 {
         housenumbers::render(ctx, client, &mut collision);
     }
 
-    if request.zoom >= 15 {
+    if zoom >= 15 {
         highway_names(ctx, client, &mut collision);
     }
 
     // <RouteNames {...routeProps} />
 
-    if request.zoom >= 16 {
+    if zoom >= 16 {
         aerialway_names::render(ctx, client, &mut collision);
     }
 
-    if request.zoom >= 12 {
+    if zoom >= 12 {
         water_line_names::render(ctx, client, &mut collision);
     }
 
@@ -329,7 +335,7 @@ fn draw(
 
     // <PlaceNames2 />
 
-    if request.zoom < 8 {
+    if zoom < 8 {
         country_names::render(ctx, client);
     }
 }

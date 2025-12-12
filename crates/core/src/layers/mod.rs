@@ -11,6 +11,7 @@ pub mod country_names;
 pub mod cutlines;
 pub mod feature_lines;
 pub mod features;
+pub mod geonames;
 pub mod highway_names;
 pub mod hillshading;
 pub mod housenumbers;

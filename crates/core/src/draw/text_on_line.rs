@@ -57,7 +57,7 @@ pub enum Align {
     Left,
     Center,
     Right,
-    Justify,
+    Justify { min_spacing: Option<f64> },
 }
 
 fn normalize(v: Coord) -> Coord {
@@ -288,7 +288,7 @@ fn draw_label(
 
     let ps = 1.0 / SCALE as f64;
 
-    cr.save().unwrap();
+    cr.save().expect("context saved");
     cr.push_group();
 
     for (glyph_string, font, pos, angle) in glyphs {
@@ -298,19 +298,20 @@ fn draw_label(
         let cx = (logical.x() as f64 + logical.width() as f64 / 2.0) * ps;
         let cy = (logical.y() as f64 + logical.height() as f64 / 2.0) * ps;
 
-        cr.save().unwrap();
+        cr.save().expect("context saved");
         cr.translate(pos.x, pos.y);
         cr.rotate(*angle);
         cr.translate(-cx, -cy);
 
         glyph_string_path(cr, font, &mut gs);
 
-        cr.restore().unwrap();
+        cr.restore().expect("context restored");
     }
 
     cr.set_source_color_a(opts.halo_color, opts.halo_opacity);
     cr.set_dash(&[], 0.0);
     cr.set_line_width(opts.halo_width * 2.0);
+    cr.set_line_join(cairo::LineJoin::Round);
     cr.stroke_preserve().unwrap();
 
     cr.set_source_color(opts.color);
@@ -319,7 +320,7 @@ fn draw_label(
     cr.pop_group_to_source().unwrap();
     cr.paint_with_alpha(opts.alpha).unwrap();
 
-    cr.restore().unwrap();
+    cr.restore().expect("context restored");
 }
 
 fn label_offsets(
@@ -328,7 +329,7 @@ fn label_offsets(
     spacing: Option<f64>,
     align: Align,
 ) -> Vec<f64> {
-    if matches!(align, Align::Justify) {
+    if matches!(align, Align::Justify { .. }) {
         return vec![0.0];
     }
 
@@ -360,7 +361,7 @@ fn label_offsets(
         Align::Left => 0.0,
         Align::Center => ((total_length - total_span) / 2.0).max(0.0),
         Align::Right => (total_length - total_span).max(0.0),
-        Align::Justify => 0.0,
+        Align::Justify { .. } => 0.0,
     };
 
     (0..count).map(|i| start + i as f64 * step).collect()
@@ -371,14 +372,15 @@ fn justify_spacing(
     total_length: f64,
     base_total_advance: f64,
     clusters: &[(f64, GlyphString, Font)],
-) -> (f64, f64) {
-    if !matches!(align, Align::Justify) {
-        return (1.0, 0.0);
-    }
+) -> (f64, f64, bool) {
+    let min_spacing = match align {
+        Align::Justify { min_spacing } => min_spacing,
+        _ => return (1.0, 0.0, true),
+    };
 
     let gaps = clusters.len().saturating_sub(1) as f64;
     if gaps == 0.0 {
-        return (1.0, 0.0);
+        return (1.0, 0.0, true);
     }
 
     let raw_extra = (total_length - base_total_advance) / gaps;
@@ -395,7 +397,10 @@ fn justify_spacing(
         raw_extra
     };
 
-    (1.0, raw_extra.max(min_gap))
+    let spacing = raw_extra.max(min_gap);
+    let spacing_ok = min_spacing.map(|m| spacing >= m).unwrap_or(true);
+
+    (1.0, spacing, spacing_ok)
 }
 
 fn center_offset_for_glyph(
@@ -423,21 +428,21 @@ pub fn text_on_line(
     text: &str,
     mut collision: Option<&mut Collision<f64>>,
     options: &TextOnLineOptions,
-) {
+) -> bool {
     let ps = 1.0 / SCALE as f64;
     let mut pts: Vec<Coord> = line_string.into_iter().copied().collect();
 
     pts.dedup_by(|a, b| a == b);
 
     if pts.len() < 2 {
-        return;
+        return true;
     }
 
     let cum = cumulative_lengths(&pts);
     let total_length = *cum.last().unwrap_or(&0.0);
 
     if total_length == 0.0 {
-        return;
+        return true;
     }
 
     let TextOnLineOptions {
@@ -456,29 +461,30 @@ pub fn text_on_line(
 
     let clusters = collect_clusters(&layout);
     if clusters.is_empty() {
-        return;
+        return true;
     }
 
     let base_total_advance: f64 = clusters.iter().map(|c| c.0).sum();
     if base_total_advance == 0.0 {
-        return;
+        return true;
     }
 
-    let (advance_scale, extra_spacing_between_glyphs) =
+    // spacing_ok is false when Justify needed to squeeze below min_spacing.
+    let (advance_scale, extra_spacing_between_glyphs, spacing_ok) =
         justify_spacing(*align, total_length, base_total_advance, &clusters);
+
+    // If justify spacing falls below the configured minimum, abort drawing and report failure.
+    if !spacing_ok {
+        return false;
+    }
 
     let total_advance = base_total_advance * advance_scale
         + extra_spacing_between_glyphs * clusters.len().saturating_sub(1) as f64;
 
-    let offsets = label_offsets(
-        total_length,
-        total_advance,
-        *spacing,
-        *align,
-    );
+    let offsets = label_offsets(total_length, total_advance, *spacing, *align);
 
     if offsets.is_empty() {
-        return;
+        return spacing_ok;
     }
 
     let mut placements: Vec<Vec<(GlyphString, Font, Coord, f64)>> = Vec::new();
@@ -520,7 +526,7 @@ pub fn text_on_line(
             let eff_advance = *advance * advance_scale;
             let span_start = offset;
             let span_end = offset + eff_advance;
-            if span_end > total_length && !matches!(align, Align::Justify) {
+            if span_end > total_length && !matches!(align, Align::Justify { .. }) {
                 continue 'outer;
             }
 
@@ -581,7 +587,7 @@ pub fn text_on_line(
 
             let shifted_center = shifted_start + center_offset;
 
-            if shifted_end > total_length && !matches!(align, Align::Justify) {
+            if shifted_end > total_length && !matches!(align, Align::Justify { .. }) {
                 continue 'outer;
             }
 
@@ -636,4 +642,6 @@ pub fn text_on_line(
     for label in placements {
         draw_label(context, &label, options);
     }
+
+    spacing_ok
 }
