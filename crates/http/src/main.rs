@@ -1,4 +1,3 @@
-use gdal::Dataset;
 use maprender_core::xyz::tile_bounds_to_epsg3857;
 use maprender_core::{RenderRequest, SvgCache, TileFormat, load_hillshading_datasets, render_tile};
 use oxhttp::{
@@ -9,28 +8,83 @@ use postgres::{Config, NoTls};
 use r2d2_postgres::PostgresConnectionManager;
 use regex::Regex;
 use std::{
-    cell::{LazyCell, RefCell},
-    collections::HashMap,
+    collections::VecDeque,
     net::Ipv4Addr,
-    sync::LazyLock,
+    sync::{Arc, Condvar, LazyLock, Mutex, mpsc},
     time::Duration,
 };
 
 const SVG_BASE_PATH: &str = "/home/martin/fm/maprender/images";
 const HILLSHADING_BASE_PATH: &str = "/home/martin/14TB/hillshading";
+const WORKER_COUNT: usize = 24;
 
-struct RenderResources {
-    svg_cache: SvgCache,
-    hillshading_datasets: HashMap<String, Dataset>,
+struct RenderTask {
+    request: RenderRequest,
+    resp_tx: mpsc::Sender<Result<maprender_core::RenderedTile, String>>,
 }
 
-thread_local! {
-    static RENDER_RESOURCES: LazyCell<RefCell<RenderResources>> = const {
-        LazyCell::new(|| RefCell::new(RenderResources {
-            svg_cache: SvgCache::new(SVG_BASE_PATH),
-            hillshading_datasets: load_hillshading_datasets(HILLSHADING_BASE_PATH),
-        }))
-    };
+struct RenderWorkerPool {
+    tasks: Arc<Mutex<VecDeque<RenderTask>>>,
+    cv: Arc<Condvar>,
+}
+
+impl RenderWorkerPool {
+    fn new(pool: r2d2::Pool<PostgresConnectionManager<NoTls>>) -> Self {
+        let tasks = Arc::new(Mutex::new(VecDeque::new()));
+        let cv = Arc::new(Condvar::new());
+
+        for worker_id in 0..WORKER_COUNT {
+            let tasks = tasks.clone();
+            let cv = cv.clone();
+            let pool = pool.clone();
+
+            std::thread::Builder::new()
+                .name(format!("render-worker-{worker_id}"))
+                .spawn(move || {
+                    let mut svg_cache = SvgCache::new(SVG_BASE_PATH);
+
+                    let mut hillshading_datasets = load_hillshading_datasets(HILLSHADING_BASE_PATH);
+
+                    loop {
+                        let RenderTask { request, resp_tx } = {
+                            let mut guard = tasks.lock().unwrap();
+                            while guard.is_empty() {
+                                guard = cv.wait(guard).unwrap();
+                            }
+                            guard.pop_front().unwrap()
+                        };
+
+                        let result = match pool.get() {
+                            Ok(mut client) => Ok(render_tile(
+                                &request,
+                                &mut client,
+                                &mut svg_cache,
+                                &mut hillshading_datasets,
+                            )),
+                            Err(e) => Err(format!("db pool error: {e}")),
+                        };
+
+                        // Ignore send errors (client dropped).
+                        let _ = resp_tx.send(result);
+                    }
+                })
+                .expect("render worker spawn");
+        }
+
+        Self { tasks, cv }
+    }
+
+    fn render(&self, request: RenderRequest) -> Result<maprender_core::RenderedTile, String> {
+        let (resp_tx, resp_rx) = mpsc::channel();
+
+        {
+            let mut guard = self.tasks.lock().unwrap();
+            guard.push_back(RenderTask { request, resp_tx });
+            self.cv.notify_one();
+        }
+
+        resp_rx.recv().map_err(|e| format!("worker closed: {e}"))?
+    }
 }
 
 fn main() {
@@ -45,22 +99,21 @@ fn main() {
         NoTls,
     );
 
-    let pool = r2d2::Pool::builder().max_size(24).build(manager).unwrap();
+    let connection_pool = r2d2::Pool::builder().max_size(48).build(manager).unwrap();
 
-    Server::new(move |request| {
-        let mut conn = pool.get().unwrap();
-        render_response(request, &mut conn)
-    })
-    .with_max_concurrent_connections(128)
-    .with_global_timeout(Duration::from_secs(10))
-    .bind((Ipv4Addr::LOCALHOST, 3050))
-    .spawn()
-    .unwrap()
-    .join()
-    .unwrap();
+    let worker_pool = Arc::new(RenderWorkerPool::new(connection_pool.clone()));
+
+    Server::new(move |request| render_response(request, worker_pool.clone()))
+        .with_max_concurrent_connections(4096)
+        .with_global_timeout(Duration::from_secs(100))
+        .bind((Ipv4Addr::LOCALHOST, 3050))
+        .spawn()
+        .unwrap()
+        .join()
+        .unwrap();
 }
 
-fn render_response(request: &Request<Body>, client: &mut postgres::Client) -> Response<Body> {
+fn render_response(request: &Request<Body>, worker_pool: Arc<RenderWorkerPool>) -> Response<Body> {
     let Some(tile_request) = parse_tile_path(request.uri().path()) else {
         return Response::builder()
             .status(StatusCode::BAD_REQUEST)
@@ -68,23 +121,23 @@ fn render_response(request: &Request<Body>, client: &mut postgres::Client) -> Re
             .expect("body should be built");
     };
 
-    RENDER_RESOURCES.with(|slot| {
-        let mut resources = slot.borrow_mut();
+    let rendered = match worker_pool.render(tile_request) {
+        Ok(rendered) => rendered,
+        Err(err) => {
+            eprintln!("render failed: {err}");
+            return Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(Body::from("render error"))
+                .expect("body should be built");
+        }
+    };
 
-        let RenderResources {
-            svg_cache,
-            hillshading_datasets,
-        } = &mut *resources;
-
-        let rendered = render_tile(&tile_request, client, svg_cache, hillshading_datasets);
-
-        Response::builder()
-            .status(StatusCode::OK)
-            .header("Content-Type", rendered.content_type)
-            .header("Access-Control-Allow-Origin", "*")
-            .body(Body::from(rendered.buffer))
-            .expect("body should be built")
-    })
+    Response::builder()
+        .status(StatusCode::OK)
+        .header("Content-Type", rendered.content_type)
+        .header("Access-Control-Allow-Origin", "*")
+        .body(Body::from(rendered.buffer))
+        .expect("body should be built")
 }
 
 fn parse_tile_path(path: &str) -> Option<RenderRequest> {
