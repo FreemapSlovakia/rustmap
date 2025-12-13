@@ -281,7 +281,7 @@ fn draw(
     routes::render(ctx, client, &routes::RouteTypes::all(), svg_cache);
     context.restore().unwrap();
 
-    if (8..=11).contains(&zoom) {
+    if (9..=11).contains(&zoom) {
         geonames::render(ctx, client);
     }
 

@@ -502,6 +502,13 @@ pub fn draw_text_on_line(
         }
         Distribution::Justify { min_spacing } => (Align::Left, None, *min_spacing),
     };
+    let is_justify = min_spacing.is_some();
+    let concave_spacing_factor = if is_justify {
+        // Keep justification exact; extra curvature padding would shift glyphs off the span.
+        0.0
+    } else {
+        *concave_spacing_factor
+    };
 
     // For justify we ignore user letter spacing (scaling is applied instead).
     let flo_use = if min_spacing.is_some() {
@@ -559,10 +566,11 @@ pub fn draw_text_on_line(
     let mut rendered = false;
 
     // For each label repeat, walk glyphs along the line while keeping edge-alignment and curvature limits.
-    'outer: for start in offsets {
+    'outer: for label_start in offsets {
         // Decide per-repeat if we need to flip to stay upright.
-        let overall_span_start = start;
-        let overall_span_end = start + repeat.span;
+        let repeat_span = repeat.span;
+        let overall_span_start = label_start;
+        let overall_span_end = label_start + repeat_span;
         let overall_tangent =
             weighted_tangent_for_span(&pts, &cum, overall_span_start, overall_span_end)
                 .unwrap_or(Coord { x: 1.0, y: 0.0 });
@@ -579,7 +587,7 @@ pub fn draw_text_on_line(
         let mut pts_use = pts.clone();
         // Apply per-label offset after we know whether we're flipped.
         if *offset != 0.0 {
-            let signed_offset = if flip_needed { -*offset } else { *offset };
+            let signed_offset = if flip_needed { *offset } else { -*offset };
             let ls = LineString::from(pts_use.clone());
             let offset_ls = offset_line_string(&ls, signed_offset);
             let mut off_pts: Vec<Coord> = offset_ls.into_iter().collect();
@@ -594,31 +602,23 @@ pub fn draw_text_on_line(
         }
         let cum_use = cumulative_lengths(&pts_use);
         let start_use = if flip_needed {
-            (total_length - repeat.span - start).max(0.0)
+            (total_length - repeat_span - label_start).max(0.0)
         } else {
-            start
+            label_start
         };
 
-        let mut offset = start_use;
+        let mut cursor = start_use;
         let mut label_placements = Vec::new();
         let mut glyph_bboxes: Vec<Rect<f64>> = Vec::new();
 
-        let is_justify = min_spacing.is_some();
-        let (label_advance_scale, label_extra_spacing_between_glyphs) = if is_justify {
-            let scale = if base_total_advance > 0.0 {
-                total_length / base_total_advance
-            } else {
-                1.0
-            };
-            (scale, 0.0)
-        } else {
-            (advance_scale, extra_spacing_between_glyphs)
-        };
+        let label_advance_scale = advance_scale;
+        let label_extra_spacing_between_glyphs = extra_spacing_between_glyphs;
 
         for (idx, (advance, glyph_string, font)) in clusters.iter().enumerate() {
-            let eff_advance = *advance * label_advance_scale + label_extra_spacing_between_glyphs;
-            let span_start = offset;
-            let span_end = offset + eff_advance;
+            // Effective advance for this glyph (spacing between glyphs handled separately).
+            let eff_advance = *advance * label_advance_scale;
+            let span_start = cursor;
+            let span_end = cursor + eff_advance;
             if span_end > total_length && !is_justify {
                 continue 'outer;
             }
@@ -655,7 +655,7 @@ pub fn draw_text_on_line(
 
             // Extra space proportional to curvature to avoid glyph tops touching on bends.
             let ratio = (max_bend / 180.0).clamp(0.0, 1.0);
-            let concave_spacing = eff_advance * *concave_spacing_factor * ratio;
+            let concave_spacing = eff_advance * concave_spacing_factor * ratio;
 
             let shifted_start = span_start;
             let shifted_end = shifted_start + eff_advance;
@@ -712,10 +712,10 @@ pub fn draw_text_on_line(
 
             label_placements.push((glyph_string.clone(), font.clone(), pos, angle));
 
-            offset += eff_advance;
+            cursor += eff_advance;
 
             if idx + 1 < clusters.len() {
-                offset += concave_spacing + extra_spacing_between_glyphs;
+                cursor += concave_spacing + label_extra_spacing_between_glyphs;
             }
         }
 
