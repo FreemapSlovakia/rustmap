@@ -31,6 +31,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         },
         halo_opacity: 0.5,
         color: colors::AREA_LABEL,
+        placements: &[0.0, 3.0, -3.0],
         ..TextOptions::default()
     };
 

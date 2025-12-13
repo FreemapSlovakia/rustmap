@@ -23,8 +23,6 @@ pub struct TextOptions<'a> {
     pub omit_bbox: Option<usize>,
 }
 
-pub static DEFAULT_PLACEMENTS: &[f64] = &[0.0, 3.0, -3.0, 6.0, -6.0, 9.0, -9.0];
-
 impl Default for TextOptions<'_> {
     fn default() -> Self {
         TextOptions {
@@ -34,7 +32,7 @@ impl Default for TextOptions<'_> {
             halo_opacity: 0.75,
             halo_width: 1.5,
             flo: Default::default(),
-            placements: &[0.0],
+            placements: &[0.0, 3.0, -3.0, 6.0, -6.0, 9.0, -9.0],
             valign_by_placement: false,
             omit_bbox: None,
         }

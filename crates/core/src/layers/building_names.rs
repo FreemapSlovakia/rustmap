@@ -1,7 +1,7 @@
 use crate::{
     collision::Collision,
     ctx::Ctx,
-    draw::text::{DEFAULT_PLACEMENTS, TextOptions, draw_text},
+    draw::text::{TextOptions, draw_text},
     projectable::{TileProjectable, geometry_point},
 };
 use postgres::Client;
@@ -33,11 +33,6 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
                 AND osm_shops.osm_id IS NULL
             ORDER BY osm_buildings.osm_id";
 
-    let text_options = TextOptions {
-        placements: DEFAULT_PLACEMENTS,
-        ..TextOptions::default()
-    };
-
     let rows = client
         .query(sql, &ctx.bbox_query_params(Some(1024.0)).as_params())
         .expect("db data");
@@ -48,7 +43,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
             collision,
             &geometry_point(&row).project_to_tile(&ctx.tile_projector),
             row.get("name"),
-            &text_options,
+            &TextOptions::default(),
         );
     }
 }

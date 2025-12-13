@@ -64,7 +64,6 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
                 halo_width,
                 halo_opacity: 0.9,
                 alpha: if zoom <= 14 { 1.0 } else { 0.5 },
-                placements: text::DEFAULT_PLACEMENTS,
                 ..TextOptions::default()
             },
         );

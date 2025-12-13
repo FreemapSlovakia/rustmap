@@ -37,7 +37,6 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         },
         color: colors::WATER_LABEL,
         halo_color: colors::WATER_LABEL_HALO,
-        placements: text::DEFAULT_PLACEMENTS,
         ..TextOptions::default()
     };
 
