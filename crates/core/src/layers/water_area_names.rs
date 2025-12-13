@@ -4,7 +4,7 @@ use crate::{
     ctx::Ctx,
     draw::{
         create_pango_layout::FontAndLayoutOptions,
-        text::{self, TextOptions, draw_text},
+        text::{TextOptions, draw_text},
     },
     projectable::{TileProjectable, geometry_point},
 };
