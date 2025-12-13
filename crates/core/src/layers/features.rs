@@ -42,7 +42,7 @@ struct Def {
 }
 
 #[rustfmt::skip]
-static POIS: LazyLock<HashMap<&'static str, Def>> = LazyLock::new(|| {
+static POIS: LazyLock<HashMap<&'static str, Vec<Def>>> = LazyLock::new(|| {
     const Y: bool = true;
     const N: bool = false;
     const NN: u32 = u32::MAX;
@@ -87,7 +87,7 @@ static POIS: LazyLock<HashMap<&'static str, Def>> = LazyLock::new(|| {
             replacements: build_replacements(&[(r"^[Ll]etisko\b *", "")]),
             ..Extra::default()
         }),
-        (12, 12, Y, N, "guidepost", Extra { icon: Some("guidepost_x"), weight: Weight::Bold, max_zoom: 12, ..Extra::default() }),
+        // (12, 12, Y, N, "guidepost", Extra { icon: Some("guidepost_x"), weight: Weight::Bold, max_zoom: 12, ..Extra::default() }),
         (13, 13, Y, N, "guidepost", Extra { icon: Some("guidepost_xx"), weight: Weight::Bold, max_zoom: 13, ..Extra::default() }),
         (14, 14, Y, N, "guidepost", Extra { icon: Some("guidepost_xx"), weight: Weight::Bold, ..Extra::default() }),
         (10, 10, Y, Y, "peak1", Extra { icon: Some("peak"), font_size: 13.0, ..Extra::default() }),
@@ -334,18 +334,22 @@ static POIS: LazyLock<HashMap<&'static str, Def>> = LazyLock::new(|| {
         (19, NN, N, N, "waste_basket", Extra::default()),
         ];
 
-    entries
-        .into_iter()
-        .map(|(min_zoom, min_text_zoom, with_ele, natural, name, extra)| {
-            (name, Def {
+    let mut pois = HashMap::new();
+
+    for (min_zoom, min_text_zoom, with_ele, natural, name, extra) in entries.into_iter() {
+        pois
+            .entry(name)
+            .or_insert_with(Vec::new)
+            .push(Def {
                 min_zoom,
                 min_text_zoom,
                 with_ele,
                 natural,
                 extra,
-            })
-        })
-        .collect()
+            });
+    }
+
+    pois
 });
 
 pub fn render(
@@ -393,9 +397,8 @@ pub fn render(
                     null AS access,
                     null AS isolation,
                     CASE
-                        WHEN type <> 'guidepost' THEN type
-                        WHEN name = '' THEN 'guidepost_noname'
-                        ELSE 'guidepost'
+                        WHEN type <> 'guidepost' OR name <> '' THEN type
+                        ELSE 'guidepost_noname'
                     END AS type
                 FROM osm_infopoints"#,
         );
@@ -670,15 +673,12 @@ pub fn render(
         for row in rows {
             let typ: &str = row.get("type");
 
-            let def = POIS.get(typ);
-
-            let Some(def) = def else {
+            let Some(def) = POIS.get(typ).and_then(|defs| {
+                defs.iter()
+                    .find(|def| def.min_zoom <= zoom && def.extra.max_zoom >= zoom)
+            }) else {
                 continue;
             };
-
-            if def.min_zoom > zoom || def.extra.max_zoom < zoom {
-                continue;
-            }
 
             let point = geometry_point(&row).project_to_tile(&ctx.tile_projector);
 
