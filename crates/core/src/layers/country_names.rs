@@ -29,7 +29,9 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             ..Default::default()
         },
         halo_width: 2.0,
-        distribution: Distribution::Justify { min_spacing: Some(0.0) },
+        distribution: Distribution::Justify {
+            min_spacing: Some(0.0),
+        },
         concave_spacing_factor: 0.0,
         ..Default::default()
     };
@@ -41,7 +43,9 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         },
         halo_width: 2.0,
         color: colors::AREA_LABEL,
-        distribution: Distribution::Justify { min_spacing: Some(0.0) },
+        distribution: Distribution::Justify {
+            min_spacing: Some(0.0),
+        },
         concave_spacing_factor: 0.0,
         ..Default::default()
     };

@@ -28,7 +28,6 @@ TMS URL is then `http://localhost:3050/{zoom}/{x}/{y}@2x[|.png|.svg]` (adjust yo
 ## TODO
 
 - Porting missing features from freemap-mapnik styles
-- Nodejs binding
 - support for PDF, WebP, Avif, Jpeg
 - ...and other things still missing but present in freemap-mapnik
 

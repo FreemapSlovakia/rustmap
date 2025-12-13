@@ -1,4 +1,4 @@
-use crate::layers::{geonames, valleys_ridges};
+use crate::layers::{geonames, national_park_names, valleys_ridges};
 use cairo::{Context, Format, ImageSurface, PdfSurface, Surface, SvgSurface};
 use collision::Collision;
 use colors::ContextExt;
@@ -289,7 +289,9 @@ fn draw(
         place_names::render(ctx, client, collision);
     }
 
-    // <NationalParkNames />
+    if (8..=10).contains(&zoom) {
+        national_park_names::render(ctx, client, collision);
+    }
 
     features::render(ctx, client, collision, svg_cache);
 

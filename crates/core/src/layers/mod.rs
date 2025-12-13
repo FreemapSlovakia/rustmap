@@ -18,6 +18,7 @@ pub mod housenumbers;
 pub mod landuse;
 pub mod locality_names;
 pub mod military_areas;
+pub mod national_park_names;
 pub mod pipelines;
 pub mod place_names;
 pub mod power_lines;
