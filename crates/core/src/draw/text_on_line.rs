@@ -1,7 +1,10 @@
 use crate::{
     collision::Collision,
     colors::{self, Color, ContextExt},
-    draw::create_pango_layout::{FontAndLayoutOptions, create_pango_layout},
+    draw::{
+        create_pango_layout::{FontAndLayoutOptions, create_pango_layout},
+        offset_line::offset_line_string,
+    },
 };
 use cairo::Context;
 use geo::Vector2DOps;
@@ -15,9 +18,9 @@ use std::f64::consts::{PI, TAU};
 #[derive(Copy, Clone, Debug)]
 pub struct TextOnLineOptions {
     pub upright: Upright,
-    pub align: Align,
-    pub spacing: Option<f64>,
+    pub distribution: Distribution,
     pub alpha: f64,
+    pub offset: f64,
     pub color: Color,
     pub halo_color: Color,
     pub halo_opacity: f64,
@@ -31,9 +34,12 @@ impl Default for TextOnLineOptions {
     fn default() -> Self {
         Self {
             upright: Upright::Auto,
-            align: Align::Center,
-            spacing: None,
+            distribution: Distribution::Align {
+                align: Align::Center,
+                repeat: Repeat::None,
+            },
             alpha: 1.0,
+            offset: 0.0,
             color: colors::BLACK,
             halo_color: colors::WHITE,
             halo_opacity: 0.75,
@@ -57,6 +63,17 @@ pub enum Align {
     Left,
     Center,
     Right,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum Repeat {
+    None,
+    Spaced(f64),
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum Distribution {
+    Align { align: Align, repeat: Repeat },
     Justify { min_spacing: Option<f64> },
 }
 
@@ -329,10 +346,6 @@ fn label_offsets(
     spacing: Option<f64>,
     align: Align,
 ) -> Vec<f64> {
-    if matches!(align, Align::Justify { .. }) {
-        return vec![0.0];
-    }
-
     if total_length < label_span {
         return Vec::new();
     }
@@ -359,7 +372,6 @@ fn label_offsets(
         Align::Left => 0.0,
         Align::Center => ((total_length - total_span) / 2.0).max(0.0),
         Align::Right => (total_length - total_span).max(0.0),
-        Align::Justify { .. } => 0.0,
     };
 
     (0..count)
@@ -368,16 +380,11 @@ fn label_offsets(
 }
 
 fn justify_spacing(
-    align: Align,
+    min_spacing: Option<f64>,
     total_length: f64,
     base_total_advance: f64,
     clusters: &[(f64, GlyphString, Font)],
 ) -> Option<(f64, f64)> {
-    let min_spacing = match align {
-        Align::Justify { min_spacing } => min_spacing,
-        _ => return Some((1.0, 0.0)),
-    };
-
     let gaps = clusters.len().saturating_sub(1) as f64;
     if gaps == 0.0 {
         return Some((1.0, 0.0));
@@ -475,16 +482,38 @@ pub fn draw_text_on_line(
     }
 
     let TextOnLineOptions {
-        spacing,
-        align,
+        distribution,
         upright,
         max_curvature_degrees,
         concave_spacing_factor,
         flo,
+        offset,
         ..
     } = options;
 
-    let layout = create_pango_layout(context, text, flo);
+    // Derive layout mode from distribution.
+    let (align_mode, spacing_use, min_spacing) = match distribution {
+        Distribution::Align { align, repeat } => {
+            let spacing = match repeat {
+                Repeat::None => None,
+                Repeat::Spaced(s) => Some(*s),
+            };
+            (*align, spacing, None)
+        }
+        Distribution::Justify { min_spacing } => (Align::Left, None, *min_spacing),
+    };
+
+    // For justify we ignore user letter spacing (scaling is applied instead).
+    let flo_use = if min_spacing.is_some() {
+        FontAndLayoutOptions {
+            letter_spacing: 0.0,
+            ..*flo
+        }
+    } else {
+        *flo
+    };
+
+    let layout = create_pango_layout(context, text, &flo_use);
 
     layout.set_width(-1); // no width constraint, so no wrapping happens at all
     let (ink, _) = layout.extents();
@@ -501,19 +530,25 @@ pub fn draw_text_on_line(
     }
 
     // If justify spacing falls below the configured minimum, abort drawing.
-    let (advance_scale, extra_spacing_between_glyphs) =
-        match justify_spacing(*align, total_length, base_total_advance, &clusters) {
+    let (advance_scale, extra_spacing_between_glyphs) = match min_spacing {
+        Some(ms) => match justify_spacing(Some(ms), total_length, base_total_advance, &clusters) {
             Some(v) => v,
             None => return false,
-        };
+        },
+        None => (1.0, 0.0),
+    };
 
     let total_advance = base_total_advance.mul_add(
         advance_scale,
         extra_spacing_between_glyphs * clusters.len().saturating_sub(1) as f64,
     );
 
-    let repeat = repeat_params(*spacing, total_advance, ink_span, options.halo_width);
-    let offsets = label_offsets(total_length, repeat.span, *spacing, *align);
+    let repeat = repeat_params(spacing_use, total_advance, ink_span, options.halo_width);
+    let offsets = if min_spacing.is_some() {
+        vec![0.0]
+    } else {
+        label_offsets(total_length, repeat.span, spacing_use, align_mode)
+    };
     let mut new_collision_bboxes: Vec<Rect<f64>> = Vec::new();
 
     if offsets.is_empty() {
@@ -542,6 +577,18 @@ pub fn draw_text_on_line(
         };
 
         let mut pts_use = pts.clone();
+        // Apply per-label offset after we know whether we're flipped.
+        if *offset != 0.0 {
+            let signed_offset = if flip_needed { -*offset } else { *offset };
+            let ls = LineString::from(pts_use.clone());
+            let offset_ls = offset_line_string(&ls, signed_offset);
+            let mut off_pts: Vec<Coord> = offset_ls.into_iter().collect();
+            off_pts.dedup_by(|a, b| a == b);
+            if off_pts.len() >= 2 {
+                pts_use = off_pts;
+            }
+        }
+
         if flip_needed {
             pts_use.reverse();
         }
@@ -556,11 +603,23 @@ pub fn draw_text_on_line(
         let mut label_placements = Vec::new();
         let mut glyph_bboxes: Vec<Rect<f64>> = Vec::new();
 
+        let is_justify = min_spacing.is_some();
+        let (label_advance_scale, label_extra_spacing_between_glyphs) = if is_justify {
+            let scale = if base_total_advance > 0.0 {
+                total_length / base_total_advance
+            } else {
+                1.0
+            };
+            (scale, 0.0)
+        } else {
+            (advance_scale, extra_spacing_between_glyphs)
+        };
+
         for (idx, (advance, glyph_string, font)) in clusters.iter().enumerate() {
-            let eff_advance = *advance * advance_scale;
+            let eff_advance = *advance * label_advance_scale + label_extra_spacing_between_glyphs;
             let span_start = offset;
             let span_end = offset + eff_advance;
-            if span_end > total_length && !matches!(align, Align::Justify { .. }) {
+            if span_end > total_length && !is_justify {
                 continue 'outer;
             }
 
@@ -621,7 +680,7 @@ pub fn draw_text_on_line(
 
             let shifted_center = shifted_start + center_offset;
 
-            if shifted_end > total_length && !matches!(align, Align::Justify { .. }) {
+            if shifted_end > total_length && !is_justify {
                 continue 'outer;
             }
 

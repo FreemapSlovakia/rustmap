@@ -3,7 +3,7 @@ use crate::{
     ctx::Ctx,
     draw::{
         create_pango_layout::FontAndLayoutOptions,
-        text_on_line::{Align, TextOnLineOptions, draw_text_on_line},
+        text_on_line::{Distribution, TextOnLineOptions, draw_text_on_line},
     },
     projectable::{TileProjectable, geometry_line_string},
 };
@@ -28,9 +28,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             style: Style::Italic,
             ..Default::default()
         },
-        align: Align::Justify {
-            min_spacing: Some(0.0),
-        },
+        distribution: Distribution::Justify { min_spacing: Some(0.0) },
         halo_opacity: 1.0,
         color: colors::TRAM,
         halo_width: 2.0,

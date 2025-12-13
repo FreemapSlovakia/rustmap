@@ -4,7 +4,7 @@ use crate::{
     ctx::Ctx,
     draw::{
         offset_line::offset_line_string,
-        text_on_line::{TextOnLineOptions, draw_text_on_line},
+        text_on_line::{Align, Distribution, Repeat, TextOnLineOptions, draw_text_on_line},
     },
     projectable::{TileProjectable, geometry_line_string},
 };
@@ -21,7 +21,10 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         .expect("db data");
 
     let options = TextOnLineOptions {
-        spacing: Some(200.0),
+        distribution: Distribution::Align {
+            align: Align::Center,
+            repeat: Repeat::Spaced(200.0),
+        },
         color: colors::BLACK,
         ..TextOnLineOptions::default()
     };

@@ -4,7 +4,7 @@ use crate::{
     ctx::Ctx,
     draw::{
         create_pango_layout::FontAndLayoutOptions,
-        text_on_line::{TextOnLineOptions, draw_text_on_line},
+        text_on_line::{Align, Distribution, Repeat, TextOnLineOptions, draw_text_on_line},
     },
     projectable::{TileProjectable, geometry_line_string},
     re_replacer::{Replacement, replace},
@@ -48,7 +48,10 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
             letter_spacing: 2.0,
             ..FontAndLayoutOptions::default()
         },
-        spacing: Some(300.0),
+        distribution: Distribution::Align {
+            align: Align::Center,
+            repeat: Repeat::Spaced(300.0),
+        },
         color: colors::WATER_LABEL,
         halo_color: colors::WATER_LABEL_HALO,
         ..TextOnLineOptions::default()

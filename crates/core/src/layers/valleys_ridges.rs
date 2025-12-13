@@ -1,13 +1,12 @@
 use std::sync::LazyLock;
 
 use crate::{
-    collision::{self, Collision},
+    collision::Collision,
     colors,
     ctx::Ctx,
     draw::{
         create_pango_layout::FontAndLayoutOptions,
-        offset_line::offset_line_string,
-        text_on_line::{TextOnLineOptions, draw_text_on_line},
+        text_on_line::{Align, Distribution, Repeat, TextOnLineOptions, draw_text_on_line},
     },
     projectable::{TileProjectable, geometry_line_string},
     re_replacer::{Replacement, replace},
@@ -31,7 +30,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     let opacity = 0.5 - (ctx.zoom as f64 - 13.0) / 10.0;
     let cs = 15.0 + zoom_coef;
     let size = 10.0 + zoom_coef;
-    let off = 6.0 + 3.0 * zoom_coef;
+    let off = 6.0 + 3.0 * zoom_coef + size / 2.0;
 
     let context = ctx.context;
 
@@ -39,14 +38,11 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     let mut render_rows = |rows: Vec<Row>| {
         for row in rows {
+            let name = replace(row.get("name"), &REPLACEMENTS);
+
             let geom = geometry_line_string(&row).project_to_tile(&ctx.tile_projector);
 
             let of: f64 = row.get("offset_factor");
-
-            // TODO offset should be negative depending of upright placement
-            let geom = offset_line_string(&geom, of * off);
-
-            let geom = geom.chaikin_smoothing(3);
 
             let mut options = TextOnLineOptions {
                 flo: FontAndLayoutOptions {
@@ -57,18 +53,18 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 },
                 color: colors::TRAM,
                 halo_opacity: 0.9,
-                spacing: Some(200.0),
+                distribution: Distribution::Align {
+                    align: Align::Center,
+                    repeat: Repeat::Spaced(200.0),
+                },
+                offset: -of * off,
                 ..Default::default()
             };
 
+            let geom = geom.chaikin_smoothing(3);
+
             while options.flo.letter_spacing >= 1.0 {
-                let drawn = draw_text_on_line(
-                    context,
-                    &geom,
-                    &replace(row.get("name"), &REPLACEMENTS),
-                    Some(collision),
-                    &options,
-                );
+                let drawn = draw_text_on_line(context, &geom, &name, Some(collision), &options);
 
                 if drawn {
                     break;

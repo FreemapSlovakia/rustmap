@@ -2,7 +2,7 @@ use crate::colors::{self, ContextExt};
 use crate::ctx::Ctx;
 use crate::draw::create_pango_layout::FontAndLayoutOptions;
 use crate::draw::offset_line::offset_line_string;
-use crate::draw::text_on_line::{Align, TextOnLineOptions, draw_text_on_line};
+use crate::draw::text_on_line::{Distribution, TextOnLineOptions, draw_text_on_line};
 use crate::layers::borders;
 use crate::projectable::{TileProjectable, geometry_line_string};
 use postgres::Client;
@@ -29,9 +29,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             ..Default::default()
         },
         halo_width: 2.0,
-        align: Align::Justify {
-            min_spacing: Some(0.0),
-        },
+        distribution: Distribution::Justify { min_spacing: Some(0.0) },
         concave_spacing_factor: 0.0,
         ..Default::default()
     };
@@ -43,9 +41,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         },
         halo_width: 2.0,
         color: colors::AREA_LABEL,
-        align: Align::Justify {
-            min_spacing: Some(0.0),
-        },
+        distribution: Distribution::Justify { min_spacing: Some(0.0) },
         concave_spacing_factor: 0.0,
         ..Default::default()
     };
@@ -67,7 +63,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         let geom = geometry_line_string(&row).project_to_tile(&ctx.tile_projector);
 
         // context.save().unwrap();
-        // draw_line(context, &geom);
+        // path_line_string(context, &geom);
         // context.set_source_color(colors::BLACK);
         // context.set_line_width(2.0);
         // context.stroke().unwrap();
@@ -81,9 +77,12 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         ] {
             let mut options = *options;
 
-            for _ in 0..4 {
-                let geom = offset_line_string(&geom, offset);
+            // TODO offset_line_string produces bad results for `align: Align::Justify`
+            // options.offset = offset;
 
+            let geom = offset_line_string(&geom, offset);
+
+            while options.flo.size > 10.0 {
                 if draw_text_on_line(context, &geom, name, None, &options) {
                     break;
                 }
