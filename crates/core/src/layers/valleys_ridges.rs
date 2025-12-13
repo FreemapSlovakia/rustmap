@@ -28,9 +28,9 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     let zoom_coef = 2.5f64.powf(ctx.zoom as f64 - 12.0);
 
     let opacity = 0.5 - (ctx.zoom as f64 - 13.0) / 10.0;
-    let cs = 15.0 + zoom_coef;
+    let letter_spacing = 15.0 + zoom_coef;
     let size = 10.0 + zoom_coef;
-    let off = 6.0 + 3.0 * zoom_coef;
+    let off = 6.0 + 1.5 * zoom_coef;
 
     let context = ctx.context;
 
@@ -47,7 +47,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             let mut options = TextOnLineOptions {
                 flo: FontAndLayoutOptions {
                     style: Style::Italic,
-                    letter_spacing: cs,
+                    letter_spacing,
                     size,
                     ..Default::default()
                 },
@@ -57,7 +57,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                     align: Align::Center,
                     repeat: Repeat::Spaced(200.0),
                 },
-                offset: -offset_factor * off - size / 2.0,
+                offset: size / 2.0 + offset_factor * off,
                 ..Default::default()
             };
 
@@ -72,12 +72,16 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
                 options.flo.letter_spacing = (options.flo.letter_spacing + 1.0) * 0.9 - 1.0;
             }
+
+            // TODO
+            // {z > 13 && <Placement characterSpacing={0} size={size * 0.75} />}
+            // {z > 14 && <Placement characterSpacing={0} size={size * 0.5} />}
         }
     };
 
     context.push_group();
 
-    let sql = "
+    let sql = format!("
         SELECT
             geometry, name, LEAST(1.2, ST_Length(geometry) / 5000) AS offset_factor
         FROM
@@ -85,11 +89,11 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         WHERE
             type = 'valley' AND name <> '' AND geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
         ORDER BY
-            ST_Length(geometry) DESC";
+            ST_Length(geometry) {}", if ctx.zoom > 13 {"ASC"} else {"DESC"});
 
     render_rows(
         client
-            .query(sql, &ctx.bbox_query_params(Some(512.0)).as_params())
+            .query(&sql, &ctx.bbox_query_params(Some(512.0)).as_params())
             .expect("db data"),
     );
 
