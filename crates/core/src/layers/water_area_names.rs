@@ -19,7 +19,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     let sql = "
         SELECT
             REGEXP_REPLACE(osm_waterareas.name, '[Vv]odná [Nn]ádrž\\M', 'v. n.') AS name,
-            ST_Centroid(osm_waterareas.geometry) AS geometry
+            ST_PointOnSurface(osm_waterareas.geometry) AS geometry
         FROM
             osm_waterareas LEFT JOIN osm_feature_polys USING (osm_id)
         WHERE
