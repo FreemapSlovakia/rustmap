@@ -1,3 +1,4 @@
+use crate::layers::{geonames, valleys_ridges};
 use cairo::{Context, Format, ImageSurface, PdfSurface, Surface, SvgSurface};
 use collision::Collision;
 use colors::ContextExt;
@@ -24,14 +25,13 @@ pub mod ctx;
 pub mod draw;
 pub mod layers;
 pub mod projectable;
+pub mod re_replacer;
 pub mod size;
 pub mod svg_cache;
 pub mod xyz;
 
 pub use shading_and_contours::load_hillshading_datasets;
 pub use svg_cache::SvgCache;
-
-use crate::layers::geonames;
 
 pub struct Renderer;
 
@@ -170,8 +170,8 @@ fn draw(
 ) {
     let context = Context::new(surface).unwrap();
 
-    // let mut collision = Collision::<f64>::new(Some(&context));
-    let mut collision = Collision::<f64>::new(None);
+    // let collision = &mut Collision::<f64>::new(Some(&context));
+    let collision = &mut Collision::<f64>::new(None);
 
     let zoom = request.zoom;
 
@@ -286,52 +286,54 @@ fn draw(
     }
 
     if zoom >= 8 {
-        place_names::render(ctx, client, &mut collision);
+        place_names::render(ctx, client, collision);
     }
 
     // <NationalParkNames />
 
-    features::render(ctx, client, &mut collision, svg_cache);
+    features::render(ctx, client, collision, svg_cache);
 
     if zoom >= 10 {
-        water_area_names::render(ctx, client, &mut collision);
+        water_area_names::render(ctx, client, collision);
     }
 
     if zoom >= 17 {
-        building_names::render(ctx, client, &mut collision);
+        building_names::render(ctx, client, collision);
     }
 
     if zoom >= 12 {
-        protected_area_names::render(ctx, client, &mut collision);
+        protected_area_names::render(ctx, client, collision);
     }
 
     // TODO <LandcoverNames />
 
     if zoom >= 15 {
-        locality_names::render(ctx, client, &mut collision);
+        locality_names::render(ctx, client, collision);
     }
 
     if zoom >= 18 {
-        housenumbers::render(ctx, client, &mut collision);
+        housenumbers::render(ctx, client, collision);
     }
 
     if zoom >= 15 {
-        highway_names(ctx, client, &mut collision);
+        highway_names(ctx, client, collision);
     }
 
     // <RouteNames {...routeProps} />
 
     if zoom >= 16 {
-        aerialway_names::render(ctx, client, &mut collision);
+        aerialway_names::render(ctx, client, collision);
     }
 
     if zoom >= 12 {
-        water_line_names::render(ctx, client, &mut collision);
+        water_line_names::render(ctx, client, collision);
     }
 
     // <Fixmes />
 
-    // <ValleysRidges />
+    if zoom >= 13 {
+        valleys_ridges::render(ctx, client);
+    }
 
     // <PlaceNames2 />
 

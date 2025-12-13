@@ -7,14 +7,19 @@ use crate::{
         text_on_line::{TextOnLineOptions, draw_text_on_line},
     },
     projectable::{TileProjectable, geometry_line_string},
+    re_replacer::{Replacement, replace},
 };
 use pangocairo::pango::Style;
 use postgres::Client;
 use regex::Regex;
 use std::sync::LazyLock;
 
-static RE1: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\b[Pp]otok$").unwrap());
-static RE2: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[Pp]otok\b *").unwrap());
+static REPLACEMENTS: LazyLock<Vec<Replacement>> = LazyLock::new(|| {
+    vec![
+        (Regex::new(r"\b[Pp]otok$").unwrap(), "p."),
+        (Regex::new(r"^[Pp]otok\b *").unwrap(), ""),
+    ]
+});
 
 pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     let zoom = ctx.zoom;
@@ -50,14 +55,10 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     };
 
     for row in rows {
-        let geom = geometry_line_string(&row).project_to_tile(&ctx.tile_projector);
-
-        let name: &str = row.get("name");
-
         draw_text_on_line(
             ctx.context,
-            &geom,
-            &RE2.replace(&RE1.replace(name, "p."), ""),
+            &geometry_line_string(&row).project_to_tile(&ctx.tile_projector),
+            &replace(row.get("name"), &REPLACEMENTS),
             Some(collision),
             &options,
         );

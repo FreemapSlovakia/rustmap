@@ -325,7 +325,7 @@ fn draw_label(
 
 fn label_offsets(
     total_length: f64,
-    total_advance: f64,
+    label_span: f64,
     spacing: Option<f64>,
     align: Align,
 ) -> Vec<f64> {
@@ -333,24 +333,24 @@ fn label_offsets(
         return vec![0.0];
     }
 
-    if total_length < total_advance {
+    if total_length < label_span {
         return Vec::new();
     }
 
     // Step between label starts when repeating is enabled: pack by (advance + spacing).
-    let step = spacing.map_or(total_length, |s| {
-        (total_advance + s).max(total_advance * 0.2)
-    });
+    let step = spacing
+        .map(|s| (label_span + s).max(label_span * 0.2))
+        .unwrap_or(total_length);
 
     // How many full labels can we fit (repetition only if spacing is Some).
     let count = if spacing.is_some() {
-        ((total_length - total_advance) / step).floor() as usize + 1
+        ((total_length - label_span) / step).floor() as usize + 1
     } else {
         1
     };
 
     let total_span = if count > 0 {
-        step.mul_add((count.saturating_sub(1)) as f64, total_advance)
+        step.mul_add((count.saturating_sub(1)) as f64, label_span)
     } else {
         0.0
     };
@@ -372,15 +372,15 @@ fn justify_spacing(
     total_length: f64,
     base_total_advance: f64,
     clusters: &[(f64, GlyphString, Font)],
-) -> (f64, f64, bool) {
+) -> Option<(f64, f64)> {
     let min_spacing = match align {
         Align::Justify { min_spacing } => min_spacing,
-        _ => return (1.0, 0.0, true),
+        _ => return Some((1.0, 0.0)),
     };
 
     let gaps = clusters.len().saturating_sub(1) as f64;
     if gaps == 0.0 {
-        return (1.0, 0.0, true);
+        return Some((1.0, 0.0));
     }
 
     let raw_extra = (total_length - base_total_advance) / gaps;
@@ -398,9 +398,13 @@ fn justify_spacing(
     };
 
     let spacing = raw_extra.max(min_gap);
-    let spacing_ok = min_spacing.map(|m| spacing >= m).unwrap_or(true);
+    if let Some(m) = min_spacing
+        && spacing < m
+    {
+        return None;
+    }
 
-    (1.0, spacing, spacing_ok)
+    Some((1.0, spacing))
 }
 
 fn center_offset_for_glyph(
@@ -422,6 +426,31 @@ fn center_offset_for_glyph(
     }
 }
 
+struct RepeatParams {
+    span: f64,
+    defer_collision: bool,
+}
+
+fn repeat_params(
+    spacing: Option<f64>,
+    total_advance: f64,
+    ink_span: f64,
+    halo_width: f64,
+) -> RepeatParams {
+    if spacing.is_some() {
+        RepeatParams {
+            span: total_advance.max(ink_span + halo_width * 2.0),
+            defer_collision: true,
+        }
+    } else {
+        RepeatParams {
+            span: total_advance,
+            defer_collision: false,
+        }
+    }
+}
+
+/// Draw text along a line. Returns `false` when Justify could not respect `min_spacing`.
 pub fn draw_text_on_line(
     context: &Context,
     line_string: &LineString,
@@ -458,6 +487,8 @@ pub fn draw_text_on_line(
     let layout = create_pango_layout(context, text, flo);
 
     layout.set_width(-1); // no width constraint, so no wrapping happens at all
+    let (ink, _) = layout.extents();
+    let ink_span = (ink.width() as f64 / SCALE as f64).max(0.0);
 
     let clusters = collect_clusters(&layout);
     if clusters.is_empty() {
@@ -469,33 +500,34 @@ pub fn draw_text_on_line(
         return true;
     }
 
-    // spacing_ok is false when Justify needed to squeeze below min_spacing.
-    let (advance_scale, extra_spacing_between_glyphs, spacing_ok) =
-        justify_spacing(*align, total_length, base_total_advance, &clusters);
-
-    // If justify spacing falls below the configured minimum, abort drawing and report failure.
-    if !spacing_ok {
-        return false;
-    }
+    // If justify spacing falls below the configured minimum, abort drawing.
+    let (advance_scale, extra_spacing_between_glyphs) =
+        match justify_spacing(*align, total_length, base_total_advance, &clusters) {
+            Some(v) => v,
+            None => return false,
+        };
 
     let total_advance = base_total_advance.mul_add(
         advance_scale,
         extra_spacing_between_glyphs * clusters.len().saturating_sub(1) as f64,
     );
 
-    let offsets = label_offsets(total_length, total_advance, *spacing, *align);
+    let repeat = repeat_params(*spacing, total_advance, ink_span, options.halo_width);
+    let offsets = label_offsets(total_length, repeat.span, *spacing, *align);
+    let mut new_collision_bboxes: Vec<Rect<f64>> = Vec::new();
 
     if offsets.is_empty() {
-        return spacing_ok;
+        return false;
     }
 
     let mut placements: Vec<Vec<(GlyphString, Font, Coord, f64)>> = Vec::new();
+    let mut rendered = false;
 
     // For each label repeat, walk glyphs along the line while keeping edge-alignment and curvature limits.
     'outer: for start in offsets {
         // Decide per-repeat if we need to flip to stay upright.
         let overall_span_start = start;
-        let overall_span_end = start + total_advance;
+        let overall_span_end = start + repeat.span;
         let overall_tangent =
             weighted_tangent_for_span(&pts, &cum, overall_span_start, overall_span_end)
                 .unwrap_or(Coord { x: 1.0, y: 0.0 });
@@ -515,7 +547,7 @@ pub fn draw_text_on_line(
         }
         let cum_use = cumulative_lengths(&pts_use);
         let start_use = if flip_needed {
-            (total_length - total_advance - start).max(0.0)
+            (total_length - repeat.span - start).max(0.0)
         } else {
             start
         };
@@ -628,22 +660,35 @@ pub fn draw_text_on_line(
             }
         }
 
-        if let Some(col) = collision.as_deref_mut() {
-            if glyph_bboxes.iter().any(|bb| col.collides(bb)) {
-                continue 'outer;
-            }
+        if let Some(col) = collision.as_deref()
+            && glyph_bboxes.iter().any(|bb| col.collides(bb))
+        {
+            continue 'outer;
+        }
 
+        if repeat.defer_collision {
+            new_collision_bboxes.extend(glyph_bboxes);
+        } else if let Some(col) = collision.as_deref_mut() {
             for bb in glyph_bboxes {
                 let _ = col.add(bb);
             }
         }
 
         placements.push(label_placements);
+        rendered = true;
+    }
+
+    if repeat.defer_collision
+        && let Some(col) = collision.as_deref_mut()
+    {
+        for bb in new_collision_bboxes.into_iter() {
+            let _ = col.add(bb);
+        }
     }
 
     for label in placements {
         draw_label(context, &label, options);
     }
 
-    spacing_ok
+    rendered
 }

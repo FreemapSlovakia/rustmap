@@ -3,16 +3,16 @@ use crate::colors::{self, Color};
 use crate::draw::create_pango_layout::FontAndLayoutOptions;
 use crate::draw::text::{TextOptions, draw_text, draw_text_with_attrs};
 use crate::projectable::{TileProjectable, geometry_point};
+use crate::re_replacer::{Replacement, build_replacements, replace};
 use crate::{collision::Collision, ctx::Ctx};
 use core::f64;
 use geo::{Point, Rect};
 use pangocairo::pango::{AttrList, AttrSize, SCALE, Style, Weight};
 use postgres::Client;
-use regex::Regex;
-use std::{borrow::Cow, collections::HashMap, sync::LazyLock};
+use std::{collections::HashMap, sync::LazyLock};
 
 struct Extra<'a> {
-    replacements: Vec<(Regex, &'a str)>,
+    replacements: Vec<Replacement<'a>>,
     icon: Option<&'a str>,
     font_size: f64,
     weight: Weight,
@@ -31,13 +31,6 @@ impl Default for Extra<'_> {
             max_zoom: u32::MAX,
         }
     }
-}
-
-fn build_replacements(pairs: &[(&str, &'static str)]) -> Vec<(Regex, &'static str)> {
-    pairs
-        .iter()
-        .map(|(pattern, replacement)| (Regex::new(pattern).unwrap(), *replacement))
-        .collect()
 }
 
 struct Def {
@@ -734,15 +727,7 @@ pub fn render(
                         let name: &str = row.get("n");
 
                         if !name.is_empty() {
-                            let mut name: Cow<'_, str> = Cow::Borrowed(name);
-
-                            for (regex, replacement) in &def.extra.replacements {
-                                if let Cow::Owned(updated) =
-                                    regex.replace(name.as_ref(), *replacement)
-                                {
-                                    name = Cow::Owned(updated);
-                                }
-                            }
+                            let name = replace(name, &def.extra.replacements);
 
                             to_label.push((
                                 Point::new(point.x() + dx, point.y() + dy),

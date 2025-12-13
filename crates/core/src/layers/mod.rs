@@ -30,6 +30,7 @@ pub mod sea;
 pub mod shading_and_contours;
 pub mod solar_power_plants;
 pub mod trees;
+pub mod valleys_ridges;
 pub mod water_area_names;
 pub mod water_areas;
 pub mod water_line_names;
