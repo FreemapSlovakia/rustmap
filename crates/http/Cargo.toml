@@ -13,3 +13,5 @@ r2d2_postgres = { workspace = true }
 regex = { workspace = true }
 tracy-client = { workspace = true }
 gdal = { workspace = true }
+clap = { version = "4.5.18", features = ["derive", "env"] }
+dotenvy = "0.15.7"

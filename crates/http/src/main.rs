@@ -1,3 +1,5 @@
+use clap::Parser;
+use dotenvy::dotenv;
 use maprender_core::xyz::tile_bounds_to_epsg3857;
 use maprender_core::{RenderRequest, SvgCache, TileFormat, load_hillshading_datasets, render_tile};
 use oxhttp::{
@@ -10,13 +12,66 @@ use regex::Regex;
 use std::{
     collections::VecDeque,
     net::Ipv4Addr,
+    str::FromStr,
     sync::{Arc, Condvar, LazyLock, Mutex, mpsc},
     time::Duration,
 };
 
-const SVG_BASE_PATH: &str = "/home/martin/fm/maprender/images";
-const HILLSHADING_BASE_PATH: &str = "/home/martin/14TB/hillshading";
-const WORKER_COUNT: usize = 24;
+#[derive(Parser, Debug)]
+#[command(author, version, about)]
+struct Cli {
+    /// Path to the directory with symbol SVGs.
+    #[arg(
+        long,
+        env = "MAPRENDER_SVG_BASE_PATH",
+        default_value = "/home/martin/fm/maprender/images"
+    )]
+    svg_base_path: String,
+
+    /// Path to hillshading datasets.
+    #[arg(
+        long,
+        env = "MAPRENDER_HILLSHADING_BASE_PATH",
+        default_value = "/home/martin/14TB/hillshading"
+    )]
+    hillshading_base_path: String,
+
+    /// Number of rendering worker threads.
+    #[arg(long, env = "MAPRENDER_WORKER_COUNT", default_value_t = 24)]
+    worker_count: usize,
+
+    /// Database connection string (e.g. postgres://user:pass@host/dbname).
+    #[arg(
+        long,
+        env = "MAPRENDER_DATABASE_URL",
+        default_value = "postgres://martin:b0n0@localhost/postgres"
+    )]
+    database_url: String,
+
+    /// HTTP bind address.
+    #[arg(long, env = "MAPRENDER_HOST", default_value_t = Ipv4Addr::LOCALHOST)]
+    host: Ipv4Addr,
+
+    /// HTTP bind port.
+    #[arg(long, env = "MAPRENDER_PORT", default_value_t = 3050)]
+    port: u16,
+
+    /// Maximum concurrent HTTP connections.
+    #[arg(
+        long,
+        env = "MAPRENDER_MAX_CONCURRENT_CONNECTIONS",
+        default_value_t = 4096
+    )]
+    max_concurrent_connections: usize,
+
+    /// Global HTTP timeout in seconds.
+    #[arg(long, env = "MAPRENDER_GLOBAL_TIMEOUT_SECS", default_value_t = 100)]
+    global_timeout_secs: u64,
+
+    /// Database pool max size.
+    #[arg(long, env = "MAPRENDER_POOL_MAX_SIZE", default_value_t = 48)]
+    pool_max_size: u32,
+}
 
 struct RenderTask {
     request: RenderRequest,
@@ -29,21 +84,29 @@ struct RenderWorkerPool {
 }
 
 impl RenderWorkerPool {
-    fn new(pool: r2d2::Pool<PostgresConnectionManager<NoTls>>) -> Self {
+    fn new(
+        pool: r2d2::Pool<PostgresConnectionManager<NoTls>>,
+        worker_count: usize,
+        svg_base_path: Arc<str>,
+        hillshading_base_path: Arc<str>,
+    ) -> Self {
         let tasks = Arc::new(Mutex::new(VecDeque::new()));
         let cv = Arc::new(Condvar::new());
 
-        for worker_id in 0..WORKER_COUNT {
+        for worker_id in 0..worker_count {
             let tasks = tasks.clone();
             let cv = cv.clone();
             let pool = pool.clone();
+            let svg_base_path = svg_base_path.clone();
+            let hillshading_base_path = hillshading_base_path.clone();
 
             std::thread::Builder::new()
                 .name(format!("render-worker-{worker_id}"))
                 .spawn(move || {
-                    let mut svg_cache = SvgCache::new(SVG_BASE_PATH);
+                    let mut svg_cache = SvgCache::new(&*svg_base_path);
 
-                    let mut hillshading_datasets = load_hillshading_datasets(HILLSHADING_BASE_PATH);
+                    let mut hillshading_datasets =
+                        load_hillshading_datasets(&*hillshading_base_path);
 
                     loop {
                         let RenderTask { request, resp_tx } = {
@@ -88,25 +151,32 @@ impl RenderWorkerPool {
 }
 
 fn main() {
+    dotenv().ok();
+
     tracy_client::Client::start();
 
-    let manager = PostgresConnectionManager::new(
-        Config::new()
-            .user("martin")
-            .password("b0n0")
-            .host("localhost")
-            .to_owned(),
-        NoTls,
-    );
+    let cli = Cli::parse();
 
-    let connection_pool = r2d2::Pool::builder().max_size(48).build(manager).unwrap();
+    let pg_config = Config::from_str(&cli.database_url).expect("parse database url");
 
-    let worker_pool = Arc::new(RenderWorkerPool::new(connection_pool.clone()));
+    let manager = PostgresConnectionManager::new(pg_config, NoTls);
+
+    let connection_pool = r2d2::Pool::builder()
+        .max_size(cli.pool_max_size)
+        .build(manager)
+        .expect("build db pool");
+
+    let worker_pool = Arc::new(RenderWorkerPool::new(
+        connection_pool.clone(),
+        cli.worker_count,
+        Arc::from(cli.svg_base_path.as_str()),
+        Arc::from(cli.hillshading_base_path.as_str()),
+    ));
 
     Server::new(move |request| render_response(request, worker_pool.clone()))
-        .with_max_concurrent_connections(4096)
-        .with_global_timeout(Duration::from_secs(100))
-        .bind((Ipv4Addr::LOCALHOST, 3050))
+        .with_max_concurrent_connections(cli.max_concurrent_connections)
+        .with_global_timeout(Duration::from_secs(cli.global_timeout_secs))
+        .bind((cli.host, cli.port))
         .spawn()
         .unwrap()
         .join()
