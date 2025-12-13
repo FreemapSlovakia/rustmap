@@ -622,7 +622,7 @@ pub fn render(
 
                     SELECT
                         osm_id,
-                        geometry,
+                        ST_Centroid(geometry) AS geometry,
                         '' AS n,
                         null AS ele,
                         null AS access,
