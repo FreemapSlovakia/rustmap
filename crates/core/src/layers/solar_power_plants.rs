@@ -3,7 +3,7 @@ use postgres::Client;
 use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::{path_geom::path_geometry, hatch::hatch_geometry},
+    draw::{hatch::hatch_geometry, path_geom::path_geometry},
     projectable::{TileProjectable, geometry_geometry},
 };
 

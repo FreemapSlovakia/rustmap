@@ -89,7 +89,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         WHERE
             type = 'valley' AND name <> '' AND geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
         ORDER BY
-            ST_Length(geometry) {}", if ctx.zoom > 13 {"ASC"} else {"DESC"});
+            ST_Length(geometry) {}", if ctx.zoom > 14 {"ASC"} else {"DESC"});
 
     render_rows(
         client

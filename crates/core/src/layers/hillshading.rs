@@ -150,7 +150,9 @@ fn read_rgba_from_gdal(
 }
 
 pub fn render(ctx: &Ctx, country: &str, alpha: f64, shading_data: &mut HashMap<String, Dataset>) {
-    let hillshading_dataset = shading_data.get(country).expect("no such dataset");
+    let hillshading_dataset = shading_data
+        .get(country)
+        .unwrap_or_else(|| panic!("no such dataset {country}"));
 
     let [gt_x_off, gt_x_width, _, gt_y_off, _, gt_y_width] =
         hillshading_dataset.geo_transform().unwrap();

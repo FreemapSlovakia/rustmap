@@ -4,7 +4,7 @@ use std::cell::Cell;
 use crate::{
     SvgCache,
     ctx::Ctx,
-    draw::{path_geom::path_line_string, markers_on_path::draw_markers_on_path},
+    draw::{markers_on_path::draw_markers_on_path, path_geom::path_line_string},
     projectable::{TileProjectable, geometry_line_string},
 };
 

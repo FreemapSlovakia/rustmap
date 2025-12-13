@@ -28,7 +28,9 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             style: Style::Italic,
             ..Default::default()
         },
-        distribution: Distribution::Justify { min_spacing: Some(0.0) },
+        distribution: Distribution::Justify {
+            min_spacing: Some(0.0),
+        },
         halo_opacity: 1.0,
         color: colors::TRAM,
         halo_width: 2.0,

@@ -3,9 +3,9 @@ use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::{
-        path_geom::{path_geometry, path_line_string_with_offset, walk_geometry_line_strings},
         hatch::hatch_geometry,
         line_pattern::draw_line_pattern,
+        path_geom::{path_geometry, path_line_string_with_offset, walk_geometry_line_strings},
     },
     projectable::{TileProjectable, geometry_geometry},
 };

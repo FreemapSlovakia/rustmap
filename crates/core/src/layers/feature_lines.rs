@@ -2,7 +2,7 @@ use crate::{
     SvgCache,
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::{path_geom::path_line_string, line_pattern::draw_line_pattern_scaled},
+    draw::{line_pattern::draw_line_pattern_scaled, path_geom::path_line_string},
     projectable::{TileProjectable, geometry_line_string},
 };
 use postgres::Client;
