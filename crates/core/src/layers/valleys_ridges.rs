@@ -30,7 +30,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     let opacity = 0.5 - (ctx.zoom as f64 - 13.0) / 10.0;
     let cs = 15.0 + zoom_coef;
     let size = 10.0 + zoom_coef;
-    let off = 6.0 + 3.0 * zoom_coef + size / 2.0;
+    let off = 6.0 + 3.0 * zoom_coef;
 
     let context = ctx.context;
 
@@ -42,7 +42,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
             let geom = geometry_line_string(&row).project_to_tile(&ctx.tile_projector);
 
-            let of: f64 = row.get("offset_factor");
+            let offset_factor: f64 = row.get("offset_factor");
 
             let mut options = TextOnLineOptions {
                 flo: FontAndLayoutOptions {
@@ -57,7 +57,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                     align: Align::Center,
                     repeat: Repeat::Spaced(200.0),
                 },
-                offset: -of * off,
+                offset: -offset_factor * off - size / 2.0,
                 ..Default::default()
             };
 
