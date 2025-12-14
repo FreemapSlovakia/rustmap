@@ -12,7 +12,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     let zoom = ctx.zoom;
 
-    let d = 4.0f64.max(1.33f64.powf(zoom as f64) / 10.0).round();
+    let d = 4.0f64.max(1.33f64.powf(zoom as f64) / 20.0).round();
 
     let sql = concat!(
         "SELECT geometry FROM osm_power_generators ",
@@ -34,6 +34,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         path_geometry(context, &projected);
 
+        let path = context.copy_path().unwrap();
+
         context.clip();
 
         context.set_source_color(colors::SOLAR_BG);
@@ -43,6 +45,16 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         hatch_geometry(ctx, &geom, d, 90.0);
 
         context.set_source_color(colors::SOLAR_FG);
+        context.set_dash(&[], 0.0);
+        context.set_line_width(1.0);
+        context.stroke().unwrap();
+
+        context.reset_clip();
+
+        context.new_path();
+        context.append_path(&path);
+
+        context.set_source_color(colors::SOLAR_PLANT_BORDER);
         context.set_dash(&[], 0.0);
         context.set_line_width(1.0);
         context.stroke().unwrap();

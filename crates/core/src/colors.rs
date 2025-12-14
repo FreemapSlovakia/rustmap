@@ -112,6 +112,7 @@ pub const SOLAR_BG: Color = hsl_to_rgb(250, 63, 60);
 pub const SOLAR_FG: Color = hsl_to_rgb(250, 57, 76);
 pub const TREE: Color = hsl_to_rgb(120, 100, 31);
 pub const DAM_LINE: Color = hsl_to_rgb(0, 0, 40);
+pub const SOLAR_PLANT_BORDER: Color = hsl_to_rgb(250, 60, 50);
 
 pub trait ContextExt {
     fn set_source_color(&self, color: Color);
