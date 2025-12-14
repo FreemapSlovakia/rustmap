@@ -18,6 +18,7 @@ pub mod geonames;
 pub mod highway_names;
 pub mod hillshading;
 pub mod housenumbers;
+pub mod landcover_names;
 pub mod landuse;
 pub mod locality_names;
 pub mod military_areas;

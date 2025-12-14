@@ -1,5 +1,6 @@
 use crate::layers::{
-    embankments, feature_lines_maskable, fixmes, geonames, national_park_names, valleys_ridges,
+    embankments, feature_lines_maskable, fixmes, geonames, landcover_names, national_park_names,
+    valleys_ridges,
 };
 use cairo::{Context, Format, ImageSurface, PdfSurface, Surface, SvgSurface};
 use collision::Collision;
@@ -316,7 +317,9 @@ fn draw(
         protected_area_names::render(ctx, client, collision);
     }
 
-    // TODO <LandcoverNames />
+    if zoom >= 12 {
+        landcover_names::render(ctx, client, collision);
+    }
 
     if zoom >= 15 {
         locality_names::render(ctx, client, collision);

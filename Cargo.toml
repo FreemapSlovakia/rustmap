@@ -23,8 +23,8 @@ r2d2 = "0.8"
 r2d2_postgres = "0.18"
 regex = "1.11"
 tracy-client = "0.18.3"
-napi = "2.16"
-napi-derive = "2.16"
+napi = "3.7"
+napi-derive = "3.4"
 image = { version = "0.25", default-features = false, features = [
     "jpeg",
     "png",

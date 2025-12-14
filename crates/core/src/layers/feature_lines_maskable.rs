@@ -70,7 +70,9 @@ pub fn render(
                     context.stroke().unwrap();
                 }
             }
-            _ => panic!("unexpected type"),
+            _ => {
+                //
+            }
         }
 
         context.restore().expect("context restored");
