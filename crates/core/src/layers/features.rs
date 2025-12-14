@@ -779,7 +779,7 @@ pub fn render(
             {
                 let attr_list = AttrList::new();
 
-                let mut scale_attr = AttrSize::new(8 * SCALE);
+                let mut scale_attr = AttrSize::new(7 * SCALE);
                 scale_attr.set_start_index(name.len() as u32 + 1);
 
                 attr_list.insert(scale_attr);
