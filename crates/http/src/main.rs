@@ -21,19 +21,11 @@ use std::{
 #[command(author, version, about)]
 struct Cli {
     /// Path to the directory with symbol SVGs.
-    #[arg(
-        long,
-        env = "MAPRENDER_SVG_BASE_PATH",
-        default_value = "/home/martin/fm/maprender/images"
-    )]
+    #[arg(long, env = "MAPRENDER_SVG_BASE_PATH")]
     svg_base_path: String,
 
     /// Path to hillshading datasets.
-    #[arg(
-        long,
-        env = "MAPRENDER_HILLSHADING_BASE_PATH",
-        default_value = "/home/martin/14TB/hillshading"
-    )]
+    #[arg(long, env = "MAPRENDER_HILLSHADING_BASE_PATH")]
     hillshading_base_path: String,
 
     /// Number of rendering worker threads.
@@ -41,11 +33,7 @@ struct Cli {
     worker_count: usize,
 
     /// Database connection string (e.g. postgres://user:pass@host/dbname).
-    #[arg(
-        long,
-        env = "MAPRENDER_DATABASE_URL",
-        default_value = "postgres://martin:b0n0@localhost/postgres"
-    )]
+    #[arg(long, env = "MAPRENDER_DATABASE_URL")]
     database_url: String,
 
     /// HTTP bind address.
