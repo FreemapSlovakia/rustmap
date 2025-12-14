@@ -36,7 +36,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     let text_options = TextOptions {
         flo: FontAndLayoutOptions {
             style: Style::Italic,
-            size: 9.0 + 2f64.powf(ctx.zoom as f64 - 7.0),
+            size: 9.0 + (ctx.zoom as f64 - 7.0).exp2(),
             ..FontAndLayoutOptions::default()
         },
         color: colors::PROTECTED,

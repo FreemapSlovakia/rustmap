@@ -30,7 +30,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     let opacity = 0.5 - (ctx.zoom as f64 - 13.0) / 10.0;
     let letter_spacing = 15.0 + zoom_coef;
     let size = 10.0 + zoom_coef;
-    let off = 6.0 + 1.5 * zoom_coef;
+    let off = 1.5f64.mul_add(zoom_coef, 6.0);
 
     let context = ctx.context;
 
@@ -57,7 +57,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                     align: Align::Center,
                     repeat: Repeat::Spaced(200.0),
                 },
-                offset: size / 2.0 + offset_factor * off,
+                offset: offset_factor.mul_add(off, size / 2.0),
                 ..Default::default()
             };
 
@@ -70,7 +70,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                     break;
                 }
 
-                options.flo.letter_spacing = (options.flo.letter_spacing + 1.0) * 0.9 - 1.0;
+                options.flo.letter_spacing = (options.flo.letter_spacing + 1.0).mul_add(0.9, -1.0);
             }
 
             // TODO

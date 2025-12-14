@@ -6,7 +6,7 @@ use geo::{
 use geo_postgis::FromPostgis;
 use postgres::Row;
 
-const GEOMETRY_COLUMN: &'static str = "geometry";
+const GEOMETRY_COLUMN: &str = "geometry";
 
 pub struct TileProjector {
     min_x: f64,

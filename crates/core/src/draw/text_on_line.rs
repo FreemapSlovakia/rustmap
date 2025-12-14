@@ -446,7 +446,7 @@ fn repeat_params(
 ) -> RepeatParams {
     if spacing.is_some() {
         RepeatParams {
-            span: total_advance.max(ink_span + halo_width * 2.0),
+            span: total_advance.max(halo_width.mul_add(2.0, ink_span)),
             defer_collision: true,
         }
     } else {
@@ -738,7 +738,7 @@ pub fn draw_text_on_line(
     }
 
     if repeat.defer_collision
-        && let Some(col) = collision.as_deref_mut()
+        && let Some(col) = collision
     {
         for bb in new_collision_bboxes.into_iter() {
             let _ = col.add(bb);
