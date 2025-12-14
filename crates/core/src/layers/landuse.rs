@@ -14,6 +14,14 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
     let context = ctx.context;
     let min = ctx.bbox.min();
 
+    let a = "'pitch', 'playground', 'golf_course', 'track'";
+
+    let excl_types = match ctx.zoom {
+        ..12 => &format!("type NOT IN ({a}) AND"),
+        ..13 => &format!("type NOT IN ({a}, 'parking', 'bunker_silo', 'storage_tank', 'silo') AND"),
+        _ => "",
+    };
+
     let query = &format!(
         "SELECT
                 CASE
@@ -24,7 +32,9 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
                 ST_Intersection(ST_MakeValid(geometry), ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), 100)) AS geometry,
                 position(type || ',' IN 'pedestrian,footway,pitch,library,baracks,parking,cemetery,place_of_worship,dam,weir,clearcut,wetland,scrub,orchard,vineyard,railway,landfill,scree,quarry,park,garden,allotments,village_green,grass,recreation_ground,fell,bare_rock,heath,meadow,wood,forest,golf_course,grassland,farm,zoo,farmyard,hospital,kindergarten,school,college,university,retail,commercial,industrial,residential,farmland,') AS z_order
             FROM osm_landusages{}
-            WHERE geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)
+            WHERE
+                {excl_types}
+                geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)
             ORDER BY z_order DESC, osm_id",
         match zoom {
             ..=9 => "_gen0",
