@@ -11,8 +11,10 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
     let context = ctx.context;
     let zoom = ctx.zoom;
 
-    let sql = "SELECT geometry, type FROM osm_feature_lines
-          WHERE
+    let sql = "
+        SELECT geometry, type
+        FROM osm_feature_lines
+        WHERE
             type IN ('weir', 'dam', 'tree_row') AND
             geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)";
 
@@ -55,6 +57,6 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
             _ => panic!("unexpected type"),
         }
 
-        context.restore().expect("context restores");
+        context.restore().expect("context restored");
     }
 }

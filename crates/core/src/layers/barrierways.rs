@@ -50,6 +50,6 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         context.stroke().unwrap();
 
-        context.restore().expect("context restores");
+        context.restore().expect("context restored");
     }
 }

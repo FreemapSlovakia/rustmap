@@ -33,7 +33,11 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
     // TODO lazy
     let arrow = svg_cache.get("waterway-arrow.svg");
 
-    let rect = arrow.extents().unwrap();
+    let (dx, dy) = {
+        let rect = arrow.extents().unwrap();
+
+        (-rect.width() / 2.0, -rect.height() / 2.0)
+    };
 
     context.save().expect("context saved");
 
@@ -95,9 +99,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
                     context.save().unwrap();
                     context.translate(x, y);
                     context.rotate(angle);
-                    context
-                        .set_source_surface(arrow, -rect.width() / 2.0, -rect.height() / 2.0)
-                        .unwrap();
+                    context.set_source_surface(arrow, dx, dy).unwrap();
                     context.paint().unwrap();
                     context.restore().unwrap();
                 });

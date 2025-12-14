@@ -7,7 +7,6 @@ use postgres::Client;
 use std::{collections::HashMap, path::Path};
 
 const FALLBACK: bool = true;
-const CONTOURS: bool = true;
 
 pub fn load_hillshading_datasets(base: impl AsRef<Path>) -> HashMap<String, Dataset> {
     let base = base.as_ref();
@@ -53,7 +52,13 @@ pub fn load_hillshading_datasets(base: impl AsRef<Path>) -> HashMap<String, Data
     hillshading_datasets
 }
 
-pub fn render(ctx: &Ctx, client: &mut Client, hillshading_datasets: &mut HashMap<String, Dataset>) {
+pub fn render(
+    ctx: &Ctx,
+    client: &mut Client,
+    hillshading_datasets: &mut HashMap<String, Dataset>,
+    shading: bool,
+    contours: bool,
+) {
     let _span = tracy_client::span!("shading_and_contours::render");
 
     let fade_alpha = 1.0f64.min(1.0 - (ctx.zoom as f64 - 7.0).ln() / 5.0);
@@ -91,7 +96,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, hillshading_datasets: &mut HashMap
         {
             let _span = tracy_client::span!("shading_and_contours::contours");
 
-            if CONTOURS && ctx.zoom >= 12 {
+            if contours && ctx.zoom >= 12 {
                 context.push_group(); // contours
                 contours::render(ctx, client, country);
                 context.pop_group_to_source().unwrap(); // contours
@@ -105,9 +110,11 @@ pub fn render(ctx: &Ctx, client: &mut Client, hillshading_datasets: &mut HashMap
         context.set_operator(cairo::Operator::In);
         context.paint().unwrap();
 
-        for cc in ccs {
-            context.set_operator(cairo::Operator::DestOut);
-            hillshading::render(ctx, &format!("{}-mask", cc), 1.0, hillshading_datasets);
+        if shading {
+            for cc in ccs {
+                context.set_operator(cairo::Operator::DestOut);
+                hillshading::render(ctx, &format!("{}-mask", cc), 1.0, hillshading_datasets);
+            }
         }
 
         context.pop_group_to_source().unwrap(); // // country-contours-and-shading
@@ -126,7 +133,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, hillshading_datasets: &mut HashMap
         {
             let _span = tracy_client::span!("shading_and_contours::contours");
 
-            if CONTOURS && ctx.zoom >= 12 {
+            if contours && ctx.zoom >= 12 {
                 context.push_group(); // contours
                 contours::render(ctx, client, "contour_split");
                 context.pop_group_to_source().unwrap(); // contours
@@ -134,7 +141,9 @@ pub fn render(ctx: &Ctx, client: &mut Client, hillshading_datasets: &mut HashMap
             }
         }
 
-        hillshading::render(ctx, "_", fade_alpha, hillshading_datasets);
+        if shading {
+            hillshading::render(ctx, "_", fade_alpha, hillshading_datasets);
+        }
 
         context.pop_group_to_source().unwrap(); // fallback
         context.set_operator(cairo::Operator::Out);

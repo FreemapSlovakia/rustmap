@@ -1,4 +1,6 @@
-use crate::layers::{geonames, national_park_names, valleys_ridges};
+use crate::layers::{
+    embankments, feature_lines_maskable, fixmes, geonames, national_park_names, valleys_ridges,
+};
 use cairo::{Context, Format, ImageSurface, PdfSurface, Surface, SvgSurface};
 use collision::Collision;
 use colors::ContextExt;
@@ -168,6 +170,9 @@ fn draw(
     svg_cache: &mut SvgCache,
     hillshading_datasets: &mut HashMap<String, Dataset>,
 ) {
+    let shading = true; // TODO to args
+    let contours = true; // TODO to args
+
     let context = Context::new(surface).unwrap();
 
     // let collision = &mut Collision::<f64>::new(Some(&context));
@@ -221,9 +226,13 @@ fn draw(
         feature_lines::render(ctx, client, svg_cache);
     }
 
-    // TODO feature lines maskable
+    if zoom >= 13 {
+        feature_lines_maskable::render(ctx, client, svg_cache, hillshading_datasets, shading);
+    }
 
-    // TODO embankments
+    if zoom >= 16 {
+        embankments::render(ctx, client, svg_cache);
+    }
 
     if zoom >= 8 {
         roads::render(ctx, client, svg_cache);
@@ -234,7 +243,7 @@ fn draw(
     }
 
     if SHADING_AND_CONTOURS {
-        shading_and_contours::render(ctx, client, hillshading_datasets);
+        shading_and_contours::render(ctx, client, hillshading_datasets, shading, contours);
     }
 
     if zoom >= 11 {
@@ -331,7 +340,9 @@ fn draw(
         water_line_names::render(ctx, client, collision);
     }
 
-    // <Fixmes />
+    if zoom >= 14 {
+        fixmes::render(ctx, client, svg_cache);
+    }
 
     if zoom >= 13 {
         valleys_ridges::render(ctx, client);
