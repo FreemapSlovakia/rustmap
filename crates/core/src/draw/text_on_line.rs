@@ -737,8 +737,7 @@ pub fn draw_text_on_line(
     // For each label repeat, walk glyphs along the line while keeping edge-alignment and curvature limits.
     'outer: for label_start in offsets {
         let mut label_start_try = label_start;
-        let mut retries = 0usize;
-        let max_retries = 2usize;
+        let mut retries = 5usize;
         'attempt: loop {
             // Decide per-repeat if we need to flip to stay upright.
             let repeat_span = repeat.span;
@@ -826,13 +825,15 @@ pub fn draw_text_on_line(
                 }
 
                 if max_bend > *max_curvature_degrees {
-                    if retries >= max_retries {
+                    if retries == 0 {
                         continue 'outer;
                     }
-                    retries += 1;
+
+                    retries -= 1;
 
                     // Skip a small distance past the bend and try again.
-                    let bend_skip = (options.flo.size * 0.5 + options.halo_width).max(1.0);
+                    let bend_skip = (options.flo.size + options.halo_width).max(1.0);
+
                     let next_start_oriented =
                         (prepared.trim_start + span_end + bend_skip).min(total_length);
 
@@ -928,12 +929,15 @@ pub fn draw_text_on_line(
                     .enumerate()
                     .find(|(_, bb)| col.collides(bb))
                 {
-                    if retries < max_retries {
-                        retries += 1;
-                        let skip = (options.halo_width + options.flo.size * 0.25).max(1.0);
+                    if retries == 0 {
+                        retries -= 1;
+                        let skip = (options.halo_width + options.flo.size).max(1.0);
+
                         let collided_end_oriented =
                             prepared.trim_start + glyph_span_ends.get(idx).copied().unwrap_or(0.0);
+
                         let next_start_oriented = (collided_end_oriented + skip).min(total_length);
+
                         let next_label_start = if flip_needed {
                             (total_length - repeat_span - next_start_oriented).max(0.0)
                         } else {

@@ -61,7 +61,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
             ..FontAndLayoutOptions::default()
         },
         alpha: 0.66,
-        halo_opacity: 0.75 * 0.66,
+        halo_opacity: 0.75,
         color: colors::PROTECTED,
         offset: -14.0,
         distribution: Distribution::Align {
@@ -86,7 +86,3 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         );
     }
 }
-
-// 3.6 - off
-// 0.6 -
-// 00.93 - no off
