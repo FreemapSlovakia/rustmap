@@ -91,7 +91,6 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: &str) {
                     flo: FontAndLayoutOptions::default(),
                     upright: Upright::Left,
                     color: colors::CONTOUR,
-                    max_curvature_degrees: 45.0,
                     distribution: Distribution::Align {
                         align: Align::Center,
                         repeat: Repeat::Spaced(200.0),

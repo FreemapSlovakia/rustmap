@@ -11,7 +11,6 @@ use crate::{
     projectable::{TileProjectable, geometry_line_string, geometry_point},
     re_replacer::replace,
 };
-use geo::ChaikinSmoothing;
 use pangocairo::pango::Style;
 use postgres::Client;
 
