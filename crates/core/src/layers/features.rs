@@ -443,7 +443,7 @@ pub fn render(
 
             SELECT
                 osm_id,
-                geometry,
+                ST_PointOnSurface(geometry) AS geometry,
                 name AS n,
                 null AS ele,
                 tags->'access' AS access,
@@ -524,7 +524,7 @@ pub fn render(
 
             SELECT
                 osm_id,
-                geometry,
+                ST_PointOnSurface(geometry) AS geometry,
                 name AS n,
                 ele,
                 null AS access,
@@ -550,7 +550,7 @@ pub fn render(
 
                     SELECT
                         osm_id,
-                        geometry,
+                        ST_PointOnSurface(geometry) AS geometry,
                         name AS n,
                         null AS ele,
                         null AS access,
@@ -562,7 +562,7 @@ pub fn render(
 
                     SELECT
                         osm_id,
-                        geometry,
+                        ST_PointOnSurface(geometry) AS geometry,
                         name AS n,
                         null AS ele,
                         null AS access,
@@ -632,7 +632,7 @@ pub fn render(
 
                     SELECT
                         osm_id,
-                        geometry,
+                        ST_PointOnSurface(geometry) AS geometry,
                         name AS n,
                         null AS ele,
                         null AS access,
