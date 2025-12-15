@@ -3,6 +3,8 @@ use cairo::Context;
 use geo::{CoordNum, Intersects, Rect};
 use std::ops::Sub;
 
+const DEBUG: bool = false;
+
 pub struct Collision<'a, T: CoordNum = f64>
 where
     T: Sub<Output = T> + PartialOrd + Copy + Into<f64>,
@@ -25,20 +27,20 @@ where
     pub fn add(&mut self, item: Rect<T>) -> usize {
         self.items.push(item);
 
-        // if let Some(context) = self.context {
-        //     context.rectangle(
-        //         item.min().x.into(),
-        //         item.min().y.into(),
-        //         item.width().into(),
-        //         item.height().into(),
-        //     );
+        if DEBUG && let Some(context) = self.context {
+            context.rectangle(
+                item.min().x.into(),
+                item.min().y.into(),
+                item.width().into(),
+                item.height().into(),
+            );
 
-        //     context.save().expect("context saved");
-        //     context.set_source_color_a((0, 255, 0), 0.5);
-        //     context.set_line_width(1.0);
-        //     context.stroke().unwrap();
-        //     context.restore().expect("context restored");
-        // }
+            context.save().expect("context saved");
+            context.set_source_color_a((0, 255, 0), 0.5);
+            context.set_line_width(1.0);
+            context.stroke().unwrap();
+            context.restore().expect("context restored");
+        }
 
         self.items.len() - 1
     }
@@ -48,20 +50,23 @@ where
 
         let intersects = self.items.iter().any(|item| bb.intersects(item));
 
-        // if intersects && let Some(context) = self.context {
-        //     context.rectangle(
-        //         bb.min().x.into(),
-        //         bb.min().y.into(),
-        //         bb.width().into(),
-        //         bb.height().into(),
-        //     );
+        if DEBUG
+            && intersects
+            && let Some(context) = self.context
+        {
+            context.rectangle(
+                bb.min().x.into(),
+                bb.min().y.into(),
+                bb.width().into(),
+                bb.height().into(),
+            );
 
-        //     context.save().expect("context saved");
-        //     context.set_source_color_a((255, 0, 0), 0.2);
-        //     context.set_line_width(1.0);
-        //     context.stroke().unwrap();
-        //     context.restore().expect("context restored");
-        // }
+            context.save().expect("context saved");
+            context.set_source_color_a((255, 0, 0), 0.2);
+            context.set_line_width(1.0);
+            context.stroke().unwrap();
+            context.restore().expect("context restored");
+        }
 
         intersects
     }
