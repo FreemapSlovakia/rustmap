@@ -21,6 +21,8 @@ pub struct TextOnLineOptions {
     pub distribution: Distribution,
     pub alpha: f64,
     pub offset: f64,
+    /// Keep the offset on the same side of the original baseline even when flipping for upright text.
+    pub keep_offset_side: bool,
     pub color: Color,
     pub halo_color: Color,
     pub halo_opacity: f64,
@@ -40,6 +42,7 @@ impl Default for TextOnLineOptions {
             },
             alpha: 1.0,
             offset: 0.0,
+            keep_offset_side: false,
             color: colors::BLACK,
             halo_color: colors::WHITE,
             halo_opacity: 0.75,
@@ -220,6 +223,80 @@ fn position_at(pts: &[Coord], cum: &[f64], dist: f64) -> Option<(Coord, Coord)> 
     let tangent = normalize(p2 - p1);
 
     Some((pos, tangent))
+}
+
+fn trim_line_to_span(pts: &[Coord], cum: &[f64], span_start: f64, span_end: f64) -> Vec<Coord> {
+    if pts.len() < 2 || span_end <= span_start {
+        return Vec::new();
+    }
+
+    let total = *cum.last().unwrap_or(&0.0);
+    if total == 0.0 {
+        return Vec::new();
+    }
+
+    let start = span_start.clamp(0.0, total);
+    let end = span_end.clamp(0.0, total);
+    if end <= start {
+        return Vec::new();
+    }
+
+    let mut trimmed = Vec::new();
+
+    if let Some((p, _)) = position_at(pts, cum, start) {
+        trimmed.push(p);
+    }
+
+    for i in 0..pts.len() - 1 {
+        let seg_start = cum[i];
+        let seg_end = cum[i + 1];
+        if seg_end <= start || seg_start >= end {
+            continue;
+        }
+        trimmed.push(pts[i + 1]);
+    }
+
+    if let Some((p, _)) = position_at(pts, cum, end) {
+        if trimmed.last().map(|q| *q != p).unwrap_or(true) {
+            trimmed.push(p);
+        }
+    }
+
+    trimmed
+}
+
+fn bbox_intersects_clip(pts: &[Coord], clip: (f64, f64, f64, f64), padding: f64) -> bool {
+    if pts.is_empty() {
+        return false;
+    }
+
+    let (cx1, cy1, cx2, cy2) = clip;
+    let min_cx = cx1.min(cx2);
+    let max_cx = cx1.max(cx2);
+    let min_cy = cy1.min(cy2);
+    let max_cy = cy1.max(cy2);
+
+    let mut minx = f64::INFINITY;
+    let mut miny = f64::INFINITY;
+    let mut maxx = f64::NEG_INFINITY;
+    let mut maxy = f64::NEG_INFINITY;
+
+    for p in pts {
+        minx = minx.min(p.x);
+        miny = miny.min(p.y);
+        maxx = maxx.max(p.x);
+        maxy = maxy.max(p.y);
+    }
+
+    if padding.is_finite() {
+        let pad = padding.max(0.0);
+        minx -= pad;
+        maxx += pad;
+        miny -= pad;
+        maxy += pad;
+    }
+
+    maxx >= min_cx && max_cx >= minx && maxy >= min_cy && max_cy >= miny
 }
 
 fn make_cluster_glyph_string(
@@ -480,6 +557,7 @@ pub fn draw_text_on_line(
     if total_length == 0.0 {
         return true;
     }
+    let clip_extents = context.clip_extents().ok();
 
     let TextOnLineOptions {
         distribution,
@@ -584,30 +662,68 @@ pub fn draw_text_on_line(
             normalize_angle(adjusted_angle - base_angle)
         };
 
-        let mut pts_use = pts.clone();
-        // Apply per-label offset after we know whether we're flipped.
-        if *offset != 0.0 {
-            let signed_offset = if flip_needed { *offset } else { -*offset };
-            let ls = LineString::from(pts_use.clone());
-            let offset_ls = offset_line_string(&ls, signed_offset);
-            let mut off_pts: Vec<Coord> = offset_ls.into_iter().collect();
-            off_pts.dedup_by(|a, b| a == b);
-            if off_pts.len() >= 2 {
-                pts_use = off_pts;
-            }
-        }
-
+        let mut oriented_pts = pts.clone();
         if flip_needed {
-            pts_use.reverse();
+            oriented_pts.reverse();
         }
-        let cum_use = cumulative_lengths(&pts_use);
+        let oriented_cum = cumulative_lengths(&oriented_pts);
         let start_use = if flip_needed {
             (total_length - repeat_span - label_start).max(0.0)
         } else {
             label_start
         };
+        let span_end = start_use + repeat_span;
 
-        let mut cursor = start_use;
+        // Trim a slightly longer segment so curvature sampling at the ends stays accurate.
+        let trim_padding = (options.flo.size * 5.0) + options.halo_width + offset.abs();
+        let trim_start = (start_use - trim_padding).max(0.0);
+        let trim_end = (span_end + trim_padding).min(total_length);
+
+        let mut pts_use = trim_line_to_span(&oriented_pts, &oriented_cum, trim_start, trim_end);
+        pts_use.dedup_by(|a, b| a == b);
+        if pts_use.len() < 2 {
+            continue 'outer;
+        }
+
+        // Apply per-label offset after we know whether we're flipped, but only on the trimmed span.
+        if *offset != 0.0 {
+            let base_offset = -*offset;
+            let keep_offset_side = options.keep_offset_side && matches!(upright, Upright::Auto);
+            let signed_offset = if flip_needed {
+                if keep_offset_side {
+                    *offset
+                } else {
+                    base_offset
+                }
+            } else {
+                base_offset
+            };
+            let ls = LineString::from(pts_use.clone());
+            let offset_ls = offset_line_string(&ls, signed_offset);
+            let mut off_pts: Vec<Coord> = offset_ls.into_iter().collect();
+            off_pts.dedup_by(|a, b| a == b);
+            if off_pts.len() < 2 {
+                continue 'outer;
+            }
+            pts_use = off_pts;
+        }
+
+        if let Some(clip) = clip_extents
+            && !bbox_intersects_clip(&pts_use, clip, options.halo_width)
+        {
+            continue 'outer;
+        }
+
+        let cum_use = cumulative_lengths(&pts_use);
+        let total_length_use = *cum_use.last().unwrap_or(&0.0);
+        if total_length_use == 0.0 {
+            continue 'outer;
+        }
+
+        let mut cursor = (start_use - trim_start).max(0.0);
+        if cursor > total_length_use {
+            continue 'outer;
+        }
         let mut label_placements = Vec::new();
         let mut glyph_bboxes: Vec<Rect<f64>> = Vec::new();
 
@@ -619,7 +735,7 @@ pub fn draw_text_on_line(
             let eff_advance = *advance * label_advance_scale;
             let span_start = cursor;
             let span_end = cursor + eff_advance;
-            if span_end > total_length && !is_justify {
+            if span_end > total_length_use && !is_justify {
                 continue 'outer;
             }
 
@@ -639,7 +755,7 @@ pub fn draw_text_on_line(
                 .map(|(_, t)| t)
                 .unwrap_or(weighted_tangent);
 
-            let tangent_after = position_at(&pts_use, &cum_use, span_end.min(total_length))
+            let tangent_after = position_at(&pts_use, &cum_use, span_end.min(total_length_use))
                 .map(|(_, t)| t)
                 .unwrap_or(weighted_tangent);
 
@@ -680,7 +796,7 @@ pub fn draw_text_on_line(
 
             let shifted_center = shifted_start + center_offset;
 
-            if shifted_end > total_length && !is_justify {
+            if shifted_end > total_length_use && !is_justify {
                 continue 'outer;
             }
 

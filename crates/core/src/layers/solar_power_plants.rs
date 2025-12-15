@@ -36,6 +36,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         let path = context.copy_path().unwrap();
 
+        context.save().unwrap();
+
         context.clip();
 
         context.set_source_color(colors::SOLAR_BG);
@@ -49,7 +51,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         context.set_line_width(1.0);
         context.stroke().unwrap();
 
-        context.reset_clip();
+        context.restore().unwrap();
 
         context.new_path();
         context.append_path(&path);

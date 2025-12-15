@@ -456,6 +456,7 @@ pub fn render_labels(
                 align: Align::Center,
                 repeat: Repeat::Spaced(500.0),
             },
+            keep_offset_side: true,
             ..Default::default()
         };
 

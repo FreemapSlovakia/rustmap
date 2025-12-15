@@ -37,10 +37,10 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
         })
         .collect();
 
-    context.save().expect("context saved");
-
     // hatching
     if zoom <= 11 {
+        context.save().expect("context saved");
+
         for (projected, unprojected, row) in &geometries {
             let typ: &str = row.get("type");
             let protect_class: &str = row.get("protect_class");
@@ -63,6 +63,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
                 context.paint().unwrap();
             }
         }
+
+        context.restore().expect("context restored");
     }
 
     // border
@@ -111,6 +113,4 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
     context.pop_group_to_source().unwrap();
 
     context.paint_with_alpha(0.66).unwrap();
-
-    context.restore().expect("context restored");
 }

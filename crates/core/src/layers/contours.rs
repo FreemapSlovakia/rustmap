@@ -91,6 +91,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: &str) {
                     flo: FontAndLayoutOptions::default(),
                     upright: Upright::Left,
                     color: colors::CONTOUR,
+                    max_curvature_degrees: 30.0,
                     ..TextOnLineOptions::default()
                 },
             );

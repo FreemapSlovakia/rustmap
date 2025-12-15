@@ -15,7 +15,7 @@ use pangocairo::pango::Style;
 use postgres::Client;
 use regex::Regex;
 
-static REPLACEMENTS: LazyLock<Vec<Replacement>> = LazyLock::new(|| {
+pub static REPLACEMENTS: LazyLock<Vec<Replacement>> = LazyLock::new(|| {
     vec![
         (Regex::new(r"\b[Oo]chranné [Pp]ásmo\b").unwrap(), "OP"),
         (Regex::new(r"\b[Nn]árodn(ého|ý) [Pp]arku?\b").unwrap(), "NP"),
