@@ -10,7 +10,7 @@ use crate::{
 use pangocairo::pango::Weight;
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
+pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Option<&mut Collision<f64>>) {
     let context = ctx.context;
 
     let zoom = ctx.zoom;
@@ -49,7 +49,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
 
         draw_text(
             context,
-            collision,
+            collision.as_deref_mut(),
             &geometry_point(&row).project_to_tile(&ctx.tile_projector),
             row.get("name"),
             &TextOptions {

@@ -38,7 +38,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     for row in rows {
         draw_text(
             context,
-            collision,
+            Some(collision),
             &geometry_point(&row).project_to_tile(&ctx.tile_projector),
             row.get("name"),
             &text_options,

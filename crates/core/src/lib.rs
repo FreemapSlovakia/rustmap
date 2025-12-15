@@ -295,8 +295,8 @@ fn draw(
         geonames::render(ctx, client);
     }
 
-    if zoom >= 8 {
-        place_names::render(ctx, client, collision);
+    if (8..=14).contains(&zoom) {
+        place_names::render(ctx, client, &mut Some(collision));
     }
 
     if (8..=10).contains(&zoom) {
@@ -353,7 +353,9 @@ fn draw(
         valleys_ridges::render(ctx, client);
     }
 
-    // <PlaceNames2 />
+    if zoom >= 15 {
+        place_names::render(ctx, client, &mut None);
+    }
 
     if zoom < 8 {
         country_names::render(ctx, client);

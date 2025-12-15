@@ -21,7 +21,7 @@ pub fn highway_names(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f
         ORDER BY z_order DESC, osm_id";
 
     let rows = client
-        .query(sql, &ctx.bbox_query_params(Some(512.0)).as_params())
+        .query(sql, &ctx.bbox_query_params(Some(1024.0)).as_params())
         .expect("db data");
 
     let options = TextOnLineOptions {

@@ -41,7 +41,7 @@ impl Default for TextOptions<'_> {
 
 pub fn draw_text(
     context: &Context,
-    collision: &mut Collision<f64>,
+    collision: Option<&mut Collision<f64>>,
     point: &Point,
     text: &str,
     options: &TextOptions,
@@ -51,7 +51,7 @@ pub fn draw_text(
 
 pub fn draw_text_with_attrs(
     context: &Context,
-    collision: &mut Collision<f64>,
+    collision: Option<&mut Collision<f64>>,
     point: &Point,
     text: &str,
     attrs: Option<AttrList>,
@@ -155,12 +155,14 @@ pub fn draw_text_with_attrs(
                 ),
             );
 
-            if let Some(omit_idx) = *omit_bbox {
-                if collision.collides_with_exclusion(&ci, omit_idx) {
+            if let Some(ref collision) = collision {
+                if let Some(omit_idx) = *omit_bbox {
+                    if collision.collides_with_exclusion(&ci, omit_idx) {
+                        continue 'outer;
+                    }
+                } else if collision.collides(&ci) {
                     continue 'outer;
                 }
-            } else if collision.collides(&ci) {
-                continue 'outer;
             }
 
             items.push(ci);
@@ -170,8 +172,10 @@ pub fn draw_text_with_attrs(
             }
         }
 
-        for item in items {
-            let _ = collision.add(item);
+        if let Some(collision) = collision {
+            for item in items {
+                let _ = collision.add(item);
+            }
         }
 
         my = Some(y);

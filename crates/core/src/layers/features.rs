@@ -786,14 +786,14 @@ pub fn render(
 
                 draw_text_with_attrs(
                     context,
-                    collision,
+                    Some(collision),
                     &point,
                     format!("{}\n{}", name, ele).trim(),
                     Some(attr_list),
                     &text_options,
                 )
             } else {
-                draw_text(context, collision, &point, &name, &text_options)
+                draw_text(context, Some(collision), &point, &name, &text_options)
             };
 
             if !drawn {
