@@ -4,11 +4,12 @@ use crate::{
     ctx::Ctx,
     draw::{
         create_pango_layout::FontAndLayoutOptions,
+        path_geom::walk_geometry_line_strings,
         text::{TextOptions, draw_text},
         text_on_line::{Align, Distribution, Repeat, TextOnLineOptions, draw_text_on_line},
     },
     layers::national_park_names::REPLACEMENTS,
-    projectable::{TileProjectable, geometry_line_string, geometry_point},
+    projectable::{TileProjectable, geometry_geometry, geometry_point},
     re_replacer::replace,
 };
 use pangocairo::pango::Style;
@@ -48,7 +49,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         );
     }
 
-    let sql = "SELECT type, name, protect_class, (ST_Dump(ST_Boundary(geometry))).geom AS geometry
+    let sql = "SELECT type, name, protect_class, ST_Boundary(geometry) AS geometry
         FROM osm_protected_areas
         WHERE
             geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) AND
@@ -77,12 +78,20 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         .expect("db data");
 
     for row in rows {
-        draw_text_on_line(
-            ctx.context,
-            &geometry_line_string(&row).project_to_tile(&ctx.tile_projector),
-            &replace(row.get("name"), &REPLACEMENTS),
-            Some(collision),
-            &text_options,
-        );
+        let Some(geom) = geometry_geometry(&row) else {
+            continue;
+        };
+
+        let geom = geom.project_to_tile(&ctx.tile_projector);
+
+        walk_geometry_line_strings(&geom, &mut |geom| {
+            draw_text_on_line(
+                ctx.context,
+                geom,
+                &replace(row.get("name"), &REPLACEMENTS),
+                Some(collision),
+                &text_options,
+            );
+        });
     }
 }

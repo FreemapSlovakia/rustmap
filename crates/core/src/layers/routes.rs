@@ -6,10 +6,10 @@ use crate::{
         create_pango_layout::FontAndLayoutOptions,
         line_pattern::draw_line_pattern_scaled,
         offset_line::offset_line_string,
-        path_geom::path_line_string_with_offset,
+        path_geom::{path_line_string_with_offset, walk_geometry_line_strings},
         text_on_line::{Align, Distribution, Repeat, TextOnLineOptions, draw_text_on_line},
     },
-    projectable::{TileProjectable, geometry_multi_line_string},
+    projectable::{TileProjectable, geometry_geometry},
 };
 use bitflags::bitflags;
 use colorsys::{Rgb, RgbRatio};
@@ -286,7 +286,11 @@ pub fn render_marking(
         .expect("db data");
 
     for row in rows {
-        let geom = geometry_multi_line_string(&row).project_to_tile(&ctx.tile_projector);
+        let Some(geom) = geometry_geometry(&row) else {
+            continue;
+        };
+
+        let geom = geom.project_to_tile(&ctx.tile_projector);
 
         let (zo, wf) = match zoom {
             ..=11 => (1.0, 1.5),
@@ -305,7 +309,7 @@ pub fn render_marking(
 
                     let sample = svg_cache.get(&format!("horse.svg|path {{ fill: #{} }}", color.1));
 
-                    for part in &geom {
+                    walk_geometry_line_strings(&geom, &mut |part| {
                         draw_line_pattern_scaled(
                             ctx,
                             &offset_line_string(part, offset),
@@ -313,7 +317,7 @@ pub fn render_marking(
                             wf / 2.0,
                             sample,
                         );
-                    }
+                    });
 
                     // <LinePatternSymbolizer
                     //   file={path.resolve(tmpdir(), `horse-${color}.svg`)}
@@ -329,7 +333,7 @@ pub fn render_marking(
                 if off > 0 {
                     let offset = -((off as f64 - 1.0) * wf).mul_add(2.0, zo) - 1.0;
 
-                    for part in &geom {
+                    walk_geometry_line_strings(&geom, &mut |part| {
                         let pattern =
                             svg_cache.get(&format!("ski.svg|path {{ fill: #{} }}", color.1));
 
@@ -340,7 +344,7 @@ pub fn render_marking(
                             wf / 2.0,
                             pattern,
                         );
-                    }
+                    });
 
                     // <LinePatternSymbolizer
                     //   file={path.resolve(tmpdir(), `ski-${color}.svg`)}
@@ -360,9 +364,9 @@ pub fn render_marking(
 
                     context.save().unwrap();
 
-                    for part in &geom {
+                    walk_geometry_line_strings(&geom, &mut |part| {
                         path_line_string_with_offset(context, part, offset);
-                    }
+                    });
 
                     context.set_line_width(wf * 2.0);
                     context.set_line_join(cairo::LineJoin::Round);
@@ -397,9 +401,10 @@ pub fn render_marking(
 
                         context.save().unwrap();
 
-                        for part in &geom {
+                        walk_geometry_line_strings(&geom, &mut |part| {
                             path_line_string_with_offset(context, part, offset);
-                        }
+                        });
+
                         context.set_line_width(wf);
                         context.set_line_join(cairo::LineJoin::Round);
                         context.set_line_cap(cairo::LineCap::Butt);
@@ -421,9 +426,9 @@ pub fn render_marking(
 
                         context.save().unwrap();
 
-                        for part in &geom {
+                        walk_geometry_line_strings(&geom, &mut |part| {
                             path_line_string_with_offset(context, part, offset);
-                        }
+                        });
 
                         context.set_line_width(wf);
                         context.set_line_join(cairo::LineJoin::Round);
@@ -457,37 +462,41 @@ pub fn render_labels(
         .expect("db data");
 
     for row in rows {
-        let geom = geometry_multi_line_string(&row).project_to_tile(&ctx.tile_projector);
-
-        let refs1: &str = row.get("refs1");
-        let off1: i32 = row.get("off1");
-
-        let refs2: &str = row.get("refs2");
-        let off2: i32 = row.get("off2");
-
-        let mut options = TextOnLineOptions {
-            flo: FontAndLayoutOptions {
-                size: 11.0,
-                ..Default::default()
-            },
-            halo_opacity: 0.2,
-            distribution: Distribution::Align {
-                align: Align::Center,
-                repeat: Repeat::Spaced(500.0),
-            },
-            keep_offset_side: true,
-            ..Default::default()
+        let Some(geom) = geometry_geometry(&row) else {
+            continue;
         };
 
-        for line_string in geom {
+        let geom = geom.project_to_tile(&ctx.tile_projector);
+
+        walk_geometry_line_strings(&geom, &mut |geom| {
+            let refs1: &str = row.get("refs1");
+            let off1: i32 = row.get("off1");
+
+            let refs2: &str = row.get("refs2");
+            let off2: i32 = row.get("off2");
+
+            let mut options = TextOnLineOptions {
+                flo: FontAndLayoutOptions {
+                    size: 11.0,
+                    ..Default::default()
+                },
+                halo_opacity: 0.2,
+                distribution: Distribution::Align {
+                    align: Align::Center,
+                    repeat: Repeat::Spaced(500.0),
+                },
+                keep_offset_side: true,
+                ..Default::default()
+            };
+
             for (refs, offset) in [
                 (refs1, -f64::from(off1).mul_add(2.5, 9.0)),
                 (refs2, f64::from(off2).mul_add(2.5, 10.0)),
             ] {
                 options.offset = offset;
 
-                draw_text_on_line(ctx.context, &line_string, refs, Some(collision), &options);
+                draw_text_on_line(ctx.context, &geom, refs, Some(collision), &options);
             }
-        }
+        });
     }
 }

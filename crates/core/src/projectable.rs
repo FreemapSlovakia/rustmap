@@ -4,6 +4,7 @@ use geo::{
     MultiPolygon, Point, Polygon, Rect, Triangle,
 };
 use geo_postgis::FromPostgis;
+use postgis::ewkb::GeometryT as EwkbGeometry;
 use postgres::Row;
 
 const GEOMETRY_COLUMN: &str = "geometry";
@@ -129,26 +130,82 @@ impl TileProjectable for Geometry {
     }
 }
 
+fn geometry_type_name(geometry: &EwkbGeometry<postgis::ewkb::Point>) -> &'static str {
+    match geometry {
+        EwkbGeometry::Point(_) => "Point",
+        EwkbGeometry::LineString(_) => "LineString",
+        EwkbGeometry::Polygon(_) => "Polygon",
+        EwkbGeometry::MultiPoint(_) => "MultiPoint",
+        EwkbGeometry::MultiLineString(_) => "MultiLineString",
+        EwkbGeometry::MultiPolygon(_) => "MultiPolygon",
+        EwkbGeometry::GeometryCollection(_) => "GeometryCollection",
+    }
+}
+
 pub fn geometry_point(row: &Row) -> Point {
-    Point::from_postgis(&row.get::<_, postgis::ewkb::Point>(GEOMETRY_COLUMN))
+    match row.get::<_, EwkbGeometry<_>>(GEOMETRY_COLUMN) {
+        EwkbGeometry::Point(geom) => Point::from_postgis(&geom),
+        other => panic!(
+            "Expected Point geometry, got {}",
+            geometry_type_name(&other)
+        ),
+    }
 }
 
 pub fn geometry_line_string(row: &Row) -> LineString {
-    LineString::from_postgis(&row.get::<_, postgis::ewkb::LineString>(GEOMETRY_COLUMN))
+    match row.get::<_, EwkbGeometry<_>>(GEOMETRY_COLUMN) {
+        EwkbGeometry::LineString(geom) => LineString::from_postgis(&geom),
+        other => panic!(
+            "Expected LineString geometry, got {}",
+            geometry_type_name(&other)
+        ),
+    }
 }
 
 pub fn geometry_multi_line_string(row: &Row) -> MultiLineString {
-    MultiLineString::from_postgis(&row.get::<_, postgis::ewkb::MultiLineString>(GEOMETRY_COLUMN))
+    match row.get::<_, EwkbGeometry<_>>(GEOMETRY_COLUMN) {
+        EwkbGeometry::MultiLineString(geom) => MultiLineString::from_postgis(&geom),
+        other => panic!(
+            "Expected MultiLineString geometry, got {}",
+            geometry_type_name(&other)
+        ),
+    }
 }
 
 pub fn geometry_polygon(row: &Row) -> Option<Polygon> {
-    row.get::<_, Option<postgis::ewkb::Polygon>>(GEOMETRY_COLUMN)
-        .as_ref()
-        .and_then(Option::from_postgis)
+    match row.get::<_, Option<EwkbGeometry<_>>>(GEOMETRY_COLUMN) {
+        None => None,
+        Some(geometry) => match geometry {
+            EwkbGeometry::Polygon(geom) => Option::from_postgis(&geom),
+            other => panic!(
+                "Expected Polygon geometry, got {}",
+                geometry_type_name(&other)
+            ),
+        },
+    }
 }
 
 pub fn geometry_geometry(row: &Row) -> Option<Geometry> {
-    row.get::<_, Option<postgis::ewkb::Geometry>>(GEOMETRY_COLUMN)
-        .as_ref()
-        .and_then(Option::from_postgis)
+    match row.get::<_, Option<EwkbGeometry<postgis::ewkb::Point>>>(GEOMETRY_COLUMN) {
+        None => None,
+        Some(geometry) => match geometry {
+            EwkbGeometry::Point(geom) => Some(Geometry::Point(Point::from_postgis(&geom))),
+            EwkbGeometry::LineString(geom) => {
+                Some(Geometry::LineString(LineString::from_postgis(&geom)))
+            }
+            EwkbGeometry::Polygon(geom) => Option::from_postgis(&geom).map(Geometry::Polygon),
+            EwkbGeometry::MultiPoint(geom) => {
+                Some(Geometry::MultiPoint(MultiPoint::from_postgis(&geom)))
+            }
+            EwkbGeometry::MultiLineString(geom) => Some(Geometry::MultiLineString(
+                MultiLineString::from_postgis(&geom),
+            )),
+            EwkbGeometry::MultiPolygon(geom) => {
+                Some(Geometry::MultiPolygon(MultiPolygon::from_postgis(&geom)))
+            }
+            EwkbGeometry::GeometryCollection(geom) => Some(Geometry::GeometryCollection(
+                GeometryCollection::from_postgis(&geom),
+            )),
+        },
+    }
 }

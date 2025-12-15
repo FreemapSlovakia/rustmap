@@ -2,8 +2,11 @@ use crate::{
     collision::Collision,
     colors::{self},
     ctx::Ctx,
-    draw::text_on_line::{Align, Distribution, Repeat, TextOnLineOptions, draw_text_on_line},
-    projectable::{TileProjectable, geometry_line_string},
+    draw::{
+        path_geom::walk_geometry_line_strings,
+        text_on_line::{Align, Distribution, Repeat, TextOnLineOptions, draw_text_on_line},
+    },
+    projectable::{TileProjectable, geometry_geometry},
 };
 
 use postgres::Client;
@@ -13,12 +16,12 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
 
     let sql = "
         WITH merged AS (
-          SELECT name, ST_LineMerge(ST_Collect(geometry)) AS geom, type, z_order, MIN(osm_id) AS osm_id
+          SELECT name, ST_LineMerge(ST_Collect(geometry)) AS geometry, type, z_order, MIN(osm_id) AS osm_id
           FROM osm_roads
           WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) AND name <> ''
           GROUP BY z_order, name, type
         )
-        SELECT name, (ST_Dump(ST_CollectionExtract(geom, 2))).geom AS geometry, type
+        SELECT name, geometry, type
         FROM merged
         ORDER BY z_order DESC, osm_id";
 
@@ -36,10 +39,16 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     };
 
     for row in rows {
-        let geom = geometry_line_string(&row).project_to_tile(&ctx.tile_projector);
+        let Some(geom) = geometry_geometry(&row) else {
+            continue;
+        };
+
+        let geom = geom.project_to_tile(&ctx.tile_projector);
 
         let name: &str = row.get("name");
 
-        draw_text_on_line(ctx.context, &geom, name, Some(collision), &options);
+        walk_geometry_line_strings(&geom, &mut |geom| {
+            draw_text_on_line(ctx.context, &geom, name, Some(collision), &options);
+        });
     }
 }

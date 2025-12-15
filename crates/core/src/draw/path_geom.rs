@@ -3,12 +3,12 @@ use cavalier_contours::polyline::{PlineSource, PlineSourceMut, PlineVertex, Poly
 use geo::{Geometry, LineString, Polygon};
 
 pub fn path_geometry(context: &Context, geom: &Geometry) {
-    walk_geometry_line_strings(geom, &|line_string| path_line_string(context, line_string));
+    walk_geometry_line_strings(geom, &mut |line_string| path_line_string(context, line_string));
 }
 
-pub fn walk_geometry_line_strings<F>(geom: &Geometry, dl: &F)
+pub fn walk_geometry_line_strings<F>(geom: &Geometry, dl: &mut F)
 where
-    F: Fn(&LineString),
+    F: FnMut(&LineString),
 {
     match geom {
         Geometry::GeometryCollection(gc) => {
@@ -45,9 +45,9 @@ where
     }
 }
 
-fn path_polygon<F>(poly: &Polygon, dl: &F)
+fn path_polygon<F>(poly: &Polygon, dl: &mut F)
 where
-    F: Fn(&LineString),
+    F: FnMut(&LineString),
 {
     dl(poly.exterior());
 

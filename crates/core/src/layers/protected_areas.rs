@@ -77,7 +77,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
         if typ == "nature_reserve" || typ == "protected_area" && protect_class != "2" {
             let sample = svg_cache.get("protected_area.svg");
 
-            walk_geometry_line_strings(projected, &|line_string| {
+            walk_geometry_line_strings(projected, &mut |line_string| {
                 draw_line_pattern(ctx, line_string, 0.8, sample)
             });
         }
@@ -105,7 +105,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
 
             context.set_line_width(wb);
             context.set_source_color_a(colors::PROTECTED, 0.5);
-            walk_geometry_line_strings(projected, &|iter| {
+            walk_geometry_line_strings(projected, &mut |iter| {
                 path_line_string_with_offset(context, iter, wb * 0.75)
             });
             context.stroke().unwrap();

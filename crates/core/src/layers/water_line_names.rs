@@ -4,9 +4,10 @@ use crate::{
     ctx::Ctx,
     draw::{
         create_pango_layout::FontAndLayoutOptions,
+        path_geom::walk_geometry_line_strings,
         text_on_line::{Align, Distribution, Repeat, TextOnLineOptions, draw_text_on_line},
     },
-    projectable::{TileProjectable, geometry_line_string},
+    projectable::{TileProjectable, geometry_geometry},
     re_replacer::{Replacement, replace},
 };
 use pangocairo::pango::Style;
@@ -33,7 +34,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
             WHERE name <> '' {}AND geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
             GROUP BY name, type
         )
-        SELECT name, type, (ST_Dump(ST_CollectionExtract(geometry, 2))).geom AS geometry
+        SELECT name, type, geometry
         FROM merged ORDER BY osm_id, type", // TODO order by type - river 1st
         if ctx.zoom < 14 {
             "AND type = 'river' "
@@ -58,6 +59,12 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     };
 
     for row in rows {
+        let Some(geom) = geometry_geometry(&row) else {
+            continue;
+        };
+
+        let geom = geom.project_to_tile(&ctx.tile_projector);
+
         let typ: &str = row.get("type");
 
         options.distribution = Distribution::Align {
@@ -65,12 +72,14 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
             repeat: Repeat::Spaced(if typ == "river" { 400.0 } else { 300.0 }),
         };
 
-        draw_text_on_line(
-            ctx.context,
-            &geometry_line_string(&row).project_to_tile(&ctx.tile_projector),
-            &replace(row.get("name"), &REPLACEMENTS),
-            Some(collision),
-            &options,
-        );
+        walk_geometry_line_strings(&geom, &mut |geom| {
+            draw_text_on_line(
+                ctx.context,
+                geom,
+                &replace(row.get("name"), &REPLACEMENTS),
+                Some(collision),
+                &options,
+            );
+        })
     }
 }

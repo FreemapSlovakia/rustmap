@@ -7,7 +7,7 @@ use crate::{
 use geo::{BoundingRect, Geometry, LineString};
 
 pub fn hatch_geometry(ctx: &Ctx, geom: &Geometry, spacing: f64, angle: f64) {
-    walk_geometry_line_strings(geom, &|iter| {
+    walk_geometry_line_strings(geom, &mut |iter| {
         hatch(ctx, iter, spacing, angle);
     });
 }
