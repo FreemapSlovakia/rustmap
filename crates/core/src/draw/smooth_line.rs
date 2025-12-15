@@ -4,7 +4,7 @@ use geo::{Coord, LineString};
 
 // https://github.com/ghaerr/agg-2.6/blob/master/agg-src/src/agg_vcgen_smooth_poly1.cpp
 // https://agg.sourceforge.net/antigrain.com/research/bezier_interpolation/index.html
-pub fn draw_smooth_bezier_spline(context: &Context, line_string: &LineString, smooth_value: f64) {
+pub fn path_smooth_bezier_spline(context: &Context, line_string: &LineString, smooth_value: f64) {
     if smooth_value == 0.0 {
         path_line_string(context, line_string);
 

@@ -3,8 +3,10 @@ use crate::{
     ctx::Ctx,
     draw::{
         create_pango_layout::FontAndLayoutOptions,
-        smooth_line::draw_smooth_bezier_spline,
-        text_on_line::{TextOnLineOptions, Upright, draw_text_on_line},
+        smooth_line::path_smooth_bezier_spline,
+        text_on_line::{
+            Align, Distribution, Repeat, TextOnLineOptions, Upright, draw_text_on_line,
+        },
     },
     projectable::{TileProjectable, geometry_line_string},
 };
@@ -29,19 +31,17 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: &str) {
     context.save().expect("context saved");
 
     // TODO measure performance impact of simplification, if it makes something faster
-
     let sql = format!(
-        "SELECT ST_SimplifyVW((ST_Dump(ST_LineMerge(ST_Collect(ST_ClipByBox2D(wkb_geometry,
-            ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), 100)))))).geom, $5) AS geometry,
-            height
-            FROM contour_{}_split
-            WHERE wkb_geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)
-            GROUP BY height",
+        "SELECT ST_SimplifyVW(wkb_geometry, $6) AS geometry, height
+        FROM contour_{}_split
+        WHERE wkb_geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)",
         country
     );
 
-    let mut params = ctx.bbox_query_params(None);
+    let mut params = ctx.bbox_query_params(Some(8.0));
+
     params.push(simplify_factor);
+
     let query_params = params.as_params();
 
     let rows = client.query(&sql, &query_params).unwrap_or_default();
@@ -76,7 +76,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: &str) {
 
             context.set_source_color(colors::CONTOUR);
 
-            draw_smooth_bezier_spline(context, &geom, 1.0);
+            path_smooth_bezier_spline(context, &geom, 1.0);
 
             context.stroke().unwrap();
         }
@@ -91,7 +91,11 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: &str) {
                     flo: FontAndLayoutOptions::default(),
                     upright: Upright::Left,
                     color: colors::CONTOUR,
-                    max_curvature_degrees: 30.0,
+                    max_curvature_degrees: 45.0,
+                    distribution: Distribution::Align {
+                        align: Align::Center,
+                        repeat: Repeat::Spaced(200.0),
+                    },
                     ..TextOnLineOptions::default()
                 },
             );

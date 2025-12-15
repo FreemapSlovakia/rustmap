@@ -2,7 +2,7 @@ use crate::{
     SvgCache,
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::{markers_on_path::draw_markers_on_path, smooth_line::draw_smooth_bezier_spline},
+    draw::{markers_on_path::draw_markers_on_path, smooth_line::path_smooth_bezier_spline},
     projectable::{TileProjectable, geometry_line_string},
 };
 use postgres::Client;
@@ -79,7 +79,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
                         2.4
                     });
 
-                    draw_smooth_bezier_spline(context, &geom, smooth);
+                    path_smooth_bezier_spline(context, &geom, smooth);
 
                     context.stroke().unwrap();
                 }
@@ -89,7 +89,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
 
                 context.set_line_width(width);
 
-                draw_smooth_bezier_spline(context, &geom, smooth);
+                path_smooth_bezier_spline(context, &geom, smooth);
 
                 let path = context.copy_path_flat().unwrap();
 

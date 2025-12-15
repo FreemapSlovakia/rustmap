@@ -645,80 +645,84 @@ pub fn draw_text_on_line(
 
     // For each label repeat, walk glyphs along the line while keeping edge-alignment and curvature limits.
     'outer: for label_start in offsets {
-        // Decide per-repeat if we need to flip to stay upright.
-        let repeat_span = repeat.span;
-        let overall_span_start = label_start;
-        let overall_span_end = label_start + repeat_span;
-        let overall_tangent =
-            weighted_tangent_for_span(&pts, &cum, overall_span_start, overall_span_end)
-                .unwrap_or(Coord { x: 1.0, y: 0.0 });
+        let mut label_start_try = label_start;
+        let mut retries = 0usize;
+        let max_retries = 2usize;
+        'attempt: loop {
+            // Decide per-repeat if we need to flip to stay upright.
+            let repeat_span = repeat.span;
+            let overall_span_start = label_start_try;
+            let overall_span_end = label_start_try + repeat_span;
+            let overall_tangent =
+                weighted_tangent_for_span(&pts, &cum, overall_span_start, overall_span_end)
+                    .unwrap_or(Coord { x: 1.0, y: 0.0 });
 
-        let base_angle = overall_tangent.y.atan2(overall_tangent.x);
-        let adjusted_angle = adjust_upright_angle(base_angle, *upright);
-        let flip_needed = (normalize_angle(adjusted_angle - base_angle)).abs() > PI / 2.0;
-        let flip_offset = if flip_needed {
-            0.0
-        } else {
-            normalize_angle(adjusted_angle - base_angle)
-        };
-
-        let mut oriented_pts = pts.clone();
-        if flip_needed {
-            oriented_pts.reverse();
-        }
-        let oriented_cum = cumulative_lengths(&oriented_pts);
-        let start_use = if flip_needed {
-            (total_length - repeat_span - label_start).max(0.0)
-        } else {
-            label_start
-        };
-        let span_end = start_use + repeat_span;
-
-        // Trim a slightly longer segment so curvature sampling at the ends stays accurate.
-        let trim_padding = (options.flo.size * 5.0) + options.halo_width + offset.abs();
-        let trim_start = (start_use - trim_padding).max(0.0);
-        let trim_end = (span_end + trim_padding).min(total_length);
-
-        let mut pts_use = trim_line_to_span(&oriented_pts, &oriented_cum, trim_start, trim_end);
-        pts_use.dedup_by(|a, b| a == b);
-        if pts_use.len() < 2 {
-            continue 'outer;
-        }
-
-        // Apply per-label offset after we know whether we're flipped, but only on the trimmed span.
-        if *offset != 0.0 {
-            let base_offset = -*offset;
-            let keep_offset_side = options.keep_offset_side && matches!(upright, Upright::Auto);
-            let signed_offset = if flip_needed {
-                if keep_offset_side {
-                    *offset
-                } else {
-                    base_offset
-                }
+            let base_angle = overall_tangent.y.atan2(overall_tangent.x);
+            let adjusted_angle = adjust_upright_angle(base_angle, *upright);
+            let flip_needed = (normalize_angle(adjusted_angle - base_angle)).abs() > PI / 2.0;
+            let flip_offset = if flip_needed {
+                0.0
             } else {
-                base_offset
+                normalize_angle(adjusted_angle - base_angle)
             };
-            let ls = LineString::from(pts_use.clone());
-            let offset_ls = offset_line_string(&ls, signed_offset);
-            let mut off_pts: Vec<Coord> = offset_ls.into_iter().collect();
-            off_pts.dedup_by(|a, b| a == b);
-            if off_pts.len() < 2 {
+
+            let mut oriented_pts = pts.clone();
+            if flip_needed {
+                oriented_pts.reverse();
+            }
+            let oriented_cum = cumulative_lengths(&oriented_pts);
+            let start_use = if flip_needed {
+                (total_length - repeat_span - label_start_try).max(0.0)
+            } else {
+                label_start_try
+            };
+            let span_end = start_use + repeat_span;
+
+            // Trim a slightly longer segment so curvature sampling at the ends stays accurate.
+            let trim_padding = (options.flo.size * 5.0) + options.halo_width + offset.abs();
+            let trim_start = (start_use - trim_padding).max(0.0);
+            let trim_end = (span_end + trim_padding).min(total_length);
+
+            let mut pts_use = trim_line_to_span(&oriented_pts, &oriented_cum, trim_start, trim_end);
+            pts_use.dedup_by(|a, b| a == b);
+            if pts_use.len() < 2 {
                 continue 'outer;
             }
-            pts_use = off_pts;
-        }
 
-        if let Some(clip) = clip_extents
-            && !bbox_intersects_clip(&pts_use, clip, options.halo_width)
-        {
-            continue 'outer;
-        }
+            // Apply per-label offset after we know whether we're flipped, but only on the trimmed span.
+            if *offset != 0.0 {
+                let base_offset = -*offset;
+                let keep_offset_side = options.keep_offset_side && matches!(upright, Upright::Auto);
+                let signed_offset = if flip_needed {
+                    if keep_offset_side {
+                        *offset
+                    } else {
+                        base_offset
+                    }
+                } else {
+                    base_offset
+                };
+                let ls = LineString::from(pts_use.clone());
+                let offset_ls = offset_line_string(&ls, signed_offset);
+                let mut off_pts: Vec<Coord> = offset_ls.into_iter().collect();
+                off_pts.dedup_by(|a, b| a == b);
+                if off_pts.len() < 2 {
+                    continue 'outer;
+                }
+                pts_use = off_pts;
+            }
 
-        let cum_use = cumulative_lengths(&pts_use);
-        let total_length_use = *cum_use.last().unwrap_or(&0.0);
-        if total_length_use == 0.0 {
-            continue 'outer;
-        }
+            if let Some(clip) = clip_extents
+                && !bbox_intersects_clip(&pts_use, clip, options.halo_width)
+            {
+                continue 'outer;
+            }
+
+            let cum_use = cumulative_lengths(&pts_use);
+            let total_length_use = *cum_use.last().unwrap_or(&0.0);
+            if total_length_use == 0.0 {
+                continue 'outer;
+            }
 
         let mut cursor = (start_use - trim_start).max(0.0);
         if cursor > total_length_use {
@@ -726,105 +730,128 @@ pub fn draw_text_on_line(
         }
         let mut label_placements = Vec::new();
         let mut glyph_bboxes: Vec<Rect<f64>> = Vec::new();
+        let mut glyph_span_ends: Vec<f64> = Vec::new();
 
         let label_advance_scale = advance_scale;
         let label_extra_spacing_between_glyphs = extra_spacing_between_glyphs;
 
         for (idx, (advance, glyph_string, font)) in clusters.iter().enumerate() {
-            // Effective advance for this glyph (spacing between glyphs handled separately).
-            let eff_advance = *advance * label_advance_scale;
-            let span_start = cursor;
-            let span_end = cursor + eff_advance;
-            if span_end > total_length_use && !is_justify {
-                continue 'outer;
-            }
-
-            let (_, tangent) = match position_at(&pts_use, &cum_use, span_start + eff_advance / 2.0)
-            {
-                Some(v) => v,
-                None => {
+                // Effective advance for this glyph (spacing between glyphs handled separately).
+                let eff_advance = *advance * label_advance_scale;
+                let span_start = cursor;
+                let span_end = cursor + eff_advance;
+                if span_end > total_length_use && !is_justify {
                     continue 'outer;
                 }
-            };
 
-            let weighted_tangent =
-                weighted_tangent_for_span(&pts_use, &cum_use, span_start, span_end)
-                    .unwrap_or(tangent);
+                let (_, tangent) =
+                    match position_at(&pts_use, &cum_use, span_start + eff_advance / 2.0) {
+                        Some(v) => v,
+                        None => {
+                            continue 'outer;
+                        }
+                    };
 
-            let tangent_before = position_at(&pts_use, &cum_use, span_start.max(0.0))
-                .map(|(_, t)| t)
-                .unwrap_or(weighted_tangent);
+                let weighted_tangent =
+                    weighted_tangent_for_span(&pts_use, &cum_use, span_start, span_end)
+                        .unwrap_or(tangent);
 
-            let tangent_after = position_at(&pts_use, &cum_use, span_end.min(total_length_use))
-                .map(|(_, t)| t)
-                .unwrap_or(weighted_tangent);
-
-            let mut max_bend = angle_between(tangent_before, tangent_after);
-
-            for pair in tangents_for_span(&pts_use, &cum_use, span_start, span_end).windows(2) {
-                max_bend = max_bend.max(angle_between(pair[0], pair[1]));
-            }
-
-            if max_bend > *max_curvature_degrees {
-                continue 'outer;
-            }
-
-            // Extra space proportional to curvature to avoid glyph tops touching on bends.
-            let ratio = (max_bend / 180.0).clamp(0.0, 1.0);
-            let concave_spacing = eff_advance * concave_spacing_factor * ratio;
-
-            let shifted_start = span_start;
-            let shifted_end = shifted_start + eff_advance;
-
-            let mut gs_bbox = glyph_string.clone();
-            let (ink, logical) = gs_bbox.extents(font);
-            let logical_w = logical.width() as f64 * ps;
-            let logical_h = logical.height() as f64 * ps;
-            let ink_left = ink.x() as f64 * ps;
-            let ink_right = (ink.x() as f64 + ink.width() as f64) * ps;
-            let logical_cx = (logical.x() as f64 + logical.width() as f64 / 2.0) * ps;
-            let ink_left_rel = ink_left - logical_cx;
-            let ink_right_rel = ink_right - logical_cx;
-
-            let center_offset = center_offset_for_glyph(
-                idx,
-                clusters.len(),
-                eff_advance,
-                ink_left_rel,
-                ink_right_rel,
-            );
-
-            let shifted_center = shifted_start + center_offset;
-
-            if shifted_end > total_length_use && !is_justify {
-                continue 'outer;
-            }
-
-            let (pos, _) = match position_at(&pts_use, &cum_use, shifted_center) {
-                Some(v) => v,
-                None => {
-                    continue 'outer;
-                }
-            };
-
-            let weighted_tangent =
-                weighted_tangent_for_span(&pts_use, &cum_use, shifted_start, shifted_end)
+                let tangent_before = position_at(&pts_use, &cum_use, span_start.max(0.0))
+                    .map(|(_, t)| t)
                     .unwrap_or(weighted_tangent);
 
-            let angle = normalize_angle(weighted_tangent.y.atan2(weighted_tangent.x) + flip_offset);
+                let tangent_after = position_at(&pts_use, &cum_use, span_end.min(total_length_use))
+                    .map(|(_, t)| t)
+                    .unwrap_or(weighted_tangent);
 
-            // Track an axis-aligned bbox for the rotated glyph.
-            let hw = logical_w / 2.0;
-            let hh = logical_h / 2.0;
-            let cos = angle.cos().abs();
-            let sin = angle.sin().abs();
-            let rx = hw.mul_add(cos, hh * sin);
-            let ry = hw.mul_add(sin, hh * cos);
+                let mut max_bend = angle_between(tangent_before, tangent_after);
+
+                for pair in tangents_for_span(&pts_use, &cum_use, span_start, span_end).windows(2) {
+                    max_bend = max_bend.max(angle_between(pair[0], pair[1]));
+                }
+
+                if max_bend > *max_curvature_degrees {
+                    if retries >= max_retries {
+                        continue 'outer;
+                    }
+                    retries += 1;
+
+                    // Skip a small distance past the bend and try again.
+                    let bend_skip = (options.flo.size * 0.5 + options.halo_width).max(1.0);
+                    let next_start_oriented = (trim_start + span_end + bend_skip).min(total_length);
+
+                    let next_label_start = if flip_needed {
+                        (total_length - repeat_span - next_start_oriented).max(0.0)
+                    } else {
+                        next_start_oriented
+                    };
+
+                    if next_label_start + repeat_span <= total_length {
+                        label_start_try = next_label_start;
+                        continue 'attempt;
+                    }
+
+                    continue 'outer;
+                }
+
+                // Extra space proportional to curvature to avoid glyph tops touching on bends.
+                let ratio = (max_bend / 180.0).clamp(0.0, 1.0);
+                let concave_spacing = eff_advance * concave_spacing_factor * ratio;
+
+                let shifted_start = span_start;
+                let shifted_end = shifted_start + eff_advance;
+
+                let mut gs_bbox = glyph_string.clone();
+                let (ink, logical) = gs_bbox.extents(font);
+                let logical_w = logical.width() as f64 * ps;
+                let logical_h = logical.height() as f64 * ps;
+                let ink_left = ink.x() as f64 * ps;
+                let ink_right = (ink.x() as f64 + ink.width() as f64) * ps;
+                let logical_cx = (logical.x() as f64 + logical.width() as f64 / 2.0) * ps;
+                let ink_left_rel = ink_left - logical_cx;
+                let ink_right_rel = ink_right - logical_cx;
+
+                let center_offset = center_offset_for_glyph(
+                    idx,
+                    clusters.len(),
+                    eff_advance,
+                    ink_left_rel,
+                    ink_right_rel,
+                );
+
+                let shifted_center = shifted_start + center_offset;
+
+                if shifted_end > total_length_use && !is_justify {
+                    continue 'outer;
+                }
+
+                let (pos, _) = match position_at(&pts_use, &cum_use, shifted_center) {
+                    Some(v) => v,
+                    None => {
+                        continue 'outer;
+                    }
+                };
+
+                let weighted_tangent =
+                    weighted_tangent_for_span(&pts_use, &cum_use, shifted_start, shifted_end)
+                        .unwrap_or(weighted_tangent);
+
+                let angle =
+                    normalize_angle(weighted_tangent.y.atan2(weighted_tangent.x) + flip_offset);
+
+                // Track an axis-aligned bbox for the rotated glyph.
+                let hw = logical_w / 2.0;
+                let hh = logical_h / 2.0;
+                let cos = angle.cos().abs();
+                let sin = angle.sin().abs();
+                let rx = hw.mul_add(cos, hh * sin);
+                let ry = hw.mul_add(sin, hh * cos);
 
             glyph_bboxes.push(Rect::new(
                 (pos.x - rx, pos.y - ry),
                 (pos.x + rx, pos.y + ry),
             ));
+            glyph_span_ends.push(span_end);
 
             label_placements.push((glyph_string.clone(), font.clone(), pos, angle));
 
@@ -835,22 +862,43 @@ pub fn draw_text_on_line(
             }
         }
 
-        if let Some(col) = collision.as_deref()
-            && glyph_bboxes.iter().any(|bb| col.collides(bb))
-        {
-            continue 'outer;
+        if let Some(col) = collision.as_deref() {
+            if let Some((idx, _)) = glyph_bboxes.iter().enumerate().find(|(_, bb)| col.collides(bb))
+            {
+                if retries < max_retries {
+                    retries += 1;
+                    let skip = (options.halo_width + options.flo.size * 0.25).max(1.0);
+                    let collided_end_oriented =
+                        trim_start + glyph_span_ends.get(idx).copied().unwrap_or(0.0);
+                    let next_start_oriented = (collided_end_oriented + skip).min(total_length);
+                    let next_label_start = if flip_needed {
+                        (total_length - repeat_span - next_start_oriented).max(0.0)
+                    } else {
+                        next_start_oriented
+                    };
+
+                    if next_label_start + repeat_span <= total_length {
+                        label_start_try = next_label_start;
+                        continue 'attempt;
+                    }
+                }
+
+                continue 'outer;
+            }
         }
 
         if repeat.defer_collision {
             new_collision_bboxes.extend(glyph_bboxes);
         } else if let Some(col) = collision.as_deref_mut() {
-            for bb in glyph_bboxes {
-                let _ = col.add(bb);
+                for bb in glyph_bboxes {
+                    let _ = col.add(bb);
+                }
             }
-        }
 
-        placements.push(label_placements);
-        rendered = true;
+            placements.push(label_placements);
+            rendered = true;
+            break 'attempt;
+        }
     }
 
     if repeat.defer_collision
