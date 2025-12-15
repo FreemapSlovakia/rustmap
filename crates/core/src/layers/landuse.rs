@@ -10,6 +10,8 @@ use cairo::{Extend, Matrix, SurfacePattern};
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
+    let _span = tracy_client::span!("landuse::render");
+
     let zoom = ctx.zoom;
     let context = ctx.context;
     let min = ctx.bbox.min();

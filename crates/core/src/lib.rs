@@ -12,8 +12,8 @@ use image::codecs::jpeg::JpegEncoder;
 use image::{ExtendedColorType, ImageEncoder};
 use layers::{
     aerialway_names, aerialways, aeroways, barrierways, borders, bridge_areas, building_names,
-    buildings, country_names, cutlines, feature_lines, features, highway_names::highway_names,
-    housenumbers, landuse, locality_names, military_areas, pipelines, place_names, power_lines,
+    buildings, country_names, cutlines, feature_lines, features, highway_names, housenumbers,
+    landuse, locality_names, military_areas, pipelines, place_names, power_lines,
     protected_area_names, protected_areas, road_access_restrictions, roads, routes, sea,
     shading_and_contours, solar_power_plants, trees, water_area_names, water_areas,
     water_line_names, water_lines,
@@ -44,6 +44,8 @@ pub fn render_tile(
     svg_cache: &mut SvgCache,
     hillshading_datasets: &mut HashMap<String, Dataset>,
 ) -> RenderedTile {
+    let _span = tracy_client::span!("render_tile");
+
     let bbox = request.bbox;
 
     let size = bbox_size_in_pixels(bbox, request.zoom as f64);
@@ -148,15 +150,19 @@ pub fn render_tile(
 
             let mut buffer = Vec::new();
 
-            let encoder = JpegEncoder::new_with_quality(&mut buffer, 90);
+            {
+                let _span = tracy_client::span!("render_tile::encode");
 
-            encoder
-                .write_image(&rgb_data, width, height, ExtendedColorType::Rgb8)
-                .unwrap();
+                let encoder = JpegEncoder::new_with_quality(&mut buffer, 90);
 
-            RenderedTile {
-                content_type: "image/jpeg",
-                buffer,
+                encoder
+                    .write_image(&rgb_data, width, height, ExtendedColorType::Rgb8)
+                    .unwrap();
+
+                RenderedTile {
+                    content_type: "image/jpeg",
+                    buffer,
+                }
             }
         }
     }
@@ -288,7 +294,7 @@ fn draw(
     }
 
     context.save().unwrap();
-    routes::render(ctx, client, &routes::RouteTypes::all(), svg_cache);
+    routes::render_marking(ctx, client, &routes::RouteTypes::all(), svg_cache);
     context.restore().unwrap();
 
     if (9..=11).contains(&zoom) {
@@ -330,7 +336,7 @@ fn draw(
     }
 
     if zoom >= 15 {
-        highway_names(ctx, client, collision);
+        highway_names::render(ctx, client, collision);
     }
 
     if zoom >= 14 {

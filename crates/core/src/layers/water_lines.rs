@@ -8,6 +8,8 @@ use crate::{
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
+    let _span = tracy_client::span!("water_lines::render");
+
     let context = ctx.context;
     let zoom = ctx.zoom;
 

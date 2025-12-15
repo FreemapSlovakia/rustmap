@@ -8,7 +8,9 @@ use crate::{
 
 use postgres::Client;
 
-pub fn highway_names(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
+pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
+    let _span = tracy_client::span!("highway_names::render");
+
     let sql = "
         WITH merged AS (
           SELECT name, ST_LineMerge(ST_Collect(geometry)) AS geom, type, z_order, MIN(osm_id) AS osm_id

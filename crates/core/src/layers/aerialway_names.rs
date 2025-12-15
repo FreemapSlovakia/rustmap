@@ -11,6 +11,8 @@ use crate::{
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
+    let _span = tracy_client::span!("aerialway_names::render");
+
     let sql = concat!(
         "SELECT geometry, name FROM osm_aerialways ",
         "WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)"

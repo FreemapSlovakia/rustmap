@@ -37,7 +37,7 @@ COMMIT;
 CREATE MATERIALIZED VIEW country_names_smooth AS
 SELECT
   ogc_fid,
-  ST_ChaikinSmoothing(geometry, 3)::geometry(LineString, 3857) AS geometry,
+  ST_ChaikinSmoothing(geometry, 2)::geometry(LineString, 3857) AS geometry,
   name,
   "name:en"
 FROM country_names;

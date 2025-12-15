@@ -7,6 +7,8 @@ use geo::{Coord, Euclidean, Length, LineStringSegmentize};
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
+    let _span = tracy_client::span!("fixmes::render");
+
     let context = ctx.context;
 
     let sql = "

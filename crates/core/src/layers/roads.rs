@@ -6,6 +6,8 @@ use crate::{colors, ctx::Ctx, draw::path_geom::path_line_string};
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
+    let _span = tracy_client::span!("roads::render");
+
     let context = ctx.context;
 
     let zoom = ctx.zoom;

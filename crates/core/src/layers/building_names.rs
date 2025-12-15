@@ -7,6 +7,8 @@ use crate::{
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
+    let _span = tracy_client::span!("building_names::render");
+
     let context = ctx.context;
 
     let sql = "

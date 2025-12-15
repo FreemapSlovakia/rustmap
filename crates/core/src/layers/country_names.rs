@@ -9,6 +9,8 @@ use postgres::Client;
 use std::f64;
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
+    let _span = tracy_client::span!("country_names::render");
+
     let context = ctx.context;
 
     let rect = ctx.bbox.project_to_tile(&ctx.tile_projector);

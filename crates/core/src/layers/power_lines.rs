@@ -7,6 +7,8 @@ use crate::{
 use postgres::Client;
 
 pub fn render_lines(ctx: &Ctx, client: &mut Client) {
+    let _span = tracy_client::span!("power_lines::render_lines");
+
     let context = ctx.context;
 
     let zoom = ctx.zoom;
@@ -47,6 +49,8 @@ pub fn render_lines(ctx: &Ctx, client: &mut Client) {
 }
 
 pub fn render_towers_poles(ctx: &Ctx, client: &mut Client) {
+    let _span = tracy_client::span!("power_lines::render_towers_poles");
+
     let context = ctx.context;
     let scale = ctx.scale;
 
@@ -55,15 +59,13 @@ pub fn render_towers_poles(ctx: &Ctx, client: &mut Client) {
     let sql = format!(
         "SELECT geometry, type
         FROM osm_features
-        WHERE type IN ('tower'{}) AND geometry && make_buffered_envelope($1, $2, $3, $4, $5, 4)",
+        WHERE type IN ('tower'{}) AND geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)",
         if zoom < 15 { "" } else { ", 'pylon', 'pole'" }
     );
 
-    let mut params = ctx.bbox_query_params(None);
-    params.push(zoom as i32);
-    let query_params = params.as_params();
-
-    let rows = client.query(&sql, &query_params).expect("db data");
+    let rows = client
+        .query(&sql, &ctx.bbox_query_params(Some(1024.0)).as_params())
+        .expect("db data");
 
     for row in rows {
         context.set_source_color(if row.get::<_, &str>("type") == "pole" {

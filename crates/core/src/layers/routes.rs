@@ -258,8 +258,13 @@ fn get_routes_query(
         off1, off2, refs1, refs2")
 }
 
-pub fn render(ctx: &Ctx, client: &mut Client, route_types: &RouteTypes, svg_cache: &mut SvgCache) {
-    let _span = tracy_client::span!("routes::render");
+pub fn render_marking(
+    ctx: &Ctx,
+    client: &mut Client,
+    route_types: &RouteTypes,
+    svg_cache: &mut SvgCache,
+) {
+    let _span = tracy_client::span!("routes::render_marking");
 
     let context = ctx.context;
 
@@ -431,6 +436,8 @@ pub fn render_labels(
     route_types: &RouteTypes,
     collision: &mut Collision,
 ) {
+    let _span = tracy_client::span!("routes::render_labels");
+
     let query = get_routes_query(route_types, None, "");
 
     let rows = client

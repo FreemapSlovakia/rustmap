@@ -633,6 +633,8 @@ pub fn draw_text_on_line(
     mut collision: Option<&mut Collision<f64>>,
     options: &TextOnLineOptions,
 ) -> bool {
+    let _span = tracy_client::span!("text_on_line::draw_text_on_line");
+
     let ps = 1.0 / SCALE as f64;
     let mut pts: Vec<Coord> = line_string.into_iter().copied().collect();
 

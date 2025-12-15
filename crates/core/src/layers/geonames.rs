@@ -11,6 +11,8 @@ use pangocairo::pango::Style;
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
+    let _span = tracy_client::span!("geonames::render");
+
     let context = ctx.context;
 
     let sql = concat!(

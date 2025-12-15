@@ -25,6 +25,8 @@ static REPLACEMENTS: LazyLock<Vec<Replacement>> = LazyLock::new(|| {
 });
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
+    let _span = tracy_client::span!("valleys_ridges::render");
+
     let zoom_coef = 2.5f64.powf(ctx.zoom as f64 - 12.0);
 
     let opacity = 0.5 - (ctx.zoom as f64 - 13.0) / 10.0;
@@ -63,15 +65,23 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
             let geom = geom.chaikin_smoothing(3);
 
+            let mut n = 0usize;
+
             while options.flo.letter_spacing >= 0.0 {
                 let drawn = draw_text_on_line(context, &geom, &name, Some(collision), &options);
 
                 if drawn {
+                    println!("OK");
+
                     break;
                 }
 
-                options.flo.letter_spacing = (options.flo.letter_spacing + 1.0).mul_add(0.9, -1.0);
+                options.flo.letter_spacing = (options.flo.letter_spacing + 1.0).mul_add(0.8, -2.0);
+
+                n += 1;
             }
+
+            println!("{n}");
 
             // TODO
             // {z > 13 && <Placement characterSpacing={0} size={size * 0.75} />}

@@ -668,7 +668,7 @@ pub fn render(
     let mut to_label = Vec::<(Point, f64, String, Option<String>, usize, &Def)>::new();
 
     {
-        let _paint_span = tracy_client::span!("features::paint_svgs");
+        let _span = tracy_client::span!("features::paint_svgs");
 
         for row in rows {
             let typ: &str = row.get("type");
