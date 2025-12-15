@@ -14,8 +14,6 @@ use postgres::Client;
 pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
     let _span = tracy_client::span!("protected_areas::render");
 
-    let context = ctx.context;
-
     let zoom = ctx.zoom;
 
     let sql = &format!(
@@ -38,6 +36,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
                 .map(|geom| (geom.project_to_tile(&ctx.tile_projector), geom, row))
         })
         .collect();
+
+    let context = ctx.context;
 
     // hatching
     if zoom <= 11 {

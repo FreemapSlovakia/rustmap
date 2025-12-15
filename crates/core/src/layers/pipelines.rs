@@ -9,15 +9,11 @@ use postgres::Client;
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let _span = tracy_client::span!("pipelines::render");
 
-    let context = ctx.context;
-
-    let zoom = ctx.zoom;
-
     let sql = format!(
         "SELECT geometry, location IN('underground', 'underwater') AS below
         FROM osm_pipelines
         WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) AND location IN ({})",
-        if zoom < 15 {
+        if ctx.zoom < 15 {
             "'overground', 'overhead', ''"
         } else {
             "'overground', 'overhead', '', 'underground', 'underwater'"
@@ -28,7 +24,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         .query(&sql, &ctx.bbox_query_params(Some(8.0)).as_params())
         .expect("db data");
 
-    context.save().expect("context saved");
+    let context = ctx.context;
 
     for row in rows {
         context.push_group();
@@ -56,6 +52,4 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             .paint_with_alpha(if row.get("below") { 0.33 } else { 1.0 })
             .unwrap();
     }
-
-    context.restore().expect("context restored");
 }

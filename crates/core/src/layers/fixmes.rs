@@ -9,8 +9,6 @@ use postgres::Client;
 pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
     let _span = tracy_client::span!("fixmes::render");
 
-    let context = ctx.context;
-
     let sql = "
         SELECT geometry
         FROM osm_fixmes
@@ -27,6 +25,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
     let hw = rect.width() / 2.0;
 
     let hh = rect.height() / 2.0;
+
+    let context = ctx.context;
 
     let paint = |point: &Coord| {
         context

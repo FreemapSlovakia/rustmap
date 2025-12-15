@@ -11,6 +11,11 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     let context = ctx.context;
 
+    context.save().unwrap();
+
+    context.set_source_color(colors::WATER);
+    context.paint().unwrap();
+
     let zoom = ctx.zoom;
 
     let sql = format!(
@@ -42,4 +47,6 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         context.set_source_color(colors::WHITE);
         context.fill().unwrap();
     }
+
+    context.restore().unwrap();
 }

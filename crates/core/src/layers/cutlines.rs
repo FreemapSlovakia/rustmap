@@ -9,10 +9,6 @@ use postgres::Client;
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let _span = tracy_client::span!("cutlines::render");
 
-    let context = ctx.context;
-
-    let zoom = ctx.zoom;
-
     let sql = concat!(
         "SELECT geometry FROM osm_feature_lines ",
         "WHERE type = 'cutline' AND geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)"
@@ -21,6 +17,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     let rows = client
         .query(sql, &ctx.bbox_query_params(Some(8.0)).as_params())
         .expect("db data");
+
+    let context = ctx.context;
 
     context.save().expect("context saved");
 
@@ -32,7 +30,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         context.set_source_color(colors::SCRUB);
         context.set_dash(&[], 0.0);
-        context.set_line_width(0.33f64.mul_add(((zoom - 12) as f64).exp2(), 2.0));
+        context.set_line_width(0.33f64.mul_add(((ctx.zoom - 12) as f64).exp2(), 2.0));
         context.stroke_preserve().unwrap();
         context.stroke().unwrap();
     }

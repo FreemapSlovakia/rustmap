@@ -9,10 +9,6 @@ use postgres::Client;
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let _span = tracy_client::span!("military_areas::render");
 
-    let context = ctx.context;
-
-    let zoom = ctx.zoom;
-
     let sql = "
         SELECT geometry
             FROM osm_landusages
@@ -22,7 +18,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
                 AND area / POWER(4, 19 - $6) > 10";
 
     let mut params = ctx.bbox_query_params(Some(10.0));
-    params.push(zoom as i32);
+    params.push(ctx.zoom as i32);
 
     let rows = &client.query(sql, &params.as_params()).expect("db data");
 
@@ -35,6 +31,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         .filter_map(geometry_geometry)
         .map(|geom| (geom.project_to_tile(&ctx.tile_projector), geom))
         .collect();
+
+    let context = ctx.context;
 
     // hatching
     for (projected, unprojected) in &geometries {
@@ -57,7 +55,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     context.pop_group_to_source().unwrap();
     context
-        .paint_with_alpha(if zoom < 14 { 0.5 / 0.8 } else { 0.2 / 0.8 })
+        .paint_with_alpha(if ctx.zoom < 14 { 0.5 / 0.8 } else { 0.2 / 0.8 })
         .unwrap();
 
     // border

@@ -9,13 +9,9 @@ use postgres::Client;
 pub fn render_lines(ctx: &Ctx, client: &mut Client) {
     let _span = tracy_client::span!("power_lines::render_lines");
 
-    let context = ctx.context;
-
-    let zoom = ctx.zoom;
-
     let sql = &format!(
         "SELECT geometry, type FROM osm_feature_lines WHERE {} AND geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)",
-        if zoom < 14 {
+        if ctx.zoom < 14 {
             "type = 'line'"
         } else {
             "type IN ('line', 'minor_line')"
@@ -25,6 +21,10 @@ pub fn render_lines(ctx: &Ctx, client: &mut Client) {
     let rows = client
         .query(sql, &ctx.bbox_query_params(None).as_params())
         .expect("db data");
+
+    let context = ctx.context;
+
+    context.save().unwrap();
 
     for row in rows {
         context.set_source_color_a(
@@ -46,26 +46,29 @@ pub fn render_lines(ctx: &Ctx, client: &mut Client) {
 
         context.stroke().unwrap();
     }
+
+    context.restore().unwrap();
 }
 
 pub fn render_towers_poles(ctx: &Ctx, client: &mut Client) {
     let _span = tracy_client::span!("power_lines::render_towers_poles");
 
-    let context = ctx.context;
     let scale = ctx.scale;
-
-    let zoom = ctx.zoom;
 
     let sql = format!(
         "SELECT geometry, type
         FROM osm_features
         WHERE type IN ('tower'{}) AND geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)",
-        if zoom < 15 { "" } else { ", 'pylon', 'pole'" }
+        if ctx.zoom < 15 { "" } else { ", 'pylon', 'pole'" }
     );
 
     let rows = client
         .query(&sql, &ctx.bbox_query_params(Some(1024.0)).as_params())
         .expect("db data");
+
+    let context = ctx.context;
+
+    context.save().unwrap();
 
     for row in rows {
         context.set_source_color(if row.get::<_, &str>("type") == "pole" {
@@ -85,4 +88,6 @@ pub fn render_towers_poles(ctx: &Ctx, client: &mut Client) {
 
         context.fill().unwrap();
     }
+
+    context.restore().unwrap();
 }

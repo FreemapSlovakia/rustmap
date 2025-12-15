@@ -10,9 +10,6 @@ use crate::{
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let _span = tracy_client::span!("barrierways::render");
 
-    let context = ctx.context;
-    let zoom = ctx.zoom;
-
     let sql = concat!(
         "SELECT geometry, type FROM osm_barrierways ",
         "WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)"
@@ -23,6 +20,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         .expect("db data");
 
     for row in rows {
+        let context = ctx.context;
+
         context.save().expect("context saved");
 
         match row.get("type") {
@@ -33,8 +32,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             }
             "hedge" => {
                 context.set_source_color(colors::PITCH);
-                context.set_line_width(zoom as f64 - 14.0);
-                context.set_dash(&[0.01, zoom as f64 - 14.0], 0.0);
+                context.set_line_width(ctx.zoom as f64 - 14.0);
+                context.set_dash(&[0.01, ctx.zoom as f64 - 14.0], 0.0);
                 context.set_line_join(cairo::LineJoin::Round);
                 context.set_line_cap(cairo::LineCap::Round);
             }

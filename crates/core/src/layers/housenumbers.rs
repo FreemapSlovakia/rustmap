@@ -13,8 +13,6 @@ use postgres::Client;
 pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     let _span = tracy_client::span!("housenumbers::render");
 
-    let context = ctx.context;
-
     let sql = r#"
         SELECT
             COALESCE(
@@ -43,7 +41,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
 
     for row in rows {
         draw_text(
-            context,
+            ctx.context,
             Some(collision),
             &geometry_point(&row).project_to_tile(&ctx.tile_projector),
             row.get("housenumber"),

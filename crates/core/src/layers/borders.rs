@@ -9,10 +9,6 @@ use postgres::Client;
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let _span = tracy_client::span!("borders::render");
 
-    let context = ctx.context;
-
-    let zoom = ctx.zoom;
-
     let sql = "
         WITH segs AS (
             SELECT DISTINCT ON (m.member)
@@ -33,9 +29,9 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         .query(sql, &ctx.bbox_query_params(Some(10.0)).as_params())
         .expect("db data");
 
-    context.save().expect("context saved");
-
     ctx.context.push_group();
+
+    let context = ctx.context;
 
     for row in rows {
         let Some(geometry) =
@@ -46,8 +42,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         ctx.context.set_dash(&[], 0.0);
         ctx.context.set_source_color(colors::ADMIN_BORDER);
-        ctx.context.set_line_width(if zoom <= 10 {
-            6.0f64.mul_add(1.4f64.powf(zoom as f64 - 11.0), 0.5)
+        ctx.context.set_line_width(if ctx.zoom <= 10 {
+            6.0f64.mul_add(1.4f64.powf(ctx.zoom as f64 - 11.0), 0.5)
         } else {
             6.0
         });
@@ -58,5 +54,4 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     context.pop_group_to_source().unwrap();
     context.paint_with_alpha(0.5).unwrap();
-    context.restore().expect("context restored");
 }

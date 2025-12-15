@@ -13,8 +13,6 @@ use postgres::Client;
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let _span = tracy_client::span!("geonames::render");
 
-    let context = ctx.context;
-
     let sql = concat!(
         "SELECT name, geometry FROM geonames_smooth ",
         "WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)"
@@ -38,6 +36,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         halo_width: 2.0,
         ..TextOnLineOptions::default()
     };
+
+    let context = ctx.context;
 
     context.push_group();
 

@@ -9,11 +9,7 @@ use postgres::Client;
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let _span = tracy_client::span!("aeroways::render");
 
-    let context = ctx.context;
-
-    let zoom = ctx.zoom;
-
-    let (way_width, dash_width, dash_array) = match zoom {
+    let (way_width, dash_width, dash_array) = match ctx.zoom {
         11 => (3.0, 0.5, &[3.0, 3.0]),
         12..=13 => (5.0, 1.0, &[4.0, 4.0]),
         14.. => (8.0, 1.0, &[6.0, 6.0]),
@@ -28,6 +24,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     let rows = client
         .query(sql, &ctx.bbox_query_params(Some(12.0)).as_params())
         .expect("db data");
+
+    let context = ctx.context;
 
     context.save().expect("context saved");
 

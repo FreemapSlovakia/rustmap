@@ -14,10 +14,6 @@ use postgres::Client;
 pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     let _span = tracy_client::span!("water_area_names::render");
 
-    let context = ctx.context;
-
-    let zoom = ctx.zoom;
-
     let sql = "
         SELECT
             REGEXP_REPLACE(osm_waterareas.name, '[Vv]odná [Nn]ádrž\\M', 'v. n.') AS name,
@@ -43,13 +39,13 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     };
 
     let mut params = ctx.bbox_query_params(Some(1024.0));
-    params.push(zoom as i32);
+    params.push(ctx.zoom as i32);
 
     let rows = client.query(sql, &params.as_params()).expect("db data");
 
     for row in rows {
         draw_text(
-            context,
+            ctx.context,
             Some(collision),
             &geometry_point(&row).project_to_tile(&ctx.tile_projector),
             row.get("name"),

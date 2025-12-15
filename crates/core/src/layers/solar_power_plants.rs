@@ -10,11 +10,7 @@ use crate::{
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let _span = tracy_client::span!("solar_power_plants::render");
 
-    let context = ctx.context;
-
-    let zoom = ctx.zoom;
-
-    let d = 4.0f64.max(1.33f64.powf(zoom as f64) / 20.0).round();
+    let d = 4.0f64.max(1.33f64.powf(ctx.zoom as f64) / 20.0).round();
 
     let sql = concat!(
         "SELECT geometry FROM osm_power_generators ",
@@ -24,6 +20,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     let rows = client
         .query(sql, &ctx.bbox_query_params(None).as_params())
         .expect("db data");
+
+    let context = ctx.context;
 
     for row in rows {
         let Some(geom) = geometry_geometry(&row) else {

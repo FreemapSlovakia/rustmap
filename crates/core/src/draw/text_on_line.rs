@@ -465,7 +465,6 @@ fn draw_label(
 
     let ps = 1.0 / SCALE as f64;
 
-    cr.save().expect("context saved");
     cr.push_group();
 
     for (glyph_string, font, pos, angle) in glyphs {
@@ -496,8 +495,6 @@ fn draw_label(
 
     cr.pop_group_to_source().unwrap();
     cr.paint_with_alpha(opts.alpha).unwrap();
-
-    cr.restore().expect("context restored");
 }
 
 fn label_offsets(

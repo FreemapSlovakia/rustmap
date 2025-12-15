@@ -10,7 +10,6 @@ use postgres::Client;
 pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
     let _span = tracy_client::span!("water_lines::render");
 
-    let context = ctx.context;
     let zoom = ctx.zoom;
 
     let sql = &format!(
@@ -40,6 +39,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
 
         (-rect.width() / 2.0, -rect.height() / 2.0)
     };
+
+    let context = ctx.context;
 
     context.save().expect("context saved");
 

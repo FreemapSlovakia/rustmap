@@ -11,8 +11,6 @@ use crate::{
 pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
     let _span = tracy_client::span!("road_access_restrictions::render");
 
-    let context = ctx.context;
-
     let sql = "
         SELECT
             CASE
@@ -42,6 +40,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
     let rows = client
         .query(sql, &ctx.bbox_query_params(Some(32.0)).as_params())
         .expect("db data");
+
+    let context = ctx.context;
 
     for row in rows {
         path_line_string(

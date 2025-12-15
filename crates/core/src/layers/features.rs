@@ -360,8 +360,6 @@ pub fn render(
 ) {
     let _span = tracy_client::span!("features::render");
 
-    let context = ctx.context;
-
     let zoom = ctx.zoom;
 
     let mut sql = r#"SELECT * FROM (
@@ -667,6 +665,8 @@ pub fn render(
 
     let mut to_label = Vec::<(Point, f64, String, Option<String>, usize, &Def)>::new();
 
+    let context = ctx.context;
+
     {
         let _span = tracy_client::span!("features::paint_svgs");
 
@@ -690,7 +690,7 @@ pub fn render(
 
             let y = (point.y() - rect.height() / 2.0).round();
 
-            'outer: for (j, r) in vec![5.0, 10.0].into_iter().enumerate() {
+            'outer: for (j, r) in vec![2.0, 4.0, 6.0, 8.0].into_iter().enumerate() {
                 for (i, a) in vec![
                     0.0,
                     0.0,
@@ -769,7 +769,7 @@ pub fn render(
                 },
                 color: def.extra.text_color,
                 valign_by_placement: true,
-                placements: &[-d - 3.0, d - 3.0],
+                placements: &[-d - 3.0, d - 3.0, -d - 5.0, d - 1.0, -d - 7.0, d + 1.0],
                 omit_bbox: Some(bbox_idx),
                 ..Default::default()
             };

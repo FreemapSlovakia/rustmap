@@ -10,9 +10,6 @@ use crate::{
 pub fn render(ctx: &Ctx, client: &mut Client, mask: bool) {
     let _span = tracy_client::span!("bridge_areas::render");
 
-    let context = ctx.context;
-    let size = ctx.size;
-
     let query = concat!(
         "SELECT geometry FROM osm_landusages ",
         "WHERE geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857) AND type = 'bridge'"
@@ -21,6 +18,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, mask: bool) {
     let rows = client
         .query(query, &ctx.bbox_query_params(None).as_params())
         .expect("db data");
+
+    let context = ctx.context;
 
     context.save().expect("context saved");
 
@@ -36,7 +35,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, mask: bool) {
         };
 
         if mask {
-            context.rectangle(0.0, 0.0, size.width as f64, size.height as f64);
+            context.rectangle(0.0, 0.0, ctx.size.width as f64, ctx.size.height as f64);
             path_geometry(context, &geometry);
             context.clip();
         } else {

@@ -7,7 +7,7 @@ use crate::{
         line_pattern::draw_line_pattern_scaled,
         offset_line::offset_line_string,
         path_geom::path_line_string_with_offset,
-        text_on_line::{self, Align, Distribution, Repeat, TextOnLineOptions},
+        text_on_line::{Align, Distribution, Repeat, TextOnLineOptions, draw_text_on_line},
     },
     projectable::{TileProjectable, geometry_multi_line_string},
 };
@@ -266,8 +266,6 @@ pub fn render_marking(
 ) {
     let _span = tracy_client::span!("routes::render_marking");
 
-    let context = ctx.context;
-
     let zoom = ctx.zoom;
 
     let query = match zoom {
@@ -352,11 +350,15 @@ pub fn render_marking(
                 }
             }
 
+            let context = ctx.context;
+
             if route_types.contains(RouteTypes::BICYCLE) {
                 let off = row.get::<_, i32>(&format!("b_{}", color.0)[..]);
 
                 if off > 0 {
                     let offset = -((off as f64 - 1.0) * wf).mul_add(2.0, zo) - 1.0;
+
+                    context.save().unwrap();
 
                     for part in &geom {
                         path_line_string_with_offset(context, part, offset);
@@ -371,6 +373,8 @@ pub fn render_marking(
                     context.set_dash(&[0.001, wf * 3.0], 0.0);
 
                     context.stroke().unwrap();
+
+                    context.restore().unwrap();
 
                     // for part in geom {
                     //     draw_polyline_outline_scaled(
@@ -391,6 +395,8 @@ pub fn render_marking(
                     if off > 0 {
                         let offset = ((off as f64 - 1.0) * wf).mul_add(df, zo) + 0.5;
 
+                        context.save().unwrap();
+
                         for part in &geom {
                             path_line_string_with_offset(context, part, offset);
                         }
@@ -402,6 +408,8 @@ pub fn render_marking(
                         context.set_dash(&[], 0.0);
 
                         context.stroke().unwrap();
+
+                        context.restore().unwrap();
                     }
                 }
 
@@ -410,6 +418,8 @@ pub fn render_marking(
 
                     if off > 0 {
                         let offset = ((off as f64 - 1.0) * wf).mul_add(df, zo) + 0.5;
+
+                        context.save().unwrap();
 
                         for part in &geom {
                             path_line_string_with_offset(context, part, offset);
@@ -423,6 +433,8 @@ pub fn render_marking(
                         context.set_dash(&[wf * 3.0, wf], 0.0);
 
                         context.stroke().unwrap();
+
+                        context.restore().unwrap();
                     }
                 }
             }
@@ -474,13 +486,7 @@ pub fn render_labels(
             ] {
                 options.offset = offset;
 
-                text_on_line::draw_text_on_line(
-                    ctx.context,
-                    &line_string,
-                    refs,
-                    Some(collision),
-                    &options,
-                );
+                draw_text_on_line(ctx.context, &line_string, refs, Some(collision), &options);
             }
         }
     }

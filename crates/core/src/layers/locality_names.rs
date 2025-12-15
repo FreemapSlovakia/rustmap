@@ -13,8 +13,6 @@ use postgres::Client;
 pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     let _span = tracy_client::span!("locality_names::render");
 
-    let context = ctx.context;
-
     let sql = "SELECT name, geometry
         FROM osm_places
         WHERE type IN ('locality', 'city_block', 'plot') AND geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
@@ -36,7 +34,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
 
     for row in rows {
         draw_text(
-            context,
+            ctx.context,
             Some(collision),
             &geometry_point(&row).project_to_tile(&ctx.tile_projector),
             row.get("name"),

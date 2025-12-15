@@ -17,8 +17,6 @@ use postgres::Client;
 pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     let _span = tracy_client::span!("protected_area_names::render");
 
-    let context = ctx.context;
-
     let sql = "SELECT name, ST_Centroid(geometry) AS geometry
         FROM osm_protected_areas
         WHERE
@@ -42,7 +40,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
 
     for row in rows {
         draw_text(
-            context,
+            ctx.context,
             Some(collision),
             &geometry_point(&row).project_to_tile(&ctx.tile_projector),
             row.get("name"),
@@ -80,7 +78,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
 
     for row in rows {
         draw_text_on_line(
-            context,
+            ctx.context,
             &geometry_line_string(&row).project_to_tile(&ctx.tile_projector),
             &replace(row.get("name"), &REPLACEMENTS),
             Some(collision),

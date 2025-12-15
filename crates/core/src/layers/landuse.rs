@@ -12,7 +12,6 @@ use postgres::Client;
 pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
     let _span = tracy_client::span!("landuse::render");
 
-    let zoom = ctx.zoom;
     let context = ctx.context;
     let min = ctx.bbox.min();
 
@@ -38,7 +37,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
                 {excl_types}
                 geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)
             ORDER BY z_order DESC, osm_id",
-        match zoom {
+        match ctx.zoom {
             ..=9 => "_gen0",
             10..=11 => "_gen1",
             12.. => "",
@@ -69,7 +68,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
 
             let pattern = SurfacePattern::create(tile);
 
-            let (x, y) = to_absolute_pixel_coords(min.x, min.y, zoom as u8);
+            let (x, y) = to_absolute_pixel_coords(min.x, min.y, ctx.zoom as u8);
 
             let rect = tile.extents().unwrap();
 

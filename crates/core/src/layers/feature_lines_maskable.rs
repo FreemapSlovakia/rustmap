@@ -20,9 +20,6 @@ pub fn render(
 ) {
     let _span = tracy_client::span!("feature_lines_maskable::render");
 
-    let context = ctx.context;
-    let zoom = ctx.zoom;
-
     let sql = "
         SELECT geometry, type
         FROM osm_feature_lines
@@ -34,12 +31,14 @@ pub fn render(
         .query(sql, &ctx.bbox_query_params(Some(8.0)).as_params())
         .expect("db data");
 
+    let context = ctx.context;
+
     context.push_group();
 
     for row in rows {
         let geom = geometry_line_string(&row).project_to_tile(&ctx.tile_projector);
 
-        context.save().expect("context saved");
+        let zoom = ctx.zoom;
 
         match row.get("type") {
             "earth_bank" => {
@@ -76,8 +75,6 @@ pub fn render(
                 //
             }
         }
-
-        context.restore().expect("context restored");
     }
 
     context.push_group();

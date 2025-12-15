@@ -24,8 +24,6 @@ static REPLACEMENTS: LazyLock<Vec<Replacement>> = LazyLock::new(|| {
 pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     let _span = tracy_client::span!("water_line_names::render");
 
-    let zoom = ctx.zoom;
-
     let sql = format!(
         "WITH merged AS (
             SELECT
@@ -37,7 +35,11 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         )
         SELECT name, type, (ST_Dump(ST_CollectionExtract(geometry, 2))).geom AS geometry
         FROM merged ORDER BY osm_id, type", // TODO order by type - river 1st
-        if zoom < 14 { "AND type = 'river' " } else { "" }
+        if ctx.zoom < 14 {
+            "AND type = 'river' "
+        } else {
+            ""
+        }
     );
 
     let rows = client

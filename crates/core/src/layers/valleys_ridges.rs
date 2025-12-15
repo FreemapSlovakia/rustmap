@@ -36,7 +36,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     let context = ctx.context;
 
-    let collision = &mut Collision::new(None);
+    let collision = &mut Collision::new(Some(context));
 
     let mut render_rows = |rows: Vec<Row>| {
         for row in rows {

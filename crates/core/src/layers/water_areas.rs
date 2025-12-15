@@ -9,13 +9,13 @@ use postgres::Client;
 pub fn render(ctx: &Ctx, client: &mut Client) {
     let _span = tracy_client::span!("water_areas::render");
 
-    let context = ctx.context;
-
     let rows = client.query(
         "SELECT type, geometry FROM osm_waterareas WHERE geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)",
         &ctx.bbox_query_params(None).as_params()
 
     ).expect("db data");
+
+    let context = ctx.context;
 
     context.save().expect("context saved");
 

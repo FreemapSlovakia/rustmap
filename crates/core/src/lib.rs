@@ -4,7 +4,6 @@ use crate::layers::{
 };
 use cairo::{Context, Format, ImageSurface, PdfSurface, Surface, SvgSurface};
 use collision::Collision;
-use colors::ContextExt;
 use ctx::Ctx;
 use gdal::Dataset;
 use geo::Rect;
@@ -182,15 +181,14 @@ fn draw(
     let shading = true; // TODO to args
     let contours = true; // TODO to args
 
-    let context = Context::new(surface).unwrap();
+    let context = &Context::new(surface).unwrap();
 
-    // let collision = &mut Collision::<f64>::new(Some(&context));
-    let collision = &mut Collision::<f64>::new(None);
+    let collision = &mut Collision::new(Some(context));
 
     let zoom = request.zoom;
 
     let ctx = &Ctx {
-        context: &context,
+        context,
         bbox,
         size,
         zoom,
@@ -198,14 +196,7 @@ fn draw(
         tile_projector: TileProjector::new(bbox, size),
     };
 
-    let context = &ctx.context;
-
     context.scale(request.scale, request.scale);
-
-    context.save().unwrap();
-    context.set_source_color(colors::WATER);
-    context.paint().unwrap();
-    context.restore().unwrap();
 
     sea::render(ctx, client);
 
@@ -295,9 +286,7 @@ fn draw(
         military_areas::render(ctx, client);
     }
 
-    context.save().unwrap();
     routes::render_marking(ctx, client, &routes::RouteTypes::all(), svg_cache);
-    context.restore().unwrap();
 
     if (9..=11).contains(&zoom) {
         geonames::render(ctx, client);
