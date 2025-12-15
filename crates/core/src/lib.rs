@@ -333,7 +333,9 @@ fn draw(
         highway_names(ctx, client, collision);
     }
 
-    // <RouteNames {...routeProps} />
+    if zoom >= 14 {
+        routes::render_labels(ctx, client, &routes::RouteTypes::all(), collision);
+    }
 
     if zoom >= 16 {
         aerialway_names::render(ctx, client, collision);
