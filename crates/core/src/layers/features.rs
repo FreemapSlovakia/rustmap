@@ -744,7 +744,18 @@ pub fn render(
 
                     context.set_source_surface(surface, x + dx, y + dy).unwrap();
 
-                    context.paint().unwrap();
+                    let access: Option<&str> = row.get("access");
+
+                    context
+                        .paint_with_alpha(
+                            if typ != "cave_entrance" && (matches!(access, Some("private" | "no")))
+                            {
+                                0.33
+                            } else {
+                                1.0
+                            },
+                        )
+                        .unwrap();
 
                     break 'outer;
                 }
