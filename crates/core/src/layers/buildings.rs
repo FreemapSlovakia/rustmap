@@ -7,6 +7,8 @@ use crate::{
 };
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
+    let _span = tracy_client::span!("buildings::render");
+
     let context = ctx.context;
 
     context.save().expect("context saved");

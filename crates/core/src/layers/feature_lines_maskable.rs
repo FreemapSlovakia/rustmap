@@ -18,6 +18,8 @@ pub fn render(
     hillshading_datasets: &mut HashMap<String, Dataset>,
     shading: bool,
 ) {
+    let _span = tracy_client::span!("feature_lines_maskable::render");
+
     let context = ctx.context;
     let zoom = ctx.zoom;
 

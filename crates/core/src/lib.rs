@@ -51,6 +51,8 @@ pub fn render_tile(
     let size = bbox_size_in_pixels(bbox, request.zoom as f64);
 
     let mut draw = |surface: &Surface| {
+        let _span = tracy_client::span!("render_tile::draw");
+
         draw(
             surface,
             request,
@@ -105,6 +107,8 @@ pub fn render_tile(
 
             draw(&surface);
 
+            let _span = tracy_client::span!("render_tile::write_to_png");
+
             surface.write_to_png(&mut buffer).unwrap();
 
             RenderedTile {
@@ -151,8 +155,6 @@ pub fn render_tile(
             let mut buffer = Vec::new();
 
             {
-                let _span = tracy_client::span!("render_tile::encode");
-
                 let encoder = JpegEncoder::new_with_quality(&mut buffer, 90);
 
                 encoder

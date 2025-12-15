@@ -9,6 +9,8 @@ use crate::{
 };
 
 pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
+    let _span = tracy_client::span!("road_access_restrictions::render");
+
     let context = ctx.context;
 
     let sql = "

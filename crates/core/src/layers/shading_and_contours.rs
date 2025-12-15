@@ -93,15 +93,11 @@ pub fn render(
 
         context.push_group(); // contours-and-shading
 
-        {
-            let _span = tracy_client::span!("shading_and_contours::contours");
-
-            if contours && ctx.zoom >= 12 {
-                context.push_group(); // contours
-                contours::render(ctx, client, country);
-                context.pop_group_to_source().unwrap(); // contours
-                context.paint_with_alpha(0.33).unwrap();
-            }
+        if contours && ctx.zoom >= 12 {
+            context.push_group(); // contours
+            contours::render(ctx, client, country);
+            context.pop_group_to_source().unwrap(); // contours
+            context.paint_with_alpha(0.33).unwrap();
         }
 
         hillshading::render(ctx, country, fade_alpha, hillshading_datasets);

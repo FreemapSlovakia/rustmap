@@ -8,6 +8,8 @@ use crate::{
 };
 
 pub fn render(ctx: &Ctx, client: &mut Client, mask: bool) {
+    let _span = tracy_client::span!("bridge_areas::render");
+
     let context = ctx.context;
     let size = ctx.size;
 

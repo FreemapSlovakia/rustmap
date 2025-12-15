@@ -6,23 +6,26 @@ use crate::{
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
+    let _span = tracy_client::span!("trees::render");
+
     let context = ctx.context;
 
     let zoom = ctx.zoom;
 
-    let sql = "SELECT type, geometry
-      FROM osm_features
-      WHERE
-        geometry && make_buffered_envelope($1, $2, $3, $4, $5, 32) AND (
-          type = 'tree' AND (NOT (tags ? 'protected') OR tags->'protected' = 'no') AND (NOT (tags ? 'denotation') OR tags->'denotation' <> 'natural_monument')
-          OR type = 'shrub'
-        )
+    let sql = "
+    SELECT type, geometry
+        FROM osm_features
+        WHERE
+            geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) AND
+            (
+                type = 'tree' AND (NOT (tags ? 'protected') OR tags->'protected' = 'no') AND (NOT (tags ? 'denotation') OR tags->'denotation' <> 'natural_monument')
+                OR type = 'shrub'
+            )
         ORDER BY type, st_x(geometry)";
 
-    let mut params = ctx.bbox_query_params(None);
-    params.push(zoom as i32);
-
-    let rows = client.query(sql, &params.as_params()).expect("db data");
+    let rows = client
+        .query(sql, &ctx.bbox_query_params(Some(8.0)).as_params())
+        .expect("db data");
 
     for row in rows {
         let typ: &str = row.get("type");

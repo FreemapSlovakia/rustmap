@@ -65,23 +65,15 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
             let geom = geom.chaikin_smoothing(3);
 
-            let mut n = 0usize;
-
             while options.flo.letter_spacing >= 0.0 {
                 let drawn = draw_text_on_line(context, &geom, &name, Some(collision), &options);
 
                 if drawn {
-                    println!("OK");
-
                     break;
                 }
 
                 options.flo.letter_spacing = (options.flo.letter_spacing + 1.0).mul_add(0.8, -2.0);
-
-                n += 1;
             }
-
-            println!("{n}");
 
             // TODO
             // {z > 13 && <Placement characterSpacing={0} size={size * 0.75} />}

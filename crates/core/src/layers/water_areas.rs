@@ -7,6 +7,8 @@ use crate::{
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client) {
+    let _span = tracy_client::span!("water_areas::render");
+
     let context = ctx.context;
 
     let rows = client.query(
