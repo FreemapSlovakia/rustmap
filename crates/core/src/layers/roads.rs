@@ -118,13 +118,11 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
                 // TODO strokeOpacity="[trail_visibility]"
                 draw();
             }
-            (14.., "highway", _) if typ == "raceway" || (typ == "track" && class == "leisure") => {
+            (14.., _, "raceway") | (14.., "leisure", "track") => {
                 apply_glow_defaults(1.2);
                 draw();
             }
-            (13.., "highway", "bridleway")
-                if typ == "raceway" || (typ == "track" && class == "leisure") =>
-            {
+            (13.., "highway", "bridleway") => {
                 apply_glow_defaults(1.2);
                 context.set_source_color(colors::BRIDLEWAY2);
                 // strokeOpacity="[trail_visibility]"
@@ -394,7 +392,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
 
                 draw_bridges_tunnels(1.0 + 1.0);
             }
-            (14.., "highway", _) if typ == "raceway" || typ == "track" && class == "leisure" => {
+            (14.., _, "raceway") | (14.., "leisure", "track") => {
                 apply_highway_defaults(1.2);
                 context.set_dash(&[9.5, 1.5], 0.0);
                 draw();
