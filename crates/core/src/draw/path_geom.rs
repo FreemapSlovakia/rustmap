@@ -3,7 +3,9 @@ use cavalier_contours::polyline::{PlineSource, PlineSourceMut, PlineVertex, Poly
 use geo::{Geometry, LineString, Polygon};
 
 pub fn path_geometry(context: &Context, geom: &Geometry) {
-    walk_geometry_line_strings(geom, &mut |line_string| path_line_string(context, line_string));
+    walk_geometry_line_strings(geom, &mut |line_string| {
+        path_line_string(context, line_string)
+    });
 }
 
 pub fn walk_geometry_line_strings<F>(geom: &Geometry, dl: &mut F)
