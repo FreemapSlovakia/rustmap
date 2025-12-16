@@ -352,6 +352,37 @@ static POIS: LazyLock<HashMap<&'static str, Vec<Def>>> = LazyLock::new(|| {
     pois
 });
 
+const RADII: [f64; 4] = [2.0, 4.0, 6.0, 8.0];
+
+const fn offset_at(r: f64, idx: usize) -> (f64, f64) {
+    let d = r * f64::consts::FRAC_1_SQRT_2;
+
+    match idx {
+        0 => (0.0, r),
+        1 => (0.0, -r),
+        2 => (r, 0.0),
+        3 => (-r, 0.0),
+        4 => (d, d),
+        5 => (-d, d),
+        6 => (d, -d),
+        _ => (-d, -d),
+    }
+}
+
+static OFFSETS: LazyLock<[(f64, f64); 33]> = LazyLock::new(|| {
+    let mut offsets = [(0.0, 0.0); 33];
+    let mut idx = 1;
+
+    for &r in RADII.iter() {
+        for pos in 0..8 {
+            offsets[idx] = offset_at(r, pos);
+            idx += 1;
+        }
+    }
+
+    offsets
+});
+
 pub fn render(
     ctx: &Ctx,
     client: &mut Client,
@@ -686,79 +717,61 @@ pub fn render(
 
             let rect = surface.extents().unwrap();
 
-            let x = (point.x() - rect.width() / 2.0).round();
+            let corner_x = point.x() - rect.width() / 2.0;
 
-            let y = (point.y() - rect.height() / 2.0).round();
+            let corner_y = point.y() - rect.height() / 2.0;
 
-            'outer: for (j, r) in vec![2.0, 4.0, 6.0, 8.0].into_iter().enumerate() {
-                for (i, a) in vec![
-                    0.0,
-                    0.0,
-                    f64::consts::TAU / 2.0,
-                    f64::consts::TAU / 4.0,
-                    3.0 * f64::consts::TAU / 4.0,
-                    f64::consts::TAU / 8.0,
-                    7.0 * f64::consts::TAU / 8.0,
-                    3.0 * f64::consts::TAU / 8.0,
-                    5.0 * f64::consts::TAU / 8.0,
-                ]
-                .into_iter()
-                .enumerate()
-                {
-                    if i == 0 && j > 0 {
-                        continue;
-                    }
+            'outer: for &(dx, dy) in OFFSETS.iter() {
+                let corner_x = (corner_x + dx).round();
+                let corner_y = (corner_y + dy).round();
 
-                    let dx = if i == 0 { 0.0 } else { r * f64::sin(a) };
-                    let dy = if i == 0 { 0.0 } else { r * f64::cos(a) };
+                let bbox = Rect::new(
+                    (corner_x, corner_y),
+                    (corner_x + rect.width(), corner_y + rect.height()),
+                );
 
-                    let bbox = Rect::new(
-                        (x + dx, y + dy),
-                        (x + dx + rect.width(), y + dy + rect.height()),
-                    );
-
-                    if collision.collides(&bbox) {
-                        continue;
-                    }
-
-                    let bbox_idx = collision.add(bbox);
-
-                    if def.min_text_zoom <= zoom {
-                        let name: &str = row.get("n");
-
-                        if !name.is_empty() {
-                            let name = replace(name, &def.extra.replacements);
-
-                            to_label.push((
-                                Point::new(point.x() + dx, point.y() + dy),
-                                rect.height() / 2.0,
-                                name.into_owned(),
-                                row.get("ele"),
-                                bbox_idx,
-                                def,
-                            ));
-                        }
-                    }
-
-                    let _span = tracy_client::span!("features::paint_svg");
-
-                    context.set_source_surface(surface, x + dx, y + dy).unwrap();
-
-                    let access: Option<&str> = row.get("access");
-
-                    context
-                        .paint_with_alpha(
-                            if typ != "cave_entrance" && (matches!(access, Some("private" | "no")))
-                            {
-                                0.33
-                            } else {
-                                1.0
-                            },
-                        )
-                        .unwrap();
-
-                    break 'outer;
+                if collision.collides(&bbox) {
+                    continue;
                 }
+
+                let bbox_idx = collision.add(bbox);
+
+                if def.min_text_zoom <= zoom {
+                    let name: &str = row.get("n");
+
+                    if !name.is_empty() {
+                        let name = replace(name, &def.extra.replacements);
+
+                        to_label.push((
+                            Point::new(point.x() + dx, point.y() + dy),
+                            rect.height() / 2.0,
+                            name.into_owned(),
+                            row.get("ele"),
+                            bbox_idx,
+                            def,
+                        ));
+                    }
+                }
+
+                let _span = tracy_client::span!("features::paint_svg");
+
+                context
+                    .set_source_surface(surface, corner_x, corner_y)
+                    .unwrap();
+
+                let access: Option<&str> = row.get("access");
+
+                context
+                    .paint_with_alpha(
+                        if typ != "cave_entrance" && (matches!(access, Some("private" | "no"))) {
+                            0.33
+                        } else {
+                            1.0
+                        },
+                    )
+                    .unwrap();
+
+                break 'outer;
             }
         }
     }
