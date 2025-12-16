@@ -67,9 +67,15 @@ pub fn create_pango_layout_with_attrs(
 
     layout.set_font_description(Some(&font_description));
 
+    // Line spacing should stay visually consistent across retina/non-retina scales.
+    // Derive the current CTM scale from the context and normalize spacing by it.
+    let (sx, sy) = context.user_to_device_distance(1.0, 1.0).unwrap();
+    let scale = ((sx.abs() + sy.abs()) / 2.0).max(0.001);
+    let line_spacing = 0.4 * (2.0 / scale);
+
     layout.set_wrap(WrapMode::Word);
     layout.set_alignment(Alignment::Center);
-    layout.set_line_spacing(0.4);
+    layout.set_line_spacing(line_spacing as f32);
     layout.set_width((max_width * SCALE as f64) as i32);
 
     let text = if *uppercase {
