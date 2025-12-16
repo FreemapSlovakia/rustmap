@@ -34,11 +34,15 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
         context.set_line_width(width);
     };
 
-    let apply_glow_defaults = |width: f64| {
-        context.set_source_color(colors::GLOW);
+    let apply_glow_defaults_a = |width: f64, alpha: f64| {
+        context.set_source_color_a(colors::GLOW, alpha);
         context.set_dash(&[], 0.0);
         context.set_line_join(cairo::LineJoin::Round);
         context.set_line_width(width);
+    };
+
+    let apply_glow_defaults = |width: f64| {
+        apply_glow_defaults_a(width, 1.0);
     };
 
     let highway_width_coef = || 1.5f64.powf(8.6f64.max(zoom as f64) - 8.0);
@@ -102,8 +106,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
                 if row.get::<_, &str>("bicycle") != "designated"
                     && (zoom > 12 || row.get("is_in_route")) =>
             {
-                apply_glow_defaults(1.0);
-                // TODO strokeOpacity="[trail_visibility]"
+                apply_glow_defaults_a(1.0, row.get("trail_visibility"));
                 draw();
             }
             (12.., "highway", _)
@@ -114,8 +117,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
                     || typ == "service" && row.get::<_, &str>("service") != "parking_aisle"
                     || ["escape", "corridor", "bus_guideway"].contains(&typ) =>
             {
-                apply_glow_defaults(ke() * 1.2);
-                // TODO strokeOpacity="[trail_visibility]"
+                apply_glow_defaults_a(ke() * 1.2, row.get("trail_visibility"));
                 draw();
             }
             (14.., _, "raceway") | (14.., "leisure", "track") => {
@@ -124,8 +126,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
             }
             (13.., "highway", "bridleway") => {
                 apply_glow_defaults(1.2);
-                context.set_source_color(colors::BRIDLEWAY2);
-                // strokeOpacity="[trail_visibility]"
+                context.set_source_color_a(colors::BRIDLEWAY2, row.get("trail_visibility"));
                 draw();
             }
             (_, "highway", "motorway" | "trunk") => {
