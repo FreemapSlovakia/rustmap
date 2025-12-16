@@ -35,7 +35,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
             GROUP BY name, type
         )
         SELECT name, type, geometry
-        FROM merged ORDER BY osm_id, type", // TODO order by type - river 1st
+        FROM merged ORDER BY type <> 'river', osm_id",
         if ctx.zoom < 14 {
             "AND type = 'river' "
         } else {
