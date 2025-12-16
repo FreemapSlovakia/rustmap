@@ -804,7 +804,8 @@ pub fn render(
             {
                 let attr_list = AttrList::new();
 
-                let mut scale_attr = AttrSize::new(7 * SCALE);
+                let mut scale_attr =
+                    AttrSize::new((text_options.flo.size * 0.8 * SCALE as f64) as i32);
                 scale_attr.set_start_index(name.len() as u32 + 1);
 
                 attr_list.insert(scale_attr);

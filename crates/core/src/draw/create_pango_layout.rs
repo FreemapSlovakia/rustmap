@@ -1,6 +1,6 @@
 use cairo::Context;
 use pangocairo::{
-    functions::create_layout,
+    functions::{context_set_font_options, context_set_resolution, create_layout},
     pango::{
         Alignment, AttrInt, AttrList, FontDescription, Layout, SCALE, Style, Weight, WrapMode,
     },
@@ -49,6 +49,12 @@ pub fn create_pango_layout_with_attrs(
 
     let layout = create_layout(context);
 
+    let pango_ctx = layout.context();
+
+    // Mapnik sizes assume 72dpi; Pango defaults to 96dpi. Set the layout context
+    // resolution to 72dpi so we don't need the old 0.75 fudge factor.
+    context_set_resolution(&pango_ctx, 72.0);
+
     let mut font_description = FontDescription::new();
 
     font_description.set_family(if *narrow {
@@ -57,13 +63,19 @@ pub fn create_pango_layout_with_attrs(
         "PT Sans,Fira Sans Condensed,Noto Sans"
     });
 
+    let mut fo = cairo::FontOptions::new().unwrap();
+    fo.set_hint_style(cairo::HintStyle::None); // probably best
+    fo.set_hint_metrics(cairo::HintMetrics::Off); // looks slightly nicer with Off
+    // fo.set_antialias(cairo::Antialias::Subpixel); // no difference
+
+    context_set_font_options(&pango_ctx, Some(&fo));
+    pango_ctx.set_round_glyph_positions(false); // nicer with false
+
     font_description.set_weight(*weight);
 
-    font_description.set_size((SCALE as f64 * size * 0.75) as i32);
+    font_description.set_size((SCALE as f64 * size) as i32);
 
     font_description.set_style(*style);
-
-    // font_description.set_variant(Variant::SmallCaps);
 
     layout.set_font_description(Some(&font_description));
 
