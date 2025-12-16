@@ -84,7 +84,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
 
         match (zoom, class, typ) {
             (..=11, _, _) => (),
-            (14.., "highway", "footway" | "pedestrian" | "platform" | "steps") => {
+            (14.., "highway", "footway" | "pedestrian" | "steps")
+            | (14.., "railway", "platform") => {
                 apply_glow_defaults(1.0);
                 draw();
             }
@@ -408,7 +409,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
 
                 draw_bridges_tunnels(1.2 + 1.0);
             }
-            (14.., "highway", "footway" | "pedestrian" | "platform") => {
+            (14.., "highway", "footway" | "pedestrian") | (14.., "railway", "platform") => {
                 apply_highway_defaults(1.0);
                 context.set_dash(&[4.0, 2.0], 0.0);
                 draw();
