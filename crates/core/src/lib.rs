@@ -1,6 +1,6 @@
 use crate::layers::{
-    embankments, feature_lines_maskable, fixmes, geonames, landcover_names, national_park_names,
-    valleys_ridges,
+    blur_edges, embankments, feature_lines_maskable, fixmes, geonames, landcover_names,
+    national_park_names, valleys_ridges,
 };
 use cairo::{Context, Format, ImageSurface, PdfSurface, Surface, SvgSurface};
 use collision::Collision;
@@ -357,6 +357,8 @@ fn draw(
     if zoom < 8 {
         country_names::render(ctx, client);
     }
+
+    blur_edges::render(ctx);
 }
 
 pub const SHADING_AND_CONTOURS: bool = true;

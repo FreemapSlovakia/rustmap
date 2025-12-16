@@ -2,6 +2,7 @@ pub mod aerialway_names;
 pub mod aerialways;
 pub mod aeroways;
 pub mod barrierways;
+pub mod blur_edges;
 pub mod borders;
 pub mod bridge_areas;
 pub mod building_names;
