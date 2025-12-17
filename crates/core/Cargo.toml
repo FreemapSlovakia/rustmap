@@ -26,3 +26,5 @@ postgis = { workspace = true }
 postgres = { workspace = true }
 regex = { workspace = true }
 tracy-client = { workspace = true }
+napi = { workspace = true }
+napi-derive = { workspace = true }

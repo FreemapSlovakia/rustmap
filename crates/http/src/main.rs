@@ -242,5 +242,5 @@ fn parse_tile_path(path: &str) -> Option<RenderRequest> {
 
     let bbox = tile_bounds_to_epsg3857(x, y, zoom, 256);
 
-    Some(RenderRequest::new_single(bbox, zoom, scale, format))
+    Some(RenderRequest::new(bbox, zoom, vec![scale], format))
 }

@@ -52,6 +52,7 @@ const COLORS: [(&str, &str); 9] = [
 ];
 
 bitflags! {
+  #[derive(Debug, Clone, Copy)]
   pub struct RouteTypes: u32 {
       const HIKING = 0b0000_0001;
       const HORSE = 0b0000_0010;

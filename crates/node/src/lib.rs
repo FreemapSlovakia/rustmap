@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use gdal::Dataset;
 use geo::Rect;
-use maprender_core::{RenderRequest, SvgCache, TileFormat, load_hillshading_datasets, render};
+use maprender_core::{
+    RenderRequest, SvgCache, TileFormat, layers::routes::RouteTypes, load_hillshading_datasets,
+    render,
+};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use postgres::NoTls;
@@ -20,16 +23,40 @@ pub struct RenderResult {
     pub images: Vec<Buffer>,
 }
 
+#[napi(object)]
+pub struct RequestExtra {
+    pub shading: Option<bool>,
+    pub contours: Option<bool>,
+    pub hiking_routes: Option<bool>,
+    pub bicycle_routes: Option<bool>,
+    pub ski_routes: Option<bool>,
+    pub horse_routes: Option<bool>,
+}
+
 #[napi]
 impl Renderer {
     #[napi(constructor)]
-    pub fn new(connection_str: String, hillshading_base: String, svg_base: String) -> Result<Self> {
-        let client = postgres::Client::connect(&connection_str, NoTls).map_err(|err| {
+    pub fn new(
+        connection_str: String,
+        hillshading_base: String,
+        svg_base: String,
+        db_priority: Option<u8>,
+    ) -> Result<Self> {
+        let mut client = postgres::Client::connect(&connection_str, NoTls).map_err(|err| {
             Error::new(
                 Status::GenericFailure,
                 format!("failed to open postgres connection: {}", err),
             )
         })?;
+
+        if let Some(db_priority) = db_priority {
+            client
+                .query(
+                    &format!("SELECT set_backend_priority(pg_backend_pid(), {db_priority})"),
+                    &[],
+                )
+                .unwrap();
+        };
 
         Ok(Self {
             svg_cache: SvgCache::new(svg_base),
@@ -44,25 +71,35 @@ impl Renderer {
         bbox: (f64, f64, f64, f64),
         zoom: u32,
         scales: Vec<f64>,
-        format: Option<String>,
+        format: TileFormat,
+        extra: Option<RequestExtra>,
     ) -> Result<RenderResult> {
         let bbox = Rect::new((bbox.0, bbox.1), (bbox.2, bbox.3));
 
-        let format = match format.as_deref() {
-            Some("svg") => TileFormat::Svg,
-            Some("pdf") => TileFormat::Pdf,
-            Some("jpg" | "jpeg") => TileFormat::Jpeg,
-            Some("png") | None => TileFormat::Png,
-            Some(other) => {
-                return Err(Error::new(
-                    Status::InvalidArg,
-                    format!("unsupported format {}", other),
-                ));
+        let mut request = RenderRequest::new(bbox, zoom, scales, format);
+
+        if let Some(extra) = extra {
+            request.shading = extra.shading.unwrap_or(true);
+            request.contours = extra.contours.unwrap_or(true);
+
+            if extra.hiking_routes.is_some()
+                && extra.bicycle_routes.is_some()
+                && extra.ski_routes.is_some()
+                && extra.horse_routes.is_some()
+            {
+                let mut route_types = RouteTypes::empty();
+
+                route_types.set(RouteTypes::HIKING, extra.hiking_routes.unwrap_or(true));
+                route_types.set(RouteTypes::BICYCLE, extra.bicycle_routes.unwrap_or(true));
+                route_types.set(RouteTypes::SKI, extra.ski_routes.unwrap_or(true));
+                route_types.set(RouteTypes::HORSE, extra.horse_routes.unwrap_or(true));
+
+                request.route_types = route_types;
             }
-        };
+        }
 
         let rendered = render(
-            &RenderRequest::new(bbox, zoom, scales, format),
+            &request,
             &mut self.client,
             &mut self.svg_cache,
             &mut self.shading_data,

@@ -1,3 +1,4 @@
+use crate::layers::routes::RouteTypes;
 use crate::layers::{
     blur_edges, embankments, feature_lines_maskable, fixmes, geonames, landcover_names,
     national_park_names, valleys_ridges,
@@ -20,6 +21,7 @@ use layers::{
     shading_and_contours, solar_power_plants, trees, water_area_names, water_areas,
     water_line_names, water_lines,
 };
+use napi_derive::napi;
 use projectable::TileProjector;
 use std::collections::HashMap;
 use xyz::bbox_size_in_pixels;
@@ -453,6 +455,7 @@ fn paint_recording_surface(
 }
 
 #[derive(Debug, Clone, Copy)]
+#[napi(string_enum)]
 pub enum TileFormat {
     Png,
     Jpeg,
@@ -466,6 +469,9 @@ pub struct RenderRequest {
     pub zoom: u32,
     pub scales: Vec<f64>,
     pub format: TileFormat,
+    pub shading: bool,
+    pub contours: bool,
+    pub route_types: RouteTypes,
 }
 
 impl RenderRequest {
@@ -475,11 +481,10 @@ impl RenderRequest {
             zoom,
             scales,
             format,
+            shading: true,
+            contours: true,
+            route_types: RouteTypes::all(),
         }
-    }
-
-    pub fn new_single(bbox: Rect<f64>, zoom: u32, scale: f64, format: TileFormat) -> Self {
-        Self::new(bbox, zoom, vec![scale], format)
     }
 }
 

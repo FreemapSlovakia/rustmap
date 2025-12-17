@@ -26,7 +26,8 @@
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {
-    "@napi-rs/cli": "^3.5.0"
+    "@napi-rs/cli": "^3.5.0",
+    "@types/node": "^25.0.3"
   },
   "napi": {
     "binaryName": "maprender_node"
