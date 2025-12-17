@@ -1,7 +1,7 @@
 use clap::Parser;
 use dotenvy::dotenv;
 use maprender_core::xyz::tile_bounds_to_epsg3857;
-use maprender_core::{RenderRequest, SvgCache, Format, load_hillshading_datasets, render};
+use maprender_core::{ImageFormat, RenderRequest, SvgCache, load_hillshading_datasets, render};
 use oxhttp::{
     Server,
     model::{Body, Request, Response, StatusCode},
@@ -234,10 +234,10 @@ fn parse_tile_path(path: &str) -> Option<RenderRequest> {
     let ext = captures.name("ext").map(|m| m.as_str()).unwrap_or("png");
 
     let format = match ext {
-        "svg" => Format::Svg,
-        "pdf" => Format::Pdf,
-        "jpg" | "jpeg" => Format::Jpeg,
-        _ => Format::Png,
+        "svg" => ImageFormat::Svg,
+        "pdf" => ImageFormat::Pdf,
+        "jpg" | "jpeg" => ImageFormat::Jpeg,
+        _ => ImageFormat::Png,
     };
 
     let bbox = tile_bounds_to_epsg3857(x, y, zoom, 256);

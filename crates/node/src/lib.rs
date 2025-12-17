@@ -3,7 +3,8 @@ use std::collections::HashMap;
 use gdal::Dataset;
 use geo::Rect;
 use maprender_core::{
-    Format, RenderRequest, SvgCache, layers::routes::RouteTypes, load_hillshading_datasets, render,
+    ImageFormat, RenderRequest, SvgCache, layers::routes::RouteTypes, load_hillshading_datasets,
+    render,
 };
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
@@ -70,7 +71,7 @@ impl Renderer {
         bbox: (f64, f64, f64, f64),
         zoom: u32,
         scales: Vec<f64>,
-        format: Format,
+        format: ImageFormat,
         extra: Option<RequestExtra>,
     ) -> Result<RenderResult> {
         let bbox = Rect::new((bbox.0, bbox.1), (bbox.2, bbox.3));
