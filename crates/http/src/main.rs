@@ -1,7 +1,7 @@
 use clap::Parser;
 use dotenvy::dotenv;
 use maprender_core::xyz::tile_bounds_to_epsg3857;
-use maprender_core::{RenderRequest, SvgCache, TileFormat, load_hillshading_datasets, render_tile};
+use maprender_core::{RenderRequest, SvgCache, TileFormat, load_hillshading_datasets, render};
 use oxhttp::{
     Server,
     model::{Body, Request, Response, StatusCode},
@@ -63,7 +63,7 @@ struct Cli {
 
 struct RenderTask {
     request: RenderRequest,
-    resp_tx: mpsc::Sender<Result<maprender_core::RenderedTile, String>>,
+    resp_tx: mpsc::Sender<Result<maprender_core::RenderedMap, String>>,
 }
 
 struct RenderWorkerPool {
@@ -106,7 +106,7 @@ impl RenderWorkerPool {
                         };
 
                         let result = match pool.get() {
-                            Ok(mut client) => Ok(render_tile(
+                            Ok(mut client) => Ok(render(
                                 &request,
                                 &mut client,
                                 &mut svg_cache,
@@ -125,7 +125,7 @@ impl RenderWorkerPool {
         Self { tasks, cv }
     }
 
-    fn render(&self, request: RenderRequest) -> Result<maprender_core::RenderedTile, String> {
+    fn render(&self, request: RenderRequest) -> Result<maprender_core::RenderedMap, String> {
         let (resp_tx, resp_rx) = mpsc::channel();
 
         {
@@ -190,11 +190,19 @@ fn render_response(request: &Request<Body>, worker_pool: Arc<RenderWorkerPool>) 
         }
     };
 
+    let content_type = rendered.content_type;
+    let Some(tile) = rendered.images.into_iter().next() else {
+        return Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .body(Body::from("empty render result"))
+            .expect("body should be built");
+    };
+
     Response::builder()
         .status(StatusCode::OK)
-        .header("Content-Type", rendered.content_type)
+        .header("Content-Type", content_type)
         .header("Access-Control-Allow-Origin", "*")
-        .body(Body::from(rendered.buffer))
+        .body(Body::from(tile))
         .expect("body should be built")
 }
 
@@ -234,5 +242,5 @@ fn parse_tile_path(path: &str) -> Option<RenderRequest> {
 
     let bbox = tile_bounds_to_epsg3857(x, y, zoom, 256);
 
-    Some(RenderRequest::new(bbox, zoom, scale, format))
+    Some(RenderRequest::new_single(bbox, zoom, scale, format))
 }

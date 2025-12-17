@@ -3,7 +3,7 @@ use cairo::{Format, ImageSurface, Operator};
 use geo::{BoundingRect, Geometry, Intersects, Rect, wkt};
 use image::{GrayImage, imageops};
 
-const BLUR_RADIUS_PX: f64 = 20.0;
+const BLUR_RADIUS_PX: f64 = 10.0;
 
 pub fn render(ctx: &Ctx) {
     let _span = tracy_client::span!("blur_edges::render");
@@ -15,9 +15,9 @@ pub fn render(ctx: &Ctx) {
         return;
     }
 
-    let width = (ctx.size.width as f64 * ctx.scale) as i32;
-    let height = (ctx.size.height as f64 * ctx.scale) as i32;
-    let blur_sigma_px = BLUR_RADIUS_PX * ctx.scale;
+    let width = (ctx.size.width as f64) as i32;
+    let height = (ctx.size.height as f64) as i32;
+    let blur_sigma_px = BLUR_RADIUS_PX;
     let pad = (blur_sigma_px * 3.0).ceil() as i32;
 
     if width <= 0 || height <= 0 {
@@ -35,7 +35,6 @@ pub fn render(ctx: &Ctx) {
         let mask_ctx = cairo::Context::new(&mask_surface).unwrap();
 
         mask_ctx.translate(pad as f64, pad as f64);
-        mask_ctx.scale(ctx.scale, ctx.scale);
         path_geometry(&mask_ctx, &mask_geometry);
         mask_ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0);
         mask_ctx.fill().unwrap();
@@ -104,7 +103,7 @@ fn tile_intersects_mask(mask: &Geometry, ctx: &Ctx) -> bool {
         return false;
     };
 
-    let blur_radius_m = BLUR_RADIUS_PX as f64 * ctx.meters_per_pixel() * ctx.scale * 3.0;
+    let blur_radius_m = BLUR_RADIUS_PX as f64 * ctx.meters_per_pixel() * 3.0;
 
     bbox = Rect::new(
         (bbox.min().x - blur_radius_m, bbox.min().y - blur_radius_m),

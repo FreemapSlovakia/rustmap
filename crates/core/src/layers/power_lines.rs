@@ -53,8 +53,6 @@ pub fn render_lines(ctx: &Ctx, client: &mut Client) {
 pub fn render_towers_poles(ctx: &Ctx, client: &mut Client) {
     let _span = tracy_client::span!("power_lines::render_towers_poles");
 
-    let scale = ctx.scale;
-
     let sql = format!(
         "SELECT geometry, type
         FROM osm_features
@@ -79,12 +77,8 @@ pub fn render_towers_poles(ctx: &Ctx, client: &mut Client) {
 
         let p = geometry_point(&row).project_to_tile(&ctx.tile_projector);
 
-        context.rectangle(
-            ((p.x() - 1.5) * scale).round() / scale,
-            ((p.y() - 1.5) * scale).round() / scale,
-            3.0,
-            3.0,
-        );
+        // TODO align by scale
+        context.rectangle((p.x() - 1.5).round(), (p.y() - 1.5).round(), 3.0, 3.0);
 
         context.fill().unwrap();
     }

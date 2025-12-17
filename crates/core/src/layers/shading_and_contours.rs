@@ -58,6 +58,7 @@ pub fn render(
     hillshading_datasets: &mut HashMap<String, Dataset>,
     shading: bool,
     contours: bool,
+    hillshade_scale: f64,
 ) {
     let _span = tracy_client::span!("shading_and_contours::render");
 
@@ -89,7 +90,13 @@ pub fn render(
     for (country, ccs) in config {
         context.push_group(); // country-contours-and-shading
 
-        hillshading::render(ctx, &format!("{}-mask", country), 1.0, hillshading_datasets);
+        hillshading::render(
+            ctx,
+            &format!("{}-mask", country),
+            1.0,
+            hillshading_datasets,
+            hillshade_scale,
+        );
 
         context.push_group(); // contours-and-shading
 
@@ -100,7 +107,15 @@ pub fn render(
             context.paint_with_alpha(0.33).unwrap();
         }
 
-        hillshading::render(ctx, country, fade_alpha, hillshading_datasets);
+        if shading {
+        hillshading::render(
+            ctx,
+            country,
+            fade_alpha,
+            hillshading_datasets,
+            hillshade_scale,
+        );
+        }
 
         context.pop_group_to_source().unwrap(); // contours-and-shading
         context.set_operator(cairo::Operator::In);
@@ -109,7 +124,13 @@ pub fn render(
         if shading {
             for cc in ccs {
                 context.set_operator(cairo::Operator::DestOut);
-                hillshading::render(ctx, &format!("{}-mask", cc), 1.0, hillshading_datasets);
+                hillshading::render(
+                    ctx,
+                    &format!("{}-mask", cc),
+                    1.0,
+                    hillshading_datasets,
+                    hillshade_scale,
+                );
             }
         }
 
@@ -121,7 +142,13 @@ pub fn render(
         context.push_group(); // mask
 
         for country in ["it", "at", "ch", "si", "pl", "sk", "cz", "fr"] {
-            hillshading::render(ctx, &format!("{}-mask", country), 1.0, hillshading_datasets);
+            hillshading::render(
+                ctx,
+                &format!("{}-mask", country),
+                1.0,
+                hillshading_datasets,
+                hillshade_scale,
+            );
         }
 
         context.push_group(); // fallback
@@ -138,7 +165,7 @@ pub fn render(
         }
 
         if shading {
-            hillshading::render(ctx, "_", fade_alpha, hillshading_datasets);
+            hillshading::render(ctx, "_", fade_alpha, hillshading_datasets, hillshade_scale);
         }
 
         context.pop_group_to_source().unwrap(); // fallback

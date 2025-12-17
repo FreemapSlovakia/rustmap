@@ -17,6 +17,7 @@ pub fn render(
     svg_cache: &mut SvgCache,
     hillshading_datasets: &mut HashMap<String, Dataset>,
     shading: bool,
+    hillshade_scale: f64,
 ) {
     let _span = tracy_client::span!("feature_lines_maskable::render");
 
@@ -83,7 +84,13 @@ pub fn render(
         for cc in [
             "pl", "sk", "cz", "at", /*"ch", "it" (CH, IT are not so detailed) */
         ] {
-            hillshading::render(ctx, &format!("{cc}-mask"), 1.0, hillshading_datasets);
+            hillshading::render(
+                ctx,
+                &format!("{cc}-mask"),
+                1.0,
+                hillshading_datasets,
+                hillshade_scale,
+            );
         }
     }
 

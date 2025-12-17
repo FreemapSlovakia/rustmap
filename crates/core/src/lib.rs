@@ -2,7 +2,10 @@ use crate::layers::{
     blur_edges, embankments, feature_lines_maskable, fixmes, geonames, landcover_names,
     national_park_names, valleys_ridges,
 };
-use cairo::{Context, Format, ImageSurface, PdfSurface, Surface, SvgSurface};
+use cairo::{
+    Content, Context, Format, ImageSurface, PdfSurface, RecordingSurface, Rectangle, Surface,
+    SvgSurface,
+};
 use collision::Collision;
 use ctx::Ctx;
 use gdal::Dataset;
@@ -37,133 +40,196 @@ pub use svg_cache::SvgCache;
 
 pub struct Renderer;
 
-pub fn render_tile(
+pub fn render(
     request: &RenderRequest,
     client: &mut postgres::Client,
     svg_cache: &mut SvgCache,
     hillshading_datasets: &mut HashMap<String, Dataset>,
-) -> RenderedTile {
+) -> RenderedMap {
     let _span = tracy_client::span!("render_tile");
+
+    let content_type = match request.format {
+        TileFormat::Svg => "image/svg+xml",
+        TileFormat::Pdf => "application/pdf",
+        TileFormat::Jpeg => "image/jpeg",
+        TileFormat::Png => "image/png",
+    };
+
+    if request.scales.is_empty() {
+        return RenderedMap {
+            content_type,
+            images: Vec::new(),
+        };
+    }
 
     let bbox = request.bbox;
 
     let size = bbox_size_in_pixels(bbox, request.zoom as f64);
 
-    let mut draw = |surface: &Surface| {
+    let scales = request.scales.clone();
+    let max_scale = scales
+        .iter()
+        .copied()
+        .fold(1.0_f64, |acc, scale| acc.max(scale));
+
+    let recording_surface = RecordingSurface::create(
+        Content::ColorAlpha,
+        Some(Rectangle::new(
+            0.0,
+            0.0,
+            size.width as f64,
+            size.height as f64,
+        )),
+    )
+    .unwrap();
+
+    {
         let _span = tracy_client::span!("render_tile::draw");
 
+        let hillshade_scale = max_scale.max(1.0);
+
         draw(
-            surface,
+            &recording_surface,
             request,
             client,
             bbox,
             size,
             svg_cache,
             hillshading_datasets,
+            hillshade_scale,
         );
-    };
-
-    let w = size.width as f64 * request.scale;
-    let h = size.height as f64 * request.scale;
+    }
 
     match request.format {
         TileFormat::Svg => {
-            let surface = SvgSurface::for_stream(w, h, Vec::new()).unwrap();
+            let mut images = Vec::with_capacity(scales.len());
 
-            draw(&surface);
+            for scale in scales {
+                let w = size.width as f64 * scale;
+                let h = size.height as f64 * scale;
+                let surface = SvgSurface::for_stream(w, h, Vec::new()).unwrap();
 
-            let buffer = *surface
-                .finish_output_stream()
-                .unwrap()
-                .downcast::<Vec<u8>>()
-                .unwrap();
+                paint_recording_surface(&recording_surface, &surface, scale);
 
-            RenderedTile {
-                content_type: "image/svg+xml",
-                buffer,
+                let buffer = *surface
+                    .finish_output_stream()
+                    .unwrap()
+                    .downcast::<Vec<u8>>()
+                    .unwrap();
+
+                images.push(buffer);
+            }
+
+            RenderedMap {
+                content_type,
+                images,
             }
         }
         TileFormat::Pdf => {
-            let surface = PdfSurface::for_stream(w, h, Vec::new()).unwrap();
+            let mut images = Vec::with_capacity(scales.len());
 
-            draw(&surface);
+            for scale in scales {
+                let w = size.width as f64 * scale;
+                let h = size.height as f64 * scale;
+                let surface = PdfSurface::for_stream(w, h, Vec::new()).unwrap();
 
-            let buffer = *surface
-                .finish_output_stream()
-                .unwrap()
-                .downcast::<Vec<u8>>()
-                .unwrap();
+                paint_recording_surface(&recording_surface, &surface, scale);
 
-            RenderedTile {
-                content_type: "application/pdf",
-                buffer,
+                let buffer = *surface
+                    .finish_output_stream()
+                    .unwrap()
+                    .downcast::<Vec<u8>>()
+                    .unwrap();
+
+                images.push(buffer);
+            }
+
+            RenderedMap {
+                content_type,
+                images,
             }
         }
         TileFormat::Png => {
-            let mut buffer = Vec::new();
+            let mut images = Vec::with_capacity(scales.len());
 
-            let surface = ImageSurface::create(Format::ARgb32, w as i32, h as i32).unwrap();
+            for scale in scales {
+                let w = size.width as f64 * scale;
+                let h = size.height as f64 * scale;
+                let mut buffer = Vec::new();
 
-            draw(&surface);
+                let surface = ImageSurface::create(Format::ARgb32, w as i32, h as i32).unwrap();
 
-            let _span = tracy_client::span!("render_tile::write_to_png");
+                paint_recording_surface(&recording_surface, &surface, scale);
 
-            surface.write_to_png(&mut buffer).unwrap();
+                let _span = tracy_client::span!("render_tile::write_to_png");
 
-            RenderedTile {
-                content_type: "image/png",
-                buffer,
+                surface.write_to_png(&mut buffer).unwrap();
+
+                images.push(buffer);
+            }
+
+            RenderedMap {
+                content_type,
+                images,
             }
         }
         TileFormat::Jpeg => {
-            let mut surface = ImageSurface::create(Format::ARgb32, w as i32, h as i32).unwrap();
+            let mut images = Vec::with_capacity(scales.len());
 
-            draw(&surface);
+            for scale in scales {
+                let w = size.width as f64 * scale;
+                let h = size.height as f64 * scale;
+                let mut surface = ImageSurface::create(Format::ARgb32, w as i32, h as i32).unwrap();
 
-            let width = surface.width() as u32;
-            let height = surface.height() as u32;
-            let stride = surface.stride() as usize;
-            let data = surface.data().unwrap();
+                paint_recording_surface(&recording_surface, &surface, scale);
 
-            let mut rgb_data = Vec::with_capacity((width * height * 3) as usize);
+                let width = surface.width() as u32;
+                let height = surface.height() as u32;
+                let stride = surface.stride() as usize;
+                let data = surface.data().unwrap();
 
-            for y in 0..height as usize {
-                let row_start = y * stride;
-                let row_end = row_start + width as usize * 4;
-                let row = &data[row_start..row_end];
+                let mut rgb_data = Vec::with_capacity((width * height * 3) as usize);
 
-                for chunk in row.chunks(4) {
-                    let b = chunk[0] as u32;
-                    let g = chunk[1] as u32;
-                    let r = chunk[2] as u32;
-                    let a = chunk[3] as u32;
+                for y in 0..height as usize {
+                    let row_start = y * stride;
+                    let row_end = row_start + width as usize * 4;
+                    let row = &data[row_start..row_end];
 
-                    if a == 0 {
-                        rgb_data.extend_from_slice(&[0, 0, 0]);
-                        continue;
+                    for chunk in row.chunks(4) {
+                        let b = chunk[0] as u32;
+                        let g = chunk[1] as u32;
+                        let r = chunk[2] as u32;
+                        let a = chunk[3] as u32;
+
+                        if a == 0 {
+                            rgb_data.extend_from_slice(&[0, 0, 0]);
+                            continue;
+                        }
+
+                        let r = ((r * 255 + a / 2) / a).min(255) as u8;
+                        let g = ((g * 255 + a / 2) / a).min(255) as u8;
+                        let b = ((b * 255 + a / 2) / a).min(255) as u8;
+
+                        rgb_data.extend_from_slice(&[r, g, b]);
                     }
-
-                    let r = ((r * 255 + a / 2) / a).min(255) as u8;
-                    let g = ((g * 255 + a / 2) / a).min(255) as u8;
-                    let b = ((b * 255 + a / 2) / a).min(255) as u8;
-
-                    rgb_data.extend_from_slice(&[r, g, b]);
                 }
+
+                let mut buffer = Vec::new();
+
+                {
+                    let encoder = JpegEncoder::new_with_quality(&mut buffer, 90);
+
+                    encoder
+                        .write_image(&rgb_data, width, height, ExtendedColorType::Rgb8)
+                        .unwrap();
+                }
+
+                images.push(buffer);
             }
 
-            let mut buffer = Vec::new();
-
-            {
-                let encoder = JpegEncoder::new_with_quality(&mut buffer, 90);
-
-                encoder
-                    .write_image(&rgb_data, width, height, ExtendedColorType::Rgb8)
-                    .unwrap();
-
-                RenderedTile {
-                    content_type: "image/jpeg",
-                    buffer,
-                }
+            RenderedMap {
+                content_type,
+                images,
             }
         }
     }
@@ -177,6 +243,7 @@ fn draw(
     size: crate::size::Size<u32>,
     svg_cache: &mut SvgCache,
     hillshading_datasets: &mut HashMap<String, Dataset>,
+    hillshade_scale: f64,
 ) {
     let shading = true; // TODO to args
     let contours = true; // TODO to args
@@ -192,11 +259,8 @@ fn draw(
         bbox,
         size,
         zoom,
-        scale: request.scale,
         tile_projector: TileProjector::new(bbox, size),
     };
-
-    context.scale(request.scale, request.scale);
 
     sea::render(ctx, client);
 
@@ -227,7 +291,14 @@ fn draw(
     }
 
     if zoom >= 13 {
-        feature_lines_maskable::render(ctx, client, svg_cache, hillshading_datasets, shading);
+        feature_lines_maskable::render(
+            ctx,
+            client,
+            svg_cache,
+            hillshading_datasets,
+            shading,
+            hillshade_scale,
+        );
     }
 
     if zoom >= 16 {
@@ -242,8 +313,15 @@ fn draw(
         road_access_restrictions::render(ctx, client, svg_cache);
     }
 
-    if SHADING_AND_CONTOURS {
-        shading_and_contours::render(ctx, client, hillshading_datasets, shading, contours);
+    if shading || contours {
+        shading_and_contours::render(
+            ctx,
+            client,
+            hillshading_datasets,
+            shading,
+            contours,
+            hillshade_scale,
+        );
     }
 
     if zoom >= 11 {
@@ -361,7 +439,18 @@ fn draw(
     blur_edges::render(ctx);
 }
 
-pub const SHADING_AND_CONTOURS: bool = true;
+fn paint_recording_surface(
+    recording_surface: &RecordingSurface,
+    target_surface: &Surface,
+    scale: f64,
+) {
+    let context = Context::new(target_surface).unwrap();
+    context.scale(scale, scale);
+    context
+        .set_source_surface(recording_surface, 0.0, 0.0)
+        .unwrap();
+    context.paint().unwrap();
+}
 
 #[derive(Debug, Clone, Copy)]
 pub enum TileFormat {
@@ -371,27 +460,31 @@ pub enum TileFormat {
     Svg,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct RenderRequest {
     pub bbox: Rect<f64>,
     pub zoom: u32,
-    pub scale: f64,
+    pub scales: Vec<f64>,
     pub format: TileFormat,
 }
 
 impl RenderRequest {
-    pub const fn new(bbox: Rect<f64>, zoom: u32, scale: f64, format: TileFormat) -> Self {
+    pub fn new(bbox: Rect<f64>, zoom: u32, scales: Vec<f64>, format: TileFormat) -> Self {
         Self {
             bbox,
             zoom,
-            scale,
+            scales,
             format,
         }
+    }
+
+    pub fn new_single(bbox: Rect<f64>, zoom: u32, scale: f64, format: TileFormat) -> Self {
+        Self::new(bbox, zoom, vec![scale], format)
     }
 }
 
 #[derive(Debug)]
-pub struct RenderedTile {
+pub struct RenderedMap {
     pub content_type: &'static str,
-    pub buffer: Vec<u8>,
+    pub images: Vec<Vec<u8>>,
 }

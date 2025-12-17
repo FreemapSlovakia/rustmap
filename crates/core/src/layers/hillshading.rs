@@ -11,7 +11,7 @@ fn read_rgba_from_gdal(
     gt_x_width: f64,
     gt_y_off: f64,
     gt_y_width: f64,
-    scale: f64,
+    raster_scale: f64,
 ) -> ImageSurface {
     let bbox = ctx.bbox;
     let size = ctx.size;
@@ -33,9 +33,9 @@ fn read_rgba_from_gdal(
     let source_width = (pixel_max_x - pixel_min_x) as usize;
     let source_height = (pixel_max_y - pixel_min_y) as usize;
 
-    let w_scaled = (size.width as f64 * scale) as usize;
+    let w_scaled = (size.width as f64 * raster_scale) as usize;
 
-    let h_scaled = (size.height as f64 * scale) as usize;
+    let h_scaled = (size.height as f64 * raster_scale) as usize;
 
     let band_size = w_scaled * h_scaled;
 
@@ -142,14 +142,20 @@ fn read_rgba_from_gdal(
     ImageSurface::create_for_data(
         rgba_data.to_vec(),
         Format::ARgb32,
-        (size.width as f64 * scale) as i32,
-        (size.height as f64 * scale) as i32,
-        (size.width as f64 * scale) as i32 * 4,
+        (size.width as f64 * raster_scale) as i32,
+        (size.height as f64 * raster_scale) as i32,
+        (size.width as f64 * raster_scale) as i32 * 4,
     )
     .unwrap()
 }
 
-pub fn render(ctx: &Ctx, country: &str, alpha: f64, shading_data: &mut HashMap<String, Dataset>) {
+pub fn render(
+    ctx: &Ctx,
+    country: &str,
+    alpha: f64,
+    shading_data: &mut HashMap<String, Dataset>,
+    raster_scale: f64,
+) {
     let hillshading_dataset = shading_data
         .get(country)
         .unwrap_or_else(|| panic!("no such dataset {country}"));
@@ -164,7 +170,7 @@ pub fn render(ctx: &Ctx, country: &str, alpha: f64, shading_data: &mut HashMap<S
         gt_x_width,
         gt_y_off,
         gt_y_width,
-        ctx.scale,
+        raster_scale,
     );
 
     let context = ctx.context;
@@ -172,6 +178,9 @@ pub fn render(ctx: &Ctx, country: &str, alpha: f64, shading_data: &mut HashMap<S
     context.save().expect("context saved");
 
     context.identity_matrix();
+    if raster_scale != 1.0 {
+        context.scale(1.0 / raster_scale, 1.0 / raster_scale);
+    }
 
     context.set_source_surface(surface, 0.0, 0.0).unwrap();
 

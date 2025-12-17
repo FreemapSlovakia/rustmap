@@ -28,7 +28,6 @@ pub struct Ctx<'a> {
     pub bbox: Rect<f64>,
     pub size: Size<u32>,
     pub zoom: u32,
-    pub scale: f64,
     pub tile_projector: TileProjector,
 }
 

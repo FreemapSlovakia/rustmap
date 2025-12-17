@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use geo::Rect;
 use gdal::Dataset;
-use maprender_core::{RenderRequest, SvgCache, TileFormat, load_hillshading_datasets, render_tile};
+use geo::Rect;
+use maprender_core::{RenderRequest, SvgCache, TileFormat, load_hillshading_datasets, render};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use postgres::NoTls;
@@ -16,8 +16,8 @@ pub struct Renderer {
 
 #[napi(object)]
 pub struct RenderResult {
-    pub data: Buffer,
     pub content_type: String,
+    pub images: Vec<Buffer>,
 }
 
 #[napi]
@@ -43,45 +43,34 @@ impl Renderer {
         &mut self,
         bbox: (f64, f64, f64, f64),
         zoom: u32,
-        scale: Option<f64>,
+        scales: Vec<f64>,
         format: Option<String>,
     ) -> Result<RenderResult> {
-        let request = build_request(bbox, zoom, scale, format)?;
+        let bbox = Rect::new((bbox.0, bbox.1), (bbox.2, bbox.3));
 
-        let rendered = render_tile(
-            &request,
+        let format = match format.as_deref() {
+            Some("svg") => TileFormat::Svg,
+            Some("pdf") => TileFormat::Pdf,
+            Some("jpg" | "jpeg") => TileFormat::Jpeg,
+            Some("png") | None => TileFormat::Png,
+            Some(other) => {
+                return Err(Error::new(
+                    Status::InvalidArg,
+                    format!("unsupported format {}", other),
+                ));
+            }
+        };
+
+        let rendered = render(
+            &RenderRequest::new(bbox, zoom, scales, format),
             &mut self.client,
             &mut self.svg_cache,
             &mut self.shading_data,
         );
 
         Ok(RenderResult {
-            data: Buffer::from(rendered.buffer),
             content_type: rendered.content_type.to_string(),
+            images: rendered.images.into_iter().map(Buffer::from).collect(),
         })
     }
-}
-
-fn build_request(
-    bbox: (f64, f64, f64, f64),
-    zoom: u32,
-    scale: Option<f64>,
-    format: Option<String>,
-) -> Result<RenderRequest> {
-    let bbox = Rect::new((bbox.0, bbox.1), (bbox.2, bbox.3));
-
-    let format = match format.as_deref() {
-        Some("svg") => TileFormat::Svg,
-        Some("pdf") => TileFormat::Pdf,
-        Some("jpg" | "jpeg") => TileFormat::Jpeg,
-        Some("png") | None => TileFormat::Png,
-        Some(other) => {
-            return Err(Error::new(
-                Status::InvalidArg,
-                format!("unsupported format {}", other),
-            ));
-        }
-    };
-
-    Ok(RenderRequest::new(bbox, zoom, scale.unwrap_or(1.0), format))
 }
