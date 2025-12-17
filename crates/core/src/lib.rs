@@ -51,10 +51,10 @@ pub fn render(
     let _span = tracy_client::span!("render_tile");
 
     let content_type = match request.format {
-        TileFormat::Svg => "image/svg+xml",
-        TileFormat::Pdf => "application/pdf",
-        TileFormat::Jpeg => "image/jpeg",
-        TileFormat::Png => "image/png",
+        ImageFormat::Svg => "image/svg+xml",
+        ImageFormat::Pdf => "application/pdf",
+        ImageFormat::Jpeg => "image/jpeg",
+        ImageFormat::Png => "image/png",
     };
 
     if request.scales.is_empty() {
@@ -103,7 +103,7 @@ pub fn render(
     }
 
     match request.format {
-        TileFormat::Svg => {
+        ImageFormat::Svg => {
             let mut images = Vec::with_capacity(scales.len());
 
             for scale in scales {
@@ -127,7 +127,7 @@ pub fn render(
                 images,
             }
         }
-        TileFormat::Pdf => {
+        ImageFormat::Pdf => {
             let mut images = Vec::with_capacity(scales.len());
 
             for scale in scales {
@@ -151,7 +151,7 @@ pub fn render(
                 images,
             }
         }
-        TileFormat::Png => {
+        ImageFormat::Png => {
             let mut images = Vec::with_capacity(scales.len());
 
             for scale in scales {
@@ -175,7 +175,7 @@ pub fn render(
                 images,
             }
         }
-        TileFormat::Jpeg => {
+        ImageFormat::Jpeg => {
             let mut images = Vec::with_capacity(scales.len());
 
             for scale in scales {
@@ -456,7 +456,7 @@ fn paint_recording_surface(
 
 #[derive(Debug, Clone, Copy)]
 #[napi(string_enum)]
-pub enum TileFormat {
+pub enum ImageFormat {
     Png,
     Jpeg,
     Pdf,
@@ -468,14 +468,14 @@ pub struct RenderRequest {
     pub bbox: Rect<f64>,
     pub zoom: u32,
     pub scales: Vec<f64>,
-    pub format: TileFormat,
+    pub format: ImageFormat,
     pub shading: bool,
     pub contours: bool,
     pub route_types: RouteTypes,
 }
 
 impl RenderRequest {
-    pub fn new(bbox: Rect<f64>, zoom: u32, scales: Vec<f64>, format: TileFormat) -> Self {
+    pub fn new(bbox: Rect<f64>, zoom: u32, scales: Vec<f64>, format: ImageFormat) -> Self {
         Self {
             bbox,
             zoom,
