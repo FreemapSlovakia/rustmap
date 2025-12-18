@@ -18,7 +18,7 @@
     "koa": "3.1.1",
     "koa-body": "7.0.1",
     "koa-send": "5.0.1",
-    "maprender-node": "link:../../.local/share/pnpm/global/5/node_modules/maprender-node",
+    "maprender-node": "../rust/crates/node",
     "promisify-child-process": "4.1.2"
   },
   "devDependencies": {

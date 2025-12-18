@@ -4,9 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  maprender-node: link:../../.local/share/pnpm/global/5/node_modules/maprender-node
-
 importers:
 
   .:
@@ -45,8 +42,8 @@ importers:
         specifier: 5.0.1
         version: 5.0.1
       maprender-node:
-        specifier: link:../../.local/share/pnpm/global/5/node_modules/maprender-node
-        version: link:../../.local/share/pnpm/global/5/node_modules/maprender-node
+        specifier: ../rust/crates/node
+        version: link:../rust/crates/node
       promisify-child-process:
         specifier: 4.1.2
         version: 4.1.2
