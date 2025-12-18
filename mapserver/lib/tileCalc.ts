@@ -3,9 +3,9 @@ import {
   bboxPolygon,
   booleanContains,
   booleanDisjoint,
-} from '@turf/turf';
-import { Tile } from './types.js';
-import { GeometryObject, Polygon } from 'geojson';
+} from "@turf/turf";
+import { Tile } from "./types.js";
+import { GeometryObject, Polygon } from "geojson";
 
 export function long2tile(lon: number, zoom: number): number {
   return Math.floor(((lon + 180) / 360) * Math.pow(2, zoom));
@@ -15,11 +15,11 @@ export function lat2tile(lat: number, zoom: number): number {
   return Math.floor(
     ((1 -
       Math.log(
-        Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180),
+        Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)
       ) /
         Math.PI) /
       2) *
-      Math.pow(2, zoom),
+      Math.pow(2, zoom)
   );
 }
 
@@ -40,13 +40,13 @@ export function lonLatTo3857(lon: number, lat: number): [number, number] {
   const clampedLat = Math.max(Math.min(lat, 85.05112878), -85.05112878);
   const x = (lon * WEB_MERCATOR_ORIGIN) / 180;
   const y =
-    Math.log(Math.tan((Math.PI / 4) + (clampedLat * Math.PI) / 360)) *
+    Math.log(Math.tan(Math.PI / 4 + (clampedLat * Math.PI) / 360)) *
     EARTH_RADIUS_M;
   return [x, y];
 }
 
 export function bbox4326To3857(
-  bbox: [number, number, number, number],
+  bbox: [number, number, number, number]
 ): [number, number, number, number] {
   const [minX, minY] = lonLatTo3857(bbox[0], bbox[1]);
   const [maxX, maxY] = lonLatTo3857(bbox[2], bbox[3]);
@@ -57,7 +57,7 @@ export function bbox4326To3857(
 export function tile2bbox3859(
   x: number,
   y: number,
-  zoom: number,
+  zoom: number
 ): [number, number, number, number] {
   const n = Math.pow(2, zoom);
   const tileSize = WEB_MERCATOR_EXTENT / n;
@@ -74,7 +74,7 @@ export function computeZoomedTiles(
   collect: (tile: Tile) => void,
   tile: Tile,
   minZoom: number,
-  maxZoom: number,
+  maxZoom: number
 ) {
   const { zoom, x, y } = tile;
   collectZoomedOutTiles(minZoom, collect, zoom, x, y);
@@ -86,7 +86,7 @@ function collectZoomedOutTiles(
   collect: (tile: Tile) => void,
   zoom: number,
   x: number,
-  y: number,
+  y: number
 ) {
   collect({ zoom, x, y });
 
@@ -96,7 +96,7 @@ function collectZoomedOutTiles(
       collect,
       zoom - 1,
       Math.floor(x / 2),
-      Math.floor(y / 2),
+      Math.floor(y / 2)
     );
   }
 }
@@ -106,7 +106,7 @@ function collectZoomedInTiles(
   collect: (tile: Tile) => void,
   zoom: number,
   x: number,
-  y: number,
+  y: number
 ) {
   collect({ zoom, x, y });
 
@@ -125,7 +125,7 @@ function collectZoomedInTiles(
 export function* tileRangeGenerator(
   polygon: Polygon,
   minZoom: number,
-  maxZoom: number,
+  maxZoom: number
 ) {
   const [minLon, minLat, maxLon, maxLat] = bbox(polygon);
 

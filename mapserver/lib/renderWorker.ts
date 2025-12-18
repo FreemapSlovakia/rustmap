@@ -1,7 +1,7 @@
-import { ImageFormat, Renderer, RequestExtra } from 'maprender-node';
-import { parentPort, workerData } from 'worker_threads';
+import { ImageFormat, Renderer, RequestExtra } from "maprender-node";
+import { parentPort, workerData } from "worker_threads";
 
-export type RenderResult = ReturnType<Renderer['render']>;
+export type RenderResult = ReturnType<Renderer["render"]>;
 
 export type RenderRequest = {
   id: number;
@@ -19,14 +19,14 @@ export type SerializedError = {
 };
 
 export type RenderResponse =
-  | { type: 'ready' }
+  | { type: "ready" }
   | {
-      type: 'error';
+      type: "error";
       id: number;
       error: SerializedError;
     }
   | {
-      type: 'success';
+      type: "success";
       id: number;
       result: {
         images: Uint8Array[];
@@ -37,43 +37,43 @@ export type RenderResponse =
 const pp = parentPort;
 
 if (!pp) {
-  throw new Error('parentPort is null');
+  throw new Error("parentPort is null");
 }
 
 const renderer = new Renderer(
   workerData.connectionString,
   workerData.hillshadingBase,
   workerData.svgBase,
-  workerData.dbPriority,
+  workerData.dbPriority
 );
 
-pp.postMessage({ type: 'ready' } satisfies RenderResponse);
+pp.postMessage({ type: "ready" } satisfies RenderResponse);
 
-pp.on('message', (message: RenderRequest) => {
+pp.on("message", (message: RenderRequest) => {
   try {
     const result: RenderResult = renderer.render(
       message.bbox,
       message.zoom,
       message.scales,
-      message.format,
+      message.format
     );
 
     const images = result.images.map((image) => Uint8Array.from(image));
 
     pp.postMessage(
       {
-        type: 'success',
+        type: "success",
         id: message.id,
         result: {
           images,
           contentType: result.contentType,
         },
       } satisfies RenderResponse,
-      images.map((image) => image.buffer),
+      images.map((image) => image.buffer)
     );
   } catch (err) {
     pp.postMessage({
-      type: 'error',
+      type: "error",
       id: message.id,
       error:
         err instanceof Error

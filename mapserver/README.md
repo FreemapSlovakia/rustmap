@@ -13,9 +13,9 @@
 ## Usage
 
 ```js
-import { startMapserver } from 'freemap-mapserver';
-import { mapnikConfig, generateFreemapStyle } from './style.js';
-import { legend } from './legend.js';
+import { startMapserver } from "freemap-mapserver";
+import { mapnikConfig, generateFreemapStyle } from "./style.js";
+import { legend } from "./legend.js";
 
 startMapserver(mapnikConfig, generateFreemapStyle, legend);
 ```
@@ -34,18 +34,10 @@ Your app must use `node-config` library with configuration of the following stru
 
 ```json5
 {
-  db: {
-    type: 'postgis',
-    host: 'localhost',
-    port: 5432,
-    user: 'gis',
-    dbname: 'gis',
-    password: 'secret',
-  },
   dirs: {
-    tiles: 'tiles',
-    expires: 'expires',
-    fonts: 'fonts',
+    tiles: "tiles",
+    expires: "expires",
+    fonts: "fonts",
   },
   server: {
     port: 4000,
@@ -55,11 +47,10 @@ Your app must use `node-config` library with configuration of the following stru
     // max: 8, commented out = use num of cpus
   },
   forceTileRendering: false, // useful for style development
-  dumpXml: false,
   limits: {
     minZoom: 0,
     maxZoom: 19,
-    polygon: 'limits.geojson',
+    polygon: "limits.geojson",
     scales: [1, 1.5, 2, 3],
     cleanup: true, // to delete cached tiles out of limits on startup
   },
@@ -68,17 +59,15 @@ Your app must use `node-config` library with configuration of the following stru
     // workers: 8, commented out = use num of cpus
     minZoom: 8,
     maxZoom: 16,
-    polygon: 'limits.geojson',
+    polygon: "limits.geojson",
     zoomPrio: [12, 13, 14, 15, 11, 16, 10, 9, 8],
   },
-  rerenderOlderThanMs: 0, // use 0 to disable
-  renderToPdfConcurrency: 1,
-  pngquantOptions: [], // set to null to skip pngquant
-  notFoundAsTransparent: true,
+  rerenderOlderThanMs: null,
+  exportMapConcurrency: 1,
   format: {
-    extension: 'png',
-    mimeType: 'image/png',
-    codec: 'png',
+    extension: "png",
+    mimeType: "image/png",
+    codec: "png",
   },
   minExpiredBatchSize: 500, // batch size when deleting expired files; set to null to delete without batching,
   expiresZoom: 14, // on which zoom does imposm3 marks tiles as expired,

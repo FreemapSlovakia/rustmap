@@ -1,26 +1,22 @@
-import { cpus } from 'os';
-import config from 'config';
-import genericPool, { Factory } from 'generic-pool';
-import { Worker } from 'worker_threads';
-import { RenderRequest, RenderResponse, RenderResult } from './renderWorker.js';
-import { ImageFormat, RequestExtra } from 'maprender-node';
-
-const workers: { min?: number; max?: number } = config.get('workers');
-
-const nCpus = cpus().length;
+import { cpus } from "os";
+import genericPool, { Factory } from "generic-pool";
+import { Worker } from "worker_threads";
+import { RenderRequest, RenderResponse, RenderResult } from "./renderWorker.js";
+import { ImageFormat, RequestExtra } from "maprender-node";
+import { config } from "./config.js";
 
 type RendererConfig = {
   connectionString: string;
-  hillshadingBase: string;
+  hillshadingBase?: string;
   svgBase: string;
   dbPriority?: number;
 };
 
 let rendererConfig: RendererConfig = {
-  connectionString: config.get('postgresConnectionString'),
-  hillshadingBase: config.get('hillshadingBase'),
-  svgBase: config.get('svgBase'),
-  dbPriority: config.has('dbPriority') ? config.get('dbPriority') : undefined,
+  connectionString: config.postgresConnectionString,
+  hillshadingBase: config.dirs.hillshading ?? undefined,
+  svgBase: config.dirs.svg,
+  dbPriority: config.dbPriority ?? undefined,
 };
 
 export type WorkerRenderer = {
@@ -30,7 +26,7 @@ export type WorkerRenderer = {
     zoom: number,
     scales: number[],
     format: ImageFormat,
-    extra?: RequestExtra,
+    extra?: RequestExtra
   ) => Promise<RenderResult>;
   terminate: () => Promise<void>;
 };
@@ -67,8 +63,8 @@ function createWorkerRenderer(worker: Worker): WorkerRenderer {
     }
   };
 
-  worker.on('message', (message: RenderResponse) => {
-    if (message.type === 'ready') {
+  worker.on("message", (message: RenderResponse) => {
+    if (message.type === "ready") {
       if (readyResolve) {
         readyResolve();
       }
@@ -81,12 +77,12 @@ function createWorkerRenderer(worker: Worker): WorkerRenderer {
     const pendingItem = pending.get(message.id);
 
     if (!pendingItem) {
-      throw new Error('no such pending request: ' + message.id);
+      throw new Error("no such pending request: " + message.id);
     }
 
     pending.delete(message.id);
 
-    if (message.type === 'error') {
+    if (message.type === "error") {
       const err = new Error(message.error.message);
       err.name = message.error.name || err.name;
       err.stack = message.error.stack || err.stack;
@@ -100,11 +96,11 @@ function createWorkerRenderer(worker: Worker): WorkerRenderer {
     });
   });
 
-  worker.on('error', (err) => {
+  worker.on("error", (err) => {
     handleFailure(err);
   });
 
-  worker.on('exit', (code) => {
+  worker.on("exit", (code) => {
     if (code !== 0) {
       handleFailure(new Error(`Render worker exited with code ${code}`));
     }
@@ -117,7 +113,7 @@ function createWorkerRenderer(worker: Worker): WorkerRenderer {
     zoom: number,
     scales: number[],
     format: ImageFormat,
-    extra?: RequestExtra,
+    extra?: RequestExtra
   ): Promise<RenderResult> => {
     await readyPromise;
 
@@ -145,7 +141,7 @@ function createWorkerRenderer(worker: Worker): WorkerRenderer {
 
 const factory: Factory<WorkerRenderer> = {
   async create() {
-    const worker = new Worker(import.meta.dirname + '/renderWorker.js', {
+    const worker = new Worker(import.meta.dirname + "/renderWorker.js", {
       workerData: rendererConfig,
     });
 
@@ -161,7 +157,9 @@ const factory: Factory<WorkerRenderer> = {
   },
 };
 
+const nCpus = cpus().length;
+
 export const pool = genericPool.createPool(factory, {
-  max: 'max' in workers ? workers.max : nCpus,
-  min: 'min' in workers ? workers.min : nCpus,
+  max: config.workers?.max ?? nCpus,
+  min: config.workers?.min ?? nCpus,
 });

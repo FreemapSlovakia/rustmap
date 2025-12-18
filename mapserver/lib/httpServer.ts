@@ -1,39 +1,25 @@
-import fs from 'fs/promises';
-import os from 'os';
-import path from 'path';
-import http from 'http';
-import { koaBody } from 'koa-body';
-import { Ajv } from 'ajv';
-import crypto from 'crypto';
-import config from 'config';
-import Koa, { Context } from 'koa';
-import Router from '@koa/router';
-import send from 'koa-send';
-import cors from '@koa/cors';
-
-import { renderTile, exportMap } from './renderer.js';
-import { tileOverlapsLimits } from './tileCalc.js';
-import { limitPolygon } from './config.js';
-import { JSONSchema7 } from 'json-schema';
-import { Legend } from './types.js';
+import fs from "fs/promises";
+import os from "os";
+import path from "path";
+import http from "http";
+import { koaBody } from "koa-body";
+import { Ajv } from "ajv";
+import crypto from "crypto";
+import Koa, { Context } from "koa";
+import Router from "@koa/router";
+import send from "koa-send";
+import cors from "@koa/cors";
+import { renderTile, exportMap } from "./renderer.js";
+import { tileOverlapsLimits } from "./tileCalc.js";
+import { config, limitPolygon } from "./config.js";
+import { JSONSchema7 } from "json-schema";
+import { Legend } from "./types.js";
 
 const app = new Koa();
 
 const router = new Router();
 
-const limitScales: number[] = config.get('limits.scales');
-
-const serverOptions = config.get('server');
-
-const tilesDir: string = config.get('dirs.tiles');
-
-const notFoundAsTransparent = config.get('notFoundAsTransparent');
-
-const mimeType: string = config.get('format.mimeType');
-
-const minZoom: number = config.get('limits.minZoom');
-
-const maxZoom: number = config.get('limits.maxZoom');
+const tilesDir = config.dirs.tiles;
 
 let legend: Legend;
 
@@ -64,24 +50,19 @@ async function getTileMiddleware(ctx: Context) {
   }
 
   if (
-    zoom < minZoom ||
-    zoom > maxZoom ||
+    zoom < config.limits.minZoom ||
+    zoom > config.limits.maxZoom ||
     (limitPolygon && !tileOverlapsLimits(limitPolygon, { zoom, x, y })) ||
-    !limitScales.includes(scale)
+    !config.limits.scales.includes(scale)
   ) {
     ctx.throw(404);
-
-    // TODO
-    //   if (!notFoundAsTransparent) {
-    //   ctx.throw(404);
-    // }
   }
 
   const file = await renderTile(zoom, x, y, scale);
 
   const stats = await fs.stat(file!);
 
-  ctx.set('Last-Modified', stats.mtime.toUTCString());
+  ctx.set("Last-Modified", stats.mtime.toUTCString());
 
   if (ctx.fresh) {
     ctx.status = 304;
@@ -89,12 +70,12 @@ async function getTileMiddleware(ctx: Context) {
     return;
   }
 
-  ctx.mimeType = mimeType;
+  ctx.mimeType = config.format.mimeType;
 
   await send(ctx, path.relative(tilesDir, file!), { root: tilesDir });
 }
 
-router.get('/:zz/:xx/:yy', getTileMiddleware);
+router.get("/:zz/:xx/:yy", getTileMiddleware);
 
 function getQueryParam(ctx: Context, key: string) {
   const value = ctx.query[key];
@@ -104,7 +85,7 @@ function getQueryParam(ctx: Context, key: string) {
 
 // TODO make more configurable and less hardcoded
 // TODO return better error responses
-router.get('/service', async (ctx) => {
+router.get("/service", async (ctx) => {
   const {
     SERVICE,
     VERSION,
@@ -119,35 +100,35 @@ router.get('/service', async (ctx) => {
     Object.entries(ctx.query).map(([key, value]) => [
       key,
       Array.isArray(value) ? value[0] : value,
-    ]),
+    ])
   );
 
-  if (SERVICE !== 'WMTS' || (VERSION && VERSION !== '1.0.0')) {
+  if (SERVICE !== "WMTS" || (VERSION && VERSION !== "1.0.0")) {
     ctx.status = 400;
 
     return;
   }
 
   if (
-    REQUEST === 'GetTile' &&
-    LAYER === 'freemap_outdoor' &&
-    TILEMATRIXSET === 'webmercator' &&
-    FORMAT === 'image/jpeg'
+    REQUEST === "GetTile" &&
+    LAYER === "freemap_outdoor" &&
+    TILEMATRIXSET === "webmercator" &&
+    FORMAT === "image/jpeg"
   ) {
     ctx.params = { zz: TILEMATRIX!, xx: TILECOL!, yy: TILEROW! };
 
     return getTileMiddleware(ctx);
   } else if (
-    REQUEST === 'GetTile' &&
-    LAYER === 'freemap_outdoor_2x' &&
-    TILEMATRIXSET === 'webmercator_2x' &&
-    FORMAT === 'image/jpeg'
+    REQUEST === "GetTile" &&
+    LAYER === "freemap_outdoor_2x" &&
+    TILEMATRIXSET === "webmercator_2x" &&
+    FORMAT === "image/jpeg"
   ) {
-    ctx.params = { zz: TILEMATRIX!, xx: TILECOL!, yy: TILEROW! + '@2x' };
+    ctx.params = { zz: TILEMATRIX!, xx: TILECOL!, yy: TILEROW! + "@2x" };
 
     return getTileMiddleware(ctx);
-  } else if (REQUEST === 'GetCapabilities') {
-    ctx.set('Content-Type', 'application/xml');
+  } else if (REQUEST === "GetCapabilities") {
+    ctx.set("Content-Type", "application/xml");
 
     ctx.body = `<?xml version="1.0"?>
 <Capabilities
@@ -659,49 +640,49 @@ router.get('/service', async (ctx) => {
 const ajv = new Ajv();
 
 const schema: JSONSchema7 = {
-  type: 'object',
-  required: ['zoom', 'bbox'],
+  type: "object",
+  required: ["zoom", "bbox"],
   properties: {
-    zoom: { type: 'integer', minimum: 0, maximum: 20 },
+    zoom: { type: "integer", minimum: 0, maximum: 20 },
     bbox: {
-      type: 'array',
+      type: "array",
       minItems: 4,
       maxItems: 4,
-      items: { type: 'number' },
+      items: { type: "number" },
     },
-    format: { type: 'string', enum: ['pdf', 'svg', 'jpeg', 'png'] },
+    format: { type: "string", enum: ["pdf", "svg", "jpeg", "png"] },
     features: {},
-    scale: { type: 'number', minimum: 0.1, maximum: 10 },
-    width: { type: 'number', minimum: 1, maximum: 10000 },
+    scale: { type: "number", minimum: 0.1, maximum: 10 },
+    width: { type: "number", minimum: 1, maximum: 10000 },
     custom: {
-      type: 'object',
-      required: ['layers', 'styles'],
+      type: "object",
+      required: ["layers", "styles"],
       properties: {
         layers: {
-          type: 'array',
+          type: "array",
           items: {
-            type: 'object',
-            required: ['styles', 'geojson'],
+            type: "object",
+            required: ["styles", "geojson"],
             properties: {
-              styles: { type: 'array', items: { type: 'string' } },
+              styles: { type: "array", items: { type: "string" } },
               geojson: {
-                type: 'object',
+                type: "object",
                 // TODO geojson schema
               },
             },
           },
         },
         styles: {
-          type: 'array',
+          type: "array",
           items: {
-            type: 'object',
-            required: ['Style'],
+            type: "object",
+            required: ["Style"],
             properties: {
               Style: {
-                type: 'object',
-                required: ['@name'],
+                type: "object",
+                required: ["@name"],
                 properties: {
-                  '@name': { type: 'string' },
+                  "@name": { type: "string" },
                   // TODO other mapnik props
                 },
               },
@@ -719,8 +700,8 @@ const jobMap = new Map();
 
 const exportRouter = new Router();
 
-exportRouter.post('/', koaBody({ jsonLimit: '16mb' }), async (ctx) => {
-  if (!ctx.accepts('application/json')) {
+exportRouter.post("/", koaBody({ jsonLimit: "16mb" }), async (ctx) => {
+  if (!ctx.accepts("application/json")) {
     ctx.throw(406);
   }
 
@@ -728,9 +709,9 @@ exportRouter.post('/', koaBody({ jsonLimit: '16mb' }), async (ctx) => {
     ctx.throw(400, ajv.errorsText(validate.errors));
   }
 
-  const { zoom, bbox, format = 'pdf', scale } = ctx.request.body as any;
+  const { zoom, bbox, format = "pdf", scale } = ctx.request.body as any;
 
-  const token = crypto.randomBytes(16).toString('hex');
+  const token = crypto.randomBytes(16).toString("hex");
 
   const filename = `export-${token}.${format}`;
 
@@ -742,7 +723,7 @@ exportRouter.post('/', koaBody({ jsonLimit: '16mb' }), async (ctx) => {
     cancelHolder.cancelled = true;
   };
 
-  ctx.req.on('close', cancelHandler);
+  ctx.req.on("close", cancelHandler);
 
   try {
     jobMap.set(token, {
@@ -752,7 +733,7 @@ exportRouter.post('/', koaBody({ jsonLimit: '16mb' }), async (ctx) => {
       promise: exportMap(exportFile, zoom, bbox, scale, cancelHolder, format),
     });
   } finally {
-    ctx.req.off('close', cancelHandler);
+    ctx.req.off("close", cancelHandler);
   }
 
   ctx.body = { token };
@@ -760,7 +741,7 @@ exportRouter.post('/', koaBody({ jsonLimit: '16mb' }), async (ctx) => {
   // TODO periodically delete old temp files
 });
 
-exportRouter.head('/', async (ctx) => {
+exportRouter.head("/", async (ctx) => {
   const job = jobMap.get(ctx.query.token);
 
   if (!job) {
@@ -772,7 +753,7 @@ exportRouter.head('/', async (ctx) => {
   ctx.status = 200;
 });
 
-exportRouter.get('/', async (ctx) => {
+exportRouter.get("/", async (ctx) => {
   const job = jobMap.get(ctx.query.token);
 
   if (!job) {
@@ -784,7 +765,7 @@ exportRouter.get('/', async (ctx) => {
   await send(ctx, job.filename, { root: os.tmpdir() });
 });
 
-exportRouter.delete('/', async (ctx) => {
+exportRouter.delete("/", async (ctx) => {
   const job = jobMap.get(ctx.query.token);
 
   if (!job) {
@@ -798,13 +779,15 @@ exportRouter.delete('/', async (ctx) => {
   ctx.status = 204;
 });
 
-router.use('/export', exportRouter.routes(), exportRouter.allowedMethods());
+router.use("/export", exportRouter.routes(), exportRouter.allowedMethods());
 
 app.use(cors()).use(router.routes()).use(router.allowedMethods());
 
 const server = http.createServer(app.callback());
 
 export function listenHttp() {
+  const serverOptions = config.server;
+
   if (serverOptions) {
     server.listen(serverOptions, () => {
       console.log(`HTTP server listening.`, serverOptions);

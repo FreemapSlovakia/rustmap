@@ -1,56 +1,56 @@
-import path from 'path';
-import config from 'config';
-import { stat } from 'fs/promises';
-import { dirtyTiles } from './dirtyTilesRegister.js';
-import { tile2key, tileRangeGenerator } from './tileCalc.js';
-import { prerenderPolygon } from './config.js';
-import { PrerenderConfig } from './types.js';
+import path from "path";
+import { stat } from "fs/promises";
+import { dirtyTiles } from "./dirtyTilesRegister.js";
+import { tile2key, tileRangeGenerator } from "./tileCalc.js";
+import { config } from "./config.js";
+import { prerenderer } from "./prerenderer.js";
 
-const rerenderOlderThanMs: number | undefined = config.get(
-  'rerenderOlderThanMs',
-);
-
-const extension: string = config.get('format.extension');
-
-const limitScales: number[] = config.get('limits.scales');
-
-const prerenderConfig: PrerenderConfig = config.get('prerender');
-
-const tilesDir: string = config.get('dirs.tiles');
+const extension = config.format.extension;
 
 export async function fillDirtyTilesRegister() {
-  console.log('Scanning dirty tiles.');
+  console.log("Scanning dirty tiles.");
 
-  const { minZoom, maxZoom } = prerenderConfig;
+  if (!config.prerender) {
+    throw new Error("missing prerenderConfig");
+  }
+
+  if (!prerenderer?.prerenderPolygon) {
+    throw new Error("missing prerenderPolygon");
+  }
+
+  const { minZoom, maxZoom } = config.prerender;
 
   for (const { zoom, x, y } of tileRangeGenerator(
-    prerenderPolygon,
+    prerenderer.prerenderPolygon,
     minZoom,
-    maxZoom,
+    maxZoom
   )) {
     let mtimeMs: number;
 
     try {
       // find oldest
-      const proms = limitScales.map((scale) =>
+      const proms = config.limits.scales.map((scale) =>
         stat(
           path.join(
-            tilesDir,
-            `${zoom}/${x}/${y}${scale === 1 ? '' : `@${scale}x`}.${extension}`,
-          ),
-        ),
+            config.dirs.tiles,
+            `${zoom}/${x}/${y}${scale === 1 ? "" : `@${scale}x`}.${extension}`
+          )
+        )
       );
 
       mtimeMs = Math.min(
-        ...(await Promise.all(proms)).map((stat) => stat.mtimeMs),
+        ...(await Promise.all(proms)).map((stat) => stat.mtimeMs)
       );
-    } catch (e) {
+    } catch {
       const v = { zoom, x, y, ts: 0, dt: 0 };
       dirtyTiles.set(tile2key(v), v);
       continue;
     }
 
-    if (rerenderOlderThanMs && mtimeMs < rerenderOlderThanMs) {
+    if (
+      config.rerenderOlderThanMs != null &&
+      mtimeMs < config.rerenderOlderThanMs
+    ) {
       const v = { zoom, x, y, ts: mtimeMs, dt: 0 };
       dirtyTiles.set(tile2key(v), v);
       continue;
@@ -58,18 +58,18 @@ export async function fillDirtyTilesRegister() {
 
     try {
       const { mtimeMs } = await stat(
-        path.join(tilesDir, `${zoom}/${x}/${y}.dirty`),
+        path.join(config.dirs.tiles, `${zoom}/${x}/${y}.dirty`)
       );
 
       const v = { zoom, x, y, ts: mtimeMs, dt: mtimeMs };
 
       dirtyTiles.set(tile2key(v), v);
-    } catch (e) {
+    } catch {
       // fresh
     }
   }
 
-  console.log('Dirty tiles scanned.');
+  console.log("Dirty tiles scanned.");
 
   return false;
 }

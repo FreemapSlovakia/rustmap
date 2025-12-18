@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@fastify/deepmerge':
+        specifier: ^3.1.0
+        version: 3.1.0
       '@koa/cors':
         specifier: 5.0.0
         version: 5.0.0
@@ -23,15 +26,15 @@ importers:
       chokidar:
         specifier: 5.0.0
         version: 5.0.0
-      config:
-        specifier: 4.1.1
-        version: 4.1.1
       fs-ext:
         specifier: 2.1.1
         version: 2.1.1
       generic-pool:
         specifier: 3.9.0
         version: 3.9.0
+      json5:
+        specifier: ^2.2.3
+        version: 2.2.3
       koa:
         specifier: 3.1.1
         version: 3.1.1
@@ -44,9 +47,9 @@ importers:
       maprender-node:
         specifier: ../rust/crates/node
         version: link:../rust/crates/node
-      promisify-child-process:
-        specifier: 4.1.2
-        version: 4.1.2
+      valibot:
+        specifier: ^1.2.0
+        version: 1.2.0(typescript@5.9.3)
     devDependencies:
       '@types/config':
         specifier: 3.3.5
@@ -133,6 +136,9 @@ packages:
   '@eslint/plugin-kit@0.4.1':
     resolution: {integrity: sha512-43/qtrDUokr7LJqoF2c3+RInu/t4zfrpYdoSDfYyhg52rwLV6TnOvdG4fXm7IkSB3wErkcmJS9iEhjVtOSEjjA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@fastify/deepmerge@3.1.0':
+    resolution: {integrity: sha512-lCVONBQINyNhM6LLezB6+2afusgEYR4G8xenMsfe+AT+iZ7Ca6upM5Ha8UkZuYSnuMw3GWl/BiPXnLMi/gSxuQ==}
 
   '@hapi/bourne@3.0.0':
     resolution: {integrity: sha512-Waj1cwPXJDucOib4a3bAISsKJVb15MKi9IvmTI/7ssVEm6sywXGjVJDhl6/umt1pK1ZS7PacXU3A1PmFKHEZ2w==}
@@ -686,10 +692,6 @@ packages:
   concaveman@1.2.1:
     resolution: {integrity: sha512-PwZYKaM/ckQSa8peP5JpVr7IMJ4Nn/MHIaWUjP4be+KoZ7Botgs8seAZGpmaOM+UZXawcdYRao/px9ycrCihHw==}
 
-  config@4.1.1:
-    resolution: {integrity: sha512-jljfwqNZ7QHwAW9Z9NDZdJARFiu5pjLqQO0K4ooY22iY/bIY78n0afI4ANEawfgQOxri0K/3oTayX8XIauWcLA==}
-    engines: {node: '>= 20.0.0'}
-
   content-disposition@0.5.4:
     resolution: {integrity: sha512-FveZTNuGw04cxlAiWbzi6zTAL/lhehaWbTtgluJh4/E95DqMwTmha3KZN1aAWA8cFIhHzMZUvLevkw5Rqk+tSQ==}
     engines: {node: '>= 0.6'}
@@ -1171,10 +1173,6 @@ packages:
     engines: {node: '>=14'}
     hasBin: true
 
-  promisify-child-process@4.1.2:
-    resolution: {integrity: sha512-APnkIgmaHNJpkAn7k+CrJSi9WMuff5ctYFbD0CO2XIPkM8yO7d/ShouU2clywbpHV/DUsyc4bpJCsNgddNtx4g==}
-    engines: {node: '>=8'}
-
   ps-tree@1.2.0:
     resolution: {integrity: sha512-0VnamPPYHl4uaU/nSFeZZpR21QAWRz+sRv4iW9+v/GS/J5U5iZB5BNN6J0RMoOvdx2gWM2+ZFMIm58q24e4UYA==}
     engines: {node: '>= 0.10'}
@@ -1368,6 +1366,14 @@ packages:
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
 
+  valibot@1.2.0:
+    resolution: {integrity: sha512-mm1rxUsmOxzrwnX5arGS+U4T25RdvpPjPN4yR0u9pUBov9+zGVtO84tif1eY4r6zWxVxu3KzIyknJy3rxfRZZg==}
+    peerDependencies:
+      typescript: '>=5'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   vary@1.1.2:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
     engines: {node: '>= 0.8'}
@@ -1438,6 +1444,8 @@ snapshots:
     dependencies:
       '@eslint/core': 0.17.0
       levn: 0.4.1
+
+  '@fastify/deepmerge@3.1.0': {}
 
   '@hapi/bourne@3.0.0': {}
 
@@ -2781,10 +2789,6 @@ snapshots:
       robust-predicates: 2.0.4
       tinyqueue: 2.0.3
 
-  config@4.1.1:
-    dependencies:
-      json5: 2.2.3
-
   content-disposition@0.5.4:
     dependencies:
       safe-buffer: 5.2.1
@@ -3261,8 +3265,6 @@ snapshots:
 
   prettier@3.7.4: {}
 
-  promisify-child-process@4.1.2: {}
-
   ps-tree@1.2.0:
     dependencies:
       event-stream: 3.3.4
@@ -3437,6 +3439,10 @@ snapshots:
   uri-js@4.4.1:
     dependencies:
       punycode: 2.3.1
+
+  valibot@1.2.0(typescript@5.9.3):
+    optionalDependencies:
+      typescript: 5.9.3
 
   vary@1.1.2: {}
 

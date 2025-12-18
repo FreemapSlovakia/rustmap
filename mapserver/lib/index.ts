@@ -1,25 +1,18 @@
 // @ts-check
 
-import chokidar, { FSWatcher } from 'chokidar';
-import config from 'config';
-import { prerender, resume } from './prerenderer.js';
-import { fillDirtyTilesRegister } from './dirtyTilesScanner.js';
-import { processExpireFiles } from './expireFilesProcessor.js';
-import { listenHttp, closeServer } from './httpServer.js';
-import { pool } from './renderedPool.js';
-import { cleanupOutOfBoundTiles } from './outOfBoundsCleaner.js';
-import { PrerenderConfig } from './types.js';
-
-const cleanup: boolean = config.get('limits.cleanup');
-
-const prerenderConfig: PrerenderConfig = config.get('prerender');
-const tilesDir: string = config.get('dirs.tiles');
-const expiresDir: string = config.get('dirs.expires');
+import chokidar, { FSWatcher } from "chokidar";
+import { prerenderer } from "./prerenderer.js";
+import { fillDirtyTilesRegister } from "./dirtyTilesScanner.js";
+import { processExpireFiles } from "./expireFilesProcessor.js";
+import { listenHttp, closeServer } from "./httpServer.js";
+import { pool } from "./renderedPool.js";
+import { cleanupOutOfBoundTiles } from "./outOfBoundsCleaner.js";
+import { config } from "./config.js";
 
 let watcher: FSWatcher;
 
-pool.on('factoryCreateError', async (error) => {
-  console.error('Error creating or configuring Mapnik:', error);
+pool.on("factoryCreateError", async (error) => {
+  console.error("Error creating or configuring Mapnik:", error);
 
   process.exitCode = 1;
 
@@ -46,10 +39,10 @@ function processNewDirties() {
 
   global.processingExpiredTiles = true;
 
-  processExpireFiles(tilesDir).then((retry) => {
+  processExpireFiles().then((retry) => {
     global.processingExpiredTiles = false;
 
-    resume();
+    prerenderer?.resume();
 
     retry ||= depth > 1;
 
@@ -62,30 +55,32 @@ function processNewDirties() {
 }
 
 // TODO we could maybe await
-if (cleanup) {
+if (config.limits.cleanup) {
   cleanupOutOfBoundTiles().catch((err) => {
-    console.error('Error in cleanupOutOfBoundTiles:', err);
+    console.error("Error in cleanupOutOfBoundTiles:", err);
   });
 }
 
-if (prerenderConfig) {
+if (prerenderer) {
   processNewDirties();
 
-  fillDirtyTilesRegister()
-    .then(() => {
-      listenHttp();
+  try {
+    await fillDirtyTilesRegister();
 
-      watcher = chokidar.watch(expiresDir);
+    listenHttp();
 
-      watcher.on('add', processNewDirties);
+    if (config.dirs.expires) {
+      watcher = chokidar.watch(config.dirs.expires);
 
-      return prerender();
-    })
-    .catch((err) => {
-      console.error('Error filling dirty tiles register', err);
+      watcher.on("add", processNewDirties);
+    }
 
-      process.exit(1);
-    });
+    await prerenderer.prerender();
+  } catch (err) {
+    console.error("Error filling dirty tiles register", err);
+
+    process.exit(1);
+  }
 } else {
   listenHttp();
 }

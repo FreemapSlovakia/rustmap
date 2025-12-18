@@ -1,21 +1,16 @@
-import config from 'config';
-import { readdir, unlink } from 'fs/promises';
-import path from 'path';
-import { tileOverlapsLimits } from './tileCalc.js';
-import { limitPolygon } from './config.js';
+import { readdir, unlink } from "fs/promises";
+import path from "path";
+import { tileOverlapsLimits } from "./tileCalc.js";
+import { config, limitPolygon } from "./config.js";
 
-const tilesDir: string = config.get('dirs.tiles');
-
-const minZoom: number = config.get('limits.minZoom');
-
-const maxZoom: number = config.get('limits.maxZoom');
+const tilesDir = config.dirs.tiles;
 
 export async function cleanupOutOfBoundTiles() {
   for (const zoomStr of await readdir(tilesDir)) {
     const zoom = parseInt(zoomStr, 10);
 
     if (isNaN(zoom)) {
-      console.warn('Unexpected zoom directory:', zoomStr);
+      console.warn("Unexpected zoom directory:", zoomStr);
 
       continue;
     }
@@ -24,7 +19,7 @@ export async function cleanupOutOfBoundTiles() {
       const x = parseInt(xStr, 10);
 
       if (isNaN(x)) {
-        console.warn('Unexpected X directory:', zoom, xStr);
+        console.warn("Unexpected X directory:", zoom, xStr);
 
         continue;
       }
@@ -32,11 +27,11 @@ export async function cleanupOutOfBoundTiles() {
       for (const file of await readdir(path.resolve(tilesDir, zoomStr, xStr))) {
         const m =
           /^(\d+)(?:@\d+(?:\.\d+)?x)?\.(?:webp|jpg|jpeg|png|dirty|index)$/.exec(
-            file,
+            file
           ); // TODO use format.extension
 
         if (!m) {
-          console.warn('Unexpected file:', zoom, xStr, file);
+          console.warn("Unexpected file:", zoom, xStr, file);
 
           continue;
         }
@@ -44,13 +39,13 @@ export async function cleanupOutOfBoundTiles() {
         const y = parseInt(m[1], 10);
 
         if (
-          zoom < minZoom ||
-          zoom > maxZoom ||
+          zoom < config.limits.minZoom ||
+          zoom > config.limits.maxZoom ||
           (limitPolygon && !tileOverlapsLimits(limitPolygon, { zoom, x, y }))
         ) {
           const resolvedFile = path.resolve(tilesDir, zoomStr, xStr, file);
 
-          console.info('Removing OOB file:', resolvedFile);
+          console.info("Removing OOB file:", resolvedFile);
 
           await unlink(resolvedFile);
         }

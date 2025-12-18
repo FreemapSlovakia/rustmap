@@ -1,7 +1,6 @@
 // @ts-check
 
-import config from 'config';
-import path from 'path';
+import path from "path";
 import {
   readdir,
   readFile,
@@ -9,43 +8,40 @@ import {
   open,
   access,
   FileHandle,
-} from 'fs/promises';
+} from "fs/promises";
 import {
   computeZoomedTiles,
   tile2key,
   tileOverlapsLimits,
-} from './tileCalc.js';
-import { dirtyTiles } from './dirtyTilesRegister.js';
-import { prerenderPolygon } from './config.js';
-import { flock } from 'fs-ext';
-import { promisify } from 'util';
-import { PrerenderConfig, Tile } from './types.js';
-import { PathLike } from 'fs';
+} from "./tileCalc.js";
+import { dirtyTiles } from "./dirtyTilesRegister.js";
+import { config } from "./config.js";
+import { flock } from "fs-ext";
+import { promisify } from "util";
+import { Tile } from "./types.js";
+import { PathLike } from "fs";
+import { prerenderer } from "./prerenderer.js";
 
 const flockAsync = promisify(
   flock as (
     fd: number,
-    flags: 'sh' | 'ex' | 'shnb' | 'exnb' | 'un',
-    callback: (err: NodeJS.ErrnoException | null) => void,
-  ) => void,
+    flags: "sh" | "ex" | "shnb" | "exnb" | "un",
+    callback: (err: NodeJS.ErrnoException | null) => void
+  ) => void
 );
 
-const expiresDir: string = config.get('dirs.expires');
+const expiresDir = config.dirs.expires;
 
-const limitScales: number[] = config.get('limits.scales');
+const extension = config.format.extension;
 
-const minZoom: number = config.get('limits.minZoom');
+const expiresZoom = config.expiresZoom;
 
-const extension: string = config.get('format.extension');
+export async function processExpireFiles() {
+  if (!expiresDir) {
+    return;
+  }
 
-const prerenderConfig: PrerenderConfig = config.get('prerender');
-
-const minExpiredBatchSize = config.get('minExpiredBatchSize');
-
-const expiresZoom = config.get('expiresZoom');
-
-export async function processExpireFiles(tilesDir: string) {
-  console.log('Processing expire files.');
+  console.log("Processing expire files.");
 
   const dirs = await readdir(expiresDir);
 
@@ -55,9 +51,9 @@ export async function processExpireFiles(tilesDir: string) {
         .map((dirs) => path.join(expiresDir, dirs))
         .map(async (dir) =>
           readdir(dir).then((tileFiles) =>
-            tileFiles.map((tileFile) => path.join(dir, tileFile)),
-          ),
-        ),
+            tileFiles.map((tileFile) => path.join(dir, tileFile))
+          )
+        )
     )
   ).flat();
 
@@ -72,19 +68,23 @@ export async function processExpireFiles(tilesDir: string) {
   for (const expireFile of expireFiles) {
     n++;
 
-    const expireLines = (await readFile(expireFile, 'utf8')).trim().split('\n');
+    const expireLines = (await readFile(expireFile, "utf8")).trim().split("\n");
 
     expireLines
-      .map((tile) => tile.split('/').map((x) => Number(x)))
+      .map((tile) => tile.split("/").map((x) => Number(x)))
       .map(([zoom, x, y]) => ({ x, y, zoom }))
-      .filter((tile) => tileOverlapsLimits(prerenderPolygon, tile))
+      .filter(
+        (tile) =>
+          !prerenderer?.prerenderPolygon ||
+          tileOverlapsLimits(prerenderer.prerenderPolygon, tile)
+      )
       .forEach((tile) => {
         tiles.add(tile);
       });
 
     if (
-      typeof minExpiredBatchSize === 'number' &&
-      tiles.size >= minExpiredBatchSize
+      config.minExpiredBatchSize != null &&
+      tiles.size >= config.minExpiredBatchSize
     ) {
       break;
     }
@@ -98,40 +98,51 @@ export async function processExpireFiles(tilesDir: string) {
     outzoomExpiredTiles.add(`${zoom}/${x}/${y}`);
   };
 
-  for (const tile of tiles) {
-    computeZoomedTiles(collect, tile, minZoom, prerenderConfig.maxZoom);
+  if (prerenderer) {
+    for (const tile of tiles) {
+      computeZoomedTiles(
+        collect,
+        tile,
+        config.limits.minZoom,
+        prerenderer.maxZoom
+      );
+    }
   }
 
-  console.log('Processing expired out-zoom tiles:', outzoomExpiredTiles.size);
+  console.log("Processing expired out-zoom tiles:", outzoomExpiredTiles.size);
 
   // we do it sequentially to not to kill IO
   for (const tile of outzoomExpiredTiles) {
-    const [zoom, x, y] = tile.split('/').map((x) => Number(x));
+    const tilesDir = config.dirs.tiles;
+
+    const [zoom, x, y] = tile.split("/").map((x) => Number(x));
 
     const checkIfTileExists = async () => {
       const t = Date.now();
 
       const res = await exists(path.resolve(tilesDir, `${tile}.${extension}`));
 
-      return res && [Date.now() - t];
+      return res ? [Date.now() - t] : undefined;
     };
 
-    let tt: false | number[];
+    let tt: number[] | undefined;
 
     if (
-      !tileOverlapsLimits(prerenderPolygon, { zoom, x, y }) ||
-      zoom < prerenderConfig.minZoom ||
-      zoom > prerenderConfig.maxZoom
+      prerenderer &&
+      ((prerenderer.prerenderPolygon &&
+        !tileOverlapsLimits(prerenderer.prerenderPolygon, { zoom, x, y })) ||
+        zoom < prerenderer.minZoom ||
+        zoom > prerenderer.maxZoom)
     ) {
-      for (const scale of limitScales) {
+      for (const scale of config.limits.scales) {
         const tileFile = `${tile}${
-          scale === 1 ? '' : `@${scale}x`
+          scale === 1 ? "" : `@${scale}x`
         }.${extension}`;
 
         try {
           await unlink(path.resolve(tilesDir, tileFile));
 
-          console.log('Removed expired tile:', tileFile);
+          console.log("Removed expired tile:", tileFile);
         } catch (_) {
           // ignore
         }
@@ -141,9 +152,9 @@ export async function processExpireFiles(tilesDir: string) {
 
       let t = Date.now();
 
-      await (await open(path.resolve(tilesDir, dirtyFile), 'w')).close();
+      await (await open(path.resolve(tilesDir, dirtyFile), "w")).close();
 
-      console.log('Created dirty-file:', dirtyFile, tt[0], Date.now() - t);
+      console.log("Created dirty-file:", dirtyFile, tt[0], Date.now() - t);
 
       const v = { zoom, x, y, ts: Date.now(), dt: Date.now() };
 
@@ -158,18 +169,18 @@ export async function processExpireFiles(tilesDir: string) {
       const t = Date.now();
 
       try {
-        fh = await open(path.resolve(tilesDir, `${tile}.index`), 'r+');
+        fh = await open(path.resolve(tilesDir, `${tile}.index`), "r+");
       } catch (err) {
-        if (isNodeError(err) && err.code !== 'ENOENT') {
+        if (isNodeError(err) && err.code !== "ENOENT") {
           throw err;
         }
       }
 
       if (fh) {
-        await flockAsync(fh.fd, 'ex');
+        await flockAsync(fh.fd, "ex");
 
-        const items = (await fh.readFile({ encoding: 'utf-8' }))
-          .split('\n')
+        const items = (await fh.readFile({ encoding: "utf-8" }))
+          .split("\n")
           .filter((line) => line);
 
         len = items.length;
@@ -180,7 +191,7 @@ export async function processExpireFiles(tilesDir: string) {
           try {
             await unlink(p);
           } catch (err) {
-            console.warn('Error deleting on-demand tile: ', p, err);
+            console.warn("Error deleting on-demand tile: ", p, err);
           }
         }
 
@@ -189,7 +200,7 @@ export async function processExpireFiles(tilesDir: string) {
         await fh.close();
       }
 
-      console.log('Deleted on-demand dirty tiles:', len, Date.now() - t);
+      console.log("Deleted on-demand dirty tiles:", len, Date.now() - t);
     }
   }
 
@@ -199,7 +210,7 @@ export async function processExpireFiles(tilesDir: string) {
   }
 
   console.log(
-    `Finished processing expire files (${expireFiles.length} of ${expireFilesLen}).`,
+    `Finished processing expire files (${expireFiles.length} of ${expireFilesLen}).`
   );
 
   return expireFiles.length !== expireFilesLen;
@@ -216,5 +227,5 @@ async function exists(file: PathLike) {
 }
 
 function isNodeError(err: unknown): err is NodeJS.ErrnoException {
-  return err instanceof Error && 'code' in err;
+  return err instanceof Error && "code" in err;
 }

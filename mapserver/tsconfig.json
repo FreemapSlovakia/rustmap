@@ -12,7 +12,8 @@
     "declaration": true,
     "outDir": "./dist",
     "allowSyntheticDefaultImports": true,
-    "incremental": true
+    "incremental": true,
+    "sourceMap": true
   },
   "include": ["lib/**/*.ts"],
   "exclude": ["node_modules", "dist"]

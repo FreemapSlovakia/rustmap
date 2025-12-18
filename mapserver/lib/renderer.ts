@@ -1,49 +1,33 @@
-import path from 'path';
-import config from 'config';
-import { rename, mkdir, unlink, stat, writeFile, open } from 'fs/promises';
-import { flock } from 'fs-ext';
-import { promisify } from 'util';
+import path from "path";
+import { rename, mkdir, unlink, stat, writeFile, open } from "fs/promises";
+import { flock } from "fs-ext";
+import { promisify } from "util";
 import {
   bbox4326To3857,
   tile2key,
   tile2bbox3859,
   tileOverlapsLimits,
-} from './tileCalc.js';
-import { dirtyTiles } from './dirtyTilesRegister.js';
-import { pool } from './renderedPool.js';
-import { prerenderPolygon } from './config.js';
-import { Tile } from './types.js';
-import { ImageFormat } from 'maprender-node';
+} from "./tileCalc.js";
+import { dirtyTiles } from "./dirtyTilesRegister.js";
+import { pool } from "./renderedPool.js";
+import { Tile } from "./types.js";
+import { ImageFormat } from "maprender-node";
+import { prerenderer } from "./prerenderer.js";
+import { config } from "./config.js";
 
 const flockAsync = promisify(
   flock as (
     fd: number,
-    flags: 'sh' | 'ex' | 'shnb' | 'exnb' | 'un',
-    callback: (err: NodeJS.ErrnoException | null) => void,
-  ) => void,
+    flags: "sh" | "ex" | "shnb" | "exnb" | "un",
+    callback: (err: NodeJS.ErrnoException | null) => void
+  ) => void
 );
 
-const forceTileRendering = config.get('forceTileRendering');
+const rerenderOlderThanMs = config.rerenderOlderThanMs;
 
-const rerenderOlderThanMs: number | undefined = config.get(
-  'rerenderOlderThanMs',
-);
+let tilesDir = config.dirs.tiles;
 
-const renderToPdfConcurrency: number = config.get('renderToPdfConcurrency');
-
-const limitScales: number[] = config.get('limits.scales');
-
-let tilesDir: string = config.get('dirs.tiles');
-
-const extension: string = config.get('format.extension');
-
-const expiresZoom = config.get('expiresZoom');
-
-const prerenderMaxZoom: number = config.get('prerenderMaxZoom');
-
-const prerenderDelayWhenExpiring: number | undefined = config.get(
-  'prerenderDelayWhenExpiring',
-);
+const extension = config.format.extension;
 
 let cnt = 0;
 
@@ -52,7 +36,7 @@ export async function renderTile(
   zoom: number,
   x: number,
   y: number,
-  reqScale?: number,
+  reqScale?: number
 ): Promise<string | undefined> {
   const frags = [tilesDir, zoom.toString(10), x.toString(10)];
 
@@ -60,10 +44,10 @@ export async function renderTile(
 
   const reasons: string[] = [];
 
-  if (forceTileRendering) {
-    reasons.push('forced');
+  if (config.forceTileRendering) {
+    reasons.push("forced");
   } else if (!reqScale) {
-    reasons.push('noReqScale');
+    reasons.push("noReqScale");
   } else {
     await shouldRender(pathnameBase, { zoom, x, y, reqScale }, reasons);
   }
@@ -76,14 +60,14 @@ export async function renderTile(
       zoom,
       x,
       y,
-      reqScale ? [reqScale] : limitScales,
+      reqScale ? [reqScale] : config.limits.scales,
       !reqScale,
-      reasons,
+      reasons
     );
 
     if (!reqScale) {
       try {
-        await unlink(pathnameBase + '.dirty');
+        await unlink(pathnameBase + ".dirty");
       } catch (_) {
         // ignore
       }
@@ -93,14 +77,14 @@ export async function renderTile(
   }
 
   return reqScale
-    ? `${pathnameBase}${reqScale === 1 ? '' : `@${reqScale}x`}.${extension}`
+    ? `${pathnameBase}${reqScale === 1 ? "" : `@${reqScale}x`}.${extension}`
     : undefined;
 }
 
 let coolDownPromise: Promise<void> | null;
 
 function toScaleSpec(scale: number) {
-  return scale === 1 ? '' : `@${scale}x`;
+  return scale === 1 ? "" : `@${scale}x`;
 }
 
 async function renderScales(
@@ -110,8 +94,10 @@ async function renderScales(
   y: number,
   scales: number[],
   prerender: boolean,
-  reasons: string[],
+  reasons: string[]
 ) {
+  const prerenderDelayWhenExpiring = config.prerenderDelayWhenExpiring;
+
   if (
     prerender &&
     global.processingExpiredTiles &&
@@ -129,7 +115,7 @@ async function renderScales(
     }
   }
 
-  const logPrefix = (prerender ? 'Pre-rendering' : 'Rendering') + ' tile: ';
+  const logPrefix = (prerender ? "Pre-rendering" : "Rendering") + " tile: ";
 
   let dirtyTile;
 
@@ -146,19 +132,19 @@ async function renderScales(
   const scales2: number[] = [];
 
   if (dirtyTile) {
-    reasons.push('dirty');
+    reasons.push("dirty");
 
     for (const scale of scales) {
       const scaleSpec = toScaleSpec(scale);
 
       try {
         const { mtimeMs } = await stat(
-          `${pathnameBase}${scaleSpec}.${extension}`,
+          `${pathnameBase}${scaleSpec}.${extension}`
         );
 
         if (
           mtimeMs > dirtyTile.dt &&
-          (!rerenderOlderThanMs || mtimeMs > rerenderOlderThanMs)
+          (rerenderOlderThanMs == null || mtimeMs > rerenderOlderThanMs)
         ) {
           console.log(`${logPrefix}fresh`);
 
@@ -191,18 +177,18 @@ async function renderScales(
       scales2,
       (
         {
-          jpg: 'Jpeg',
-          jpeg: 'Jpeg',
-          png: 'Png',
-          svg: 'Svg',
-          pdf: 'Pdf',
+          jpg: "Jpeg",
+          jpeg: "Jpeg",
+          png: "Png",
+          svg: "Svg",
+          pdf: "Pdf",
         } as Record<string, ImageFormat>
-      )[extension] ?? ('Jpeg' as ImageFormat),
+      )[extension] ?? ("Jpeg" as ImageFormat)
     );
 
     buffers = result.images;
 
-    measure('render', Date.now() - t);
+    measure("render", Date.now() - t);
   } finally {
     pool.release(renderer);
     // TODO release image pool on error
@@ -225,12 +211,14 @@ async function renderScales(
     ]);
   }
 
-  if (typeof expiresZoom === 'number' && zoom > prerenderMaxZoom) {
+  if (zoom > config.prerenderMaxZoom) {
+    const expiresZoom = config.expiresZoom;
+
     const div = 2 ** (zoom - expiresZoom);
 
     await mkdir(
       path.resolve(tilesDir, String(expiresZoom), String(Math.floor(x / div))),
-      { recursive: true },
+      { recursive: true }
     );
 
     const fh = await open(
@@ -238,25 +226,25 @@ async function renderScales(
         tilesDir,
         String(expiresZoom),
         String(Math.floor(x / div)),
-        Math.floor(y / div) + '.index',
+        Math.floor(y / div) + ".index"
       ),
-      'a',
+      "a"
     );
 
     fh.write(
       scales2
         .map((scale) => `${zoom}/${x}/${y}${toScaleSpec(scale)}\n`)
-        .join(''),
+        .join("")
     );
 
-    await flockAsync(fh.fd, 'sh');
+    await flockAsync(fh.fd, "sh");
 
     await fh.close();
   }
 
   await Promise.all(tmpNames.map(([from, to]) => rename(from, to)));
 
-  measure('write', Date.now() - t);
+  measure("write", Date.now() - t);
 }
 
 const measureMap = new Map<string, { count: number; duration: number }>();
@@ -278,13 +266,13 @@ function measure(operation: string, duration: number) {
 
   if (Date.now() - lastMeasureResult > 60000) {
     console.log(
-      'Measurement:',
+      "Measurement:",
       [...measureMap]
         .map(
           ([operation, { count, duration }]) =>
-            `${operation}: ${count}x ${duration / count}`,
+            `${operation}: ${count}x ${duration / count}`
         )
-        .sort(),
+        .sort()
     );
 
     measureMap.clear();
@@ -297,36 +285,36 @@ function measure(operation: string, duration: number) {
 async function shouldRender(
   pathnameBase: string,
   tile: Tile & { reqScale: number },
-  reasons: string[],
+  reasons: string[]
 ) {
   let s;
   try {
     s = await stat(
-      `${pathnameBase}${tile.reqScale === 1 ? '' : `@${tile.reqScale}x`}.${extension}`,
+      `${pathnameBase}${tile.reqScale === 1 ? "" : `@${tile.reqScale}x`}.${extension}`
     );
   } catch {
-    reasons.push('doesntExist');
+    reasons.push("doesntExist");
     return;
   }
 
   // return prerenderPolygon && isOld && !tileOverlapsLimits(prerenderPolygon, tile)
   //   || prerender && (isOld || dirtyTiles.has(tile2key(tile)));
 
-  if (prerenderPolygon) {
+  if (prerenderer?.prerenderPolygon) {
     if (
-      rerenderOlderThanMs &&
+      rerenderOlderThanMs != null &&
       s.mtimeMs < rerenderOlderThanMs &&
-      !tileOverlapsLimits(prerenderPolygon, tile)
+      !tileOverlapsLimits(prerenderer.prerenderPolygon, tile)
     ) {
-      reasons.push('shouldRender');
+      reasons.push("shouldRender");
     }
   } else {
     // reasons.push('???');
   }
 }
 
-let pdfLockCount = 0;
-const pdfUnlocks: (() => void)[] = [];
+let exportMapCount = 0;
+const exportMapUnlocks: (() => void)[] = [];
 
 // scale: my screen is 96 dpi, pdf is 72 dpi; 72 / 96 = 0.75
 export async function exportMap(
@@ -335,19 +323,19 @@ export async function exportMap(
   bbox: [number, number, number, number],
   scale = 1,
   cancelHolder: { cancelled: boolean } | undefined,
-  format: ImageFormat,
+  format: ImageFormat
 ) {
-  if (pdfLockCount >= renderToPdfConcurrency) {
+  if (exportMapCount >= config.exportMapConcurrency) {
     await new Promise<void>((unlock) => {
-      pdfUnlocks.push(unlock);
+      exportMapUnlocks.push(unlock);
     });
   }
 
   if (cancelHolder && cancelHolder.cancelled) {
-    throw new Error('Cancelled');
+    throw new Error("Cancelled");
   }
 
-  pdfLockCount++;
+  exportMapCount++;
 
   const renderer = await pool.acquire(1);
 
@@ -356,7 +344,7 @@ export async function exportMap(
       bbox4326To3857(bbox),
       zoom,
       [scale],
-      format,
+      format
     );
 
     if (!destFile) {
@@ -367,13 +355,13 @@ export async function exportMap(
   } finally {
     pool.release(renderer);
 
-    const unlock = pdfUnlocks.shift();
+    const unlock = exportMapUnlocks.shift();
 
     if (unlock) {
       unlock();
     }
 
-    pdfLockCount--;
+    exportMapCount--;
 
     if (global.gc) {
       global.gc();

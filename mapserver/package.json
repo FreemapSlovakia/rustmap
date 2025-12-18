@@ -7,19 +7,20 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@fastify/deepmerge": "^3.1.0",
     "@koa/cors": "5.0.0",
     "@koa/router": "15.1.0",
     "@turf/turf": "7.3.1",
     "ajv": "8.17.1",
     "chokidar": "5.0.0",
-    "config": "4.1.1",
     "fs-ext": "2.1.1",
     "generic-pool": "3.9.0",
     "koa": "3.1.1",
     "koa-body": "7.0.1",
     "koa-send": "5.0.1",
     "maprender-node": "../rust/crates/node",
-    "promisify-child-process": "4.1.2"
+    "json5": "^2.2.3",
+    "valibot": "^1.2.0"
   },
   "devDependencies": {
     "@types/config": "3.3.5",
@@ -40,7 +41,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "watch": "UV_THREADPOOL_SIZE=$(nproc); tsc-watch --onSuccess \"bash -c 'node dist; echo Exited $?'\""
+    "start": "UV_THREADPOOL_SIZE=$(nproc); node --enable-source-maps dist",
+    "watch": "UV_THREADPOOL_SIZE=$(nproc); tsc-watch --onSuccess \"bash -c 'node --enable-source-maps dist; echo Exited $?'\""
   },
   "exports": {
     ".": "./dist/index.js"
