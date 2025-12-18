@@ -38,7 +38,7 @@ export const configSchema = strictObject({
       max: optional(number()),
     })
   ),
-  forceTileRendering: boolean(),
+  forceTileRendering: optional(boolean(), false),
   mapFeatures: strictObject({
     contours: boolean(),
     shading: boolean(),
