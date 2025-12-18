@@ -115,7 +115,8 @@ async function renderScales(
     }
   }
 
-  const logPrefix = (prerender ? "Pre-rendering" : "Rendering") + " tile: ";
+  const logPrefix =
+    (prerender ? "Pre-rendering" : "Rendering") + ` tile ${zoom}/${x}/${y}: `;
 
   let dirtyTile;
 
