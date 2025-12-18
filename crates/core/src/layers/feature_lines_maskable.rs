@@ -3,7 +3,7 @@ use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::{line_pattern::draw_line_pattern, path_geom::path_line_string},
-    layers::{hillshading, shading_and_contours::HillshadingDatasets},
+    layers::{hillshading, hillshading_datasets::HillshadingDatasets},
     projectable::{TileProjectable, geometry_line_string},
 };
 use postgres::Client;

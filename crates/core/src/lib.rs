@@ -35,7 +35,7 @@ pub mod size;
 pub mod svg_cache;
 pub mod xyz;
 
-pub use shading_and_contours::{load_hillshading_datasets, HillshadingDatasets};
+pub use layers::hillshading_datasets::{load_hillshading_datasets, HillshadingDatasets};
 pub use svg_cache::SvgCache;
 
 pub struct Renderer;

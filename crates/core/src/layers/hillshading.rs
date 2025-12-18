@@ -1,7 +1,4 @@
-use crate::{
-    ctx::Ctx,
-    layers::shading_and_contours::HillshadingDatasets,
-};
+use crate::{ctx::Ctx, layers::hillshading_datasets::HillshadingDatasets};
 use cairo::{Format, ImageSurface};
 use gdal::Dataset;
 
@@ -13,7 +10,7 @@ fn read_rgba_from_gdal(
     gt_y_off: f64,
     gt_y_width: f64,
     raster_scale: f64,
-) -> ImageSurface {
+) -> (ImageSurface, bool) {
     let bbox = ctx.bbox;
     let size = ctx.size;
 
@@ -74,6 +71,8 @@ fn read_rgba_from_gdal(
 
     let mut data = vec![0u8; hh * ww];
 
+    let mut used_data = false;
+
     for band_index in 0..count {
         let band = dataset.rasterband(band_index + 1).unwrap();
 
@@ -95,6 +94,11 @@ fn read_rgba_from_gdal(
                 let rgba_index = ((y + offset_y) * w_scaled + (x + offset_x)) * 4;
 
                 let value = data[data_index];
+                let is_no_data = no_data.map_or(false, |nd| (nd as u8) == value);
+
+                if !is_no_data {
+                    used_data = true;
+                }
 
                 match (count, band_index) {
                     (1, _) => {
@@ -140,14 +144,16 @@ fn read_rgba_from_gdal(
         rgba_data[i + 2] = r;
     }
 
-    ImageSurface::create_for_data(
+    let surface = ImageSurface::create_for_data(
         rgba_data.to_vec(),
         Format::ARgb32,
         (size.width as f64 * raster_scale) as i32,
         (size.height as f64 * raster_scale) as i32,
         (size.width as f64 * raster_scale) as i32 * 4,
     )
-    .unwrap()
+    .unwrap();
+
+    (surface, used_data)
 }
 
 pub fn render(
@@ -157,22 +163,28 @@ pub fn render(
     shading_data: &mut HillshadingDatasets,
     raster_scale: f64,
 ) {
-    let hillshading_dataset = shading_data
-        .get(country)
-        .unwrap_or_else(|| panic!("no such dataset {country}"));
+    let (surface, used_data) = {
+        let hillshading_dataset = shading_data
+            .get(country)
+            .unwrap_or_else(|| panic!("no such dataset {country}"));
 
-    let [gt_x_off, gt_x_width, _, gt_y_off, _, gt_y_width] =
-        hillshading_dataset.geo_transform().unwrap();
+        let [gt_x_off, gt_x_width, _, gt_y_off, _, gt_y_width] =
+            hillshading_dataset.geo_transform().unwrap();
 
-    let surface = read_rgba_from_gdal(
-        hillshading_dataset,
-        ctx,
-        gt_x_off,
-        gt_x_width,
-        gt_y_off,
-        gt_y_width,
-        raster_scale,
-    );
+        read_rgba_from_gdal(
+            hillshading_dataset,
+            ctx,
+            gt_x_off,
+            gt_x_width,
+            gt_y_off,
+            gt_y_width,
+            raster_scale,
+        )
+    };
+
+    if used_data {
+        shading_data.record_use(country);
+    }
 
     let context = ctx.context;
 

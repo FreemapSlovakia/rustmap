@@ -18,6 +18,7 @@ pub mod fixmes;
 pub mod geonames;
 pub mod highway_names;
 pub mod hillshading;
+pub mod hillshading_datasets;
 pub mod housenumbers;
 pub mod landcover_names;
 pub mod landuse;
