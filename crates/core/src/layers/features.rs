@@ -406,11 +406,13 @@ pub fn render(
                 WHEN isolation BETWEEN 1500 AND 3000 THEN 'peak3'
                 ELSE 'peak'
             END AS type
-        FROM osm_features
-        NATURAL LEFT JOIN isolations
+        FROM
+            osm_features
+        NATURAL LEFT JOIN
+            isolations
         WHERE
-            type = 'peak' AND
-            name <> ''"#
+            geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) AND
+            type = 'peak' AND name <> ''"#
         .to_string();
 
     if zoom >= 13 {
@@ -429,7 +431,10 @@ pub fn render(
                         WHEN type <> 'guidepost' OR name <> '' THEN type
                         ELSE 'guidepost_noname'
                     END AS type
-                FROM osm_infopoints"#,
+                FROM
+                    osm_infopoints
+                WHERE
+                    geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)"#,
         );
     }
 
@@ -446,9 +451,10 @@ pub fn render(
                     null AS access,
                     null AS isolation,
                     type
-                FROM osm_features
+                FROM
+                    osm_features
                 WHERE
-                    type = 'aerodrome' AND
+                    geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) AND type = 'aerodrome' AND
                     tags ? 'icao'
 
                 UNION ALL
@@ -460,8 +466,10 @@ pub fn render(
                         null AS access,
                         null AS isolation,
                         type
-                    FROM osm_feature_polys
+                    FROM
+                        osm_feature_polys
                     WHERE
+                        geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) AND
                         type = 'aerodrome' AND
                         tags ? 'icao'
           "#,
@@ -480,8 +488,11 @@ pub fn render(
                 tags->'access' AS access,
                 null AS isolation,
                 type
-            FROM osm_sports
-            WHERE type IN ('free_flying', 'soccer', 'tennis', 'basketball', 'climbing', 'shooting')
+            FROM
+                osm_sports
+            WHERE
+                geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) AND
+                type IN ('free_flying', 'soccer', 'tennis', 'basketball', 'climbing', 'shooting')
 
             UNION ALL
 
@@ -502,9 +513,10 @@ pub fn render(
             FROM
                 osm_features
             WHERE
-                type <> 'peak'
-                AND (type <> 'tree' OR tags->'protected' NOT IN ('', 'no') OR tags->'denotation' = 'natural_monument')
-                AND (type <> 'saddle' OR name <> '')
+                geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) AND
+                type <> 'peak' AND
+                (type <> 'tree' OR tags->'protected' NOT IN ('', 'no') OR tags->'denotation' = 'natural_monument') AND
+                (type <> 'saddle' OR name <> '')
 
             UNION ALL
 
@@ -521,7 +533,10 @@ pub fn render(
                     WHEN type IN ('mine', 'adit', 'mineshaft') AND tags->'disused' NOT IN ('', 'no') THEN 'disused_mine'
                     ELSE type
                 END AS type
-            FROM osm_feature_polys
+            FROM
+                osm_feature_polys
+            WHERE
+                geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
 
             UNION ALL
 
@@ -536,7 +551,10 @@ pub fn render(
                     CASE WHEN type = 'spring_box' OR refitted = 'yes' THEN 'refitted_' ELSE '' END ||
                     CASE WHEN drinking_water = 'yes' OR drinking_water = 'treated' THEN 'drinking_' WHEN drinking_water = 'no' THEN 'not_drinking_' ELSE '' END || 'spring'
                 END AS type
-            FROM osm_springs
+            FROM
+                osm_springs
+            WHERE
+                geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
 
             UNION ALL
 
@@ -548,8 +566,11 @@ pub fn render(
                 null AS access,
                 null AS isolation,
                 building AS type
-            FROM osm_place_of_worships
-            WHERE building IN ('chapel', 'church', 'temple', 'mosque', 'cathedral', 'synagogue')
+            FROM
+                osm_place_of_worships
+            WHERE
+                geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) AND
+                building IN ('chapel', 'church', 'temple', 'mosque', 'cathedral', 'synagogue')
 
             UNION ALL
 
@@ -570,7 +591,10 @@ pub fn render(
                         ELSE 'other'
                     END
                 ) AS type
-            FROM osm_towers
+            FROM
+                osm_towers
+            WHERE
+                geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
         "#);
     }
 
@@ -587,7 +611,10 @@ pub fn render(
                         null AS access,
                         null AS isolation,
                         'ruins' AS type
-                    FROM osm_ruins
+                    FROM
+                        osm_ruins
+                    WHERE
+                        geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
 
                     UNION ALL
 
@@ -599,8 +626,11 @@ pub fn render(
                         null AS access,
                         null AS isolation,
                         type
-                    FROM osm_shops
-                    WHERE type IN ('convenience', 'fuel', 'confectionery', 'pastry', 'bicycle', 'supermarket')
+                    FROM
+                        osm_shops
+                    WHERE
+                        geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) AND
+                        type IN ('convenience', 'fuel', 'confectionery', 'pastry', 'bicycle', 'supermarket')
 
                     UNION ALL
 
@@ -612,8 +642,11 @@ pub fn render(
                         tags->'access' AS access,
                         null AS isolation,
                         CASE type WHEN 'ruins' THEN 'building_ruins' ELSE 'building' END AS type
-                    FROM osm_building_points
-                    WHERE type <> 'no'
+                    FROM
+                        osm_building_points
+                    WHERE
+                        geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) AND
+                        type <> 'no'
 
                     UNION ALL
 
@@ -625,8 +658,11 @@ pub fn render(
                         null AS access,
                         null AS isolation,
                         type
-                    FROM osm_feature_lines
-                    WHERE type IN ('dam', 'weir')
+                    FROM
+                        osm_feature_lines
+                    WHERE
+                        geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) AND
+                        type IN ('dam', 'weir')
                 "#,
             );
     }
@@ -644,8 +680,11 @@ pub fn render(
                         null AS access,
                         null AS isolation,
                         type
-                    FROM osm_barrierpoints
-                    WHERE type IN ('lift_gate', 'swing_gate', 'gate')
+                    FROM
+                        osm_barrierpoints
+                    WHERE
+                        geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) AND
+                        type IN ('lift_gate', 'swing_gate', 'gate')
 
                     UNION ALL
 
@@ -657,7 +696,10 @@ pub fn render(
                         null AS access,
                         null AS isolation,
                         'ford' AS type
-                    FROM osm_fords
+                    FROM
+                        osm_fords
+                    WHERE
+                        geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
 
                     UNION ALL
 
@@ -669,8 +711,11 @@ pub fn render(
                         null AS access,
                         null AS isolation,
                         'building_ruins' AS type
-                    FROM osm_buildings
-                    WHERE type = 'ruins'"#,
+                    FROM
+                        osm_buildings
+                    WHERE
+                        geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) AND
+                        type = 'ruins'"#,
         );
     }
 
@@ -678,7 +723,6 @@ pub fn render(
         r#"
             ) AS abc
             LEFT JOIN z_order_poi USING (type)
-            WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
             ORDER BY
                 z_order,
                 isolation DESC NULLS LAST,
