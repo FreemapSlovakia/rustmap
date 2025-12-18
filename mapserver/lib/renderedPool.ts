@@ -1,22 +1,21 @@
 import { cpus } from "os";
 import genericPool, { Factory } from "generic-pool";
 import { Worker } from "worker_threads";
-import { RenderRequest, RenderResponse, RenderResult } from "./renderWorker.js";
+import {
+  RendererConfig,
+  RenderRequest,
+  RenderResponse,
+  RenderResult,
+} from "./renderWorker.js";
 import { ImageFormat, RequestExtra } from "maprender-node";
 import { config } from "./config.js";
-
-type RendererConfig = {
-  connectionString: string;
-  hillshadingBase?: string;
-  svgBase: string;
-  dbPriority?: number;
-};
 
 let rendererConfig: RendererConfig = {
   connectionString: config.postgresConnectionString,
   hillshadingBase: config.dirs.hillshading ?? undefined,
   svgBase: config.dirs.svg,
   dbPriority: config.dbPriority ?? undefined,
+  maskGeojsonPath: config.limits.polygon,
 };
 
 export type WorkerRenderer = {

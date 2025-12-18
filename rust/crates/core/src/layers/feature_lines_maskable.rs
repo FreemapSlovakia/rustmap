@@ -12,7 +12,7 @@ pub fn render(
     ctx: &Ctx,
     client: &mut Client,
     svg_cache: &mut SvgCache,
-    hillshading_datasets: &mut HillshadingDatasets,
+    hillshading_datasets: &mut Option<HillshadingDatasets>,
     shading: bool,
     hillshade_scale: f64,
 ) {
@@ -77,7 +77,7 @@ pub fn render(
 
     context.push_group();
 
-    if shading {
+    if shading && let Some(hillshading_datasets) = hillshading_datasets {
         for cc in [
             "pl", "sk", "cz", "at", /*"ch", "it" (CH, IT are not so detailed) */
         ] {

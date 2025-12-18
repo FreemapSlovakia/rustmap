@@ -94,7 +94,7 @@ impl RenderWorkerPool {
                     let mut svg_cache = SvgCache::new(&*svg_base_path);
 
                     let mut hillshading_datasets =
-                        load_hillshading_datasets(&*hillshading_base_path);
+                        Some(load_hillshading_datasets(&*hillshading_base_path));
 
                     loop {
                         let RenderTask { request, resp_tx } = {

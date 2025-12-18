@@ -12,7 +12,7 @@ use postgres::NoTls;
 pub struct Renderer {
     client: postgres::Client,
     svg_cache: SvgCache,
-    shading_data: HillshadingDatasets,
+    shading_data: Option<HillshadingDatasets>,
     mask_geometry: Option<Geometry>,
 }
 
@@ -37,7 +37,7 @@ impl Renderer {
     #[napi(constructor)]
     pub fn new(
         connection_str: String,
-        hillshading_base: String,
+        hillshading_base: Option<String>,
         svg_base: String,
         db_priority: Option<u8>,
         mask_geojson_path: Option<String>,
@@ -55,26 +55,20 @@ impl Renderer {
                     &format!("SELECT set_backend_priority(pg_backend_pid(), {db_priority})"),
                     &[],
                 )
-                .unwrap();
+                .map_err(|err| Error::from_reason(format!("failed to set DB priority: {err}")))?;
         };
 
-        let mask_geometry = if let Some(path) = mask_geojson_path {
-            match load_geometry_from_geojson(path.as_ref()) {
-                Ok(geom) => Some(geom),
-                Err(err) => {
-                    return Err(Error::from_reason(format!(
-                        "failed to load mask geojson {}: {}",
-                        path, err
-                    )));
-                }
-            }
-        } else {
-            None
-        };
+        let mask_geometry = mask_geojson_path
+            .map(|path| {
+                load_geometry_from_geojson(path.as_ref()).map_err(|err| {
+                    Error::from_reason(format!("failed to load mask geojson {path}: {err}"))
+                })
+            })
+            .transpose()?;
 
         Ok(Self {
             svg_cache: SvgCache::new(svg_base),
-            shading_data: load_hillshading_datasets(hillshading_base),
+            shading_data: hillshading_base.map(load_hillshading_datasets),
             client,
             mask_geometry,
         })

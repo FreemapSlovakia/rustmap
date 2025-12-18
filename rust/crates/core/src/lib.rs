@@ -46,7 +46,7 @@ pub fn render(
     request: &RenderRequest,
     client: &mut postgres::Client,
     svg_cache: &mut SvgCache,
-    hillshading_datasets: &mut HillshadingDatasets,
+    hillshading_datasets: &mut Option<HillshadingDatasets>,
     mask_geometry: Option<&Geometry>,
 ) -> RenderedMap {
     let _span = tracy_client::span!("render_tile");
@@ -246,7 +246,7 @@ fn draw(
     bbox: Rect<f64>,
     size: crate::size::Size<u32>,
     svg_cache: &mut SvgCache,
-    hillshading_datasets: &mut HillshadingDatasets,
+    hillshading_datasets: &mut Option<HillshadingDatasets>,
     hillshade_scale: f64,
     mask_geometry: Option<&Geometry>,
 ) {
@@ -318,7 +318,9 @@ fn draw(
         road_access_restrictions::render(ctx, client, svg_cache);
     }
 
-    if shading || contours {
+    if (shading || contours)
+        && let Some(hillshading_datasets) = hillshading_datasets
+    {
         shading_and_contours::render(
             ctx,
             client,
@@ -445,7 +447,9 @@ fn draw(
 
     blur_edges::render(ctx, mask_geometry);
 
-    hillshading_datasets.evict_unused();
+    if let Some(hillshading_datasets) = hillshading_datasets {
+        hillshading_datasets.evict_unused();
+    }
 }
 
 fn paint_recording_surface(
@@ -482,7 +486,7 @@ pub struct RenderRequest {
 }
 
 impl RenderRequest {
-    pub fn new(bbox: Rect<f64>, zoom: u32, scales: Vec<f64>, format: ImageFormat) -> Self {
+    pub const fn new(bbox: Rect<f64>, zoom: u32, scales: Vec<f64>, format: ImageFormat) -> Self {
         Self {
             bbox,
             zoom,

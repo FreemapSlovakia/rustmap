@@ -1,6 +1,14 @@
 import { ImageFormat, Renderer, RequestExtra } from "maprender-node";
 import { parentPort, workerData } from "worker_threads";
 
+export type RendererConfig = {
+  connectionString: string;
+  hillshadingBase?: string;
+  svgBase: string;
+  dbPriority?: number;
+  maskGeojsonPath: string;
+};
+
 export type RenderResult = ReturnType<Renderer["render"]>;
 
 export type RenderRequest = {
@@ -40,11 +48,14 @@ if (!pp) {
   throw new Error("parentPort is null");
 }
 
+const wd = workerData as RendererConfig;
+
 const renderer = new Renderer(
-  workerData.connectionString,
-  workerData.hillshadingBase,
-  workerData.svgBase,
-  workerData.dbPriority
+  wd.connectionString,
+  wd.hillshadingBase,
+  wd.svgBase,
+  wd.dbPriority,
+  wd.maskGeojsonPath
 );
 
 pp.postMessage({ type: "ready" } satisfies RenderResponse);

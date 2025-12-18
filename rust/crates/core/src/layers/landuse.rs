@@ -1,10 +1,10 @@
 use crate::{
-    SvgCache,
     colors::{self, Color, ContextExt},
     ctx::Ctx,
     draw::path_geom::path_geometry,
-    projectable::{TileProjectable, geometry_geometry},
+    projectable::{geometry_geometry, TileProjectable},
     xyz::to_absolute_pixel_coords,
+    SvgCache,
 };
 use cairo::{Extend, Matrix, SurfacePattern};
 use postgres::Client;
@@ -19,7 +19,9 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
 
     let excl_types = match ctx.zoom {
         ..12 => &format!("type NOT IN ({a}) AND"),
-        ..13 => &format!("type NOT IN ({a}, 'parking', 'bunker_silo', 'storage_tank', 'silo') AND"),
+        12..13 => {
+            &format!("type NOT IN ({a}, 'parking', 'bunker_silo', 'storage_tank', 'silo') AND")
+        }
         _ => "",
     };
 
