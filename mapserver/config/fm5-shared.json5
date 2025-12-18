@@ -3,7 +3,7 @@
   dirs: {
     hillshading: "/fm/data2/hillshading",
     svg: "/home/freemap/X/rustmap/images",
-    tiles: "/home/freemap/freemap-mapnik/tiles",
+    tiles: "/fm/data4/X-tiles",
     expires: "/home/freemap/X/expires",
   },
   limits: {
