@@ -1,0 +1,34 @@
+{
+  mapFeatures: {
+    contours: false,
+    shading: true,
+    // hikingTrails: false,
+    // bicycleTrails: false,
+    // skiTrails: false,
+    // skiTrails: false,
+    // horseTrails: false,
+  },
+  limits: {
+    minZoom: 0,
+    maxZoom: 19,
+    scales: [1, 2, 3],
+  },
+  // prerender: {
+  //   // set to null to disable pre-rendering
+  //   // workers: 16, // commented out = use num of cpus
+  //   polygon: "tmp.geojson",
+  //   minZoom: 14,
+  //   maxZoom: 14,
+  //   // zoomPrio: [18],
+  // },
+  prerender: null,
+  forceTileRendering: true,
+  crop: null,
+  format: {
+    extension: 'jpg',
+    mimeType: 'image/jpeg',
+  },
+  postgresConnectionString: 'postgres://martin:b0n0@localhost/martin',
+  hillshadingBase: '/home/martin/14TB/hillshading',
+  svgBase: '/home/martin/fm/maprender/images',
+}
