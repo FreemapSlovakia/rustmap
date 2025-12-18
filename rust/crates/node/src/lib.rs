@@ -1,9 +1,10 @@
-use geo::Rect;
+use geo::{Geometry, Rect};
 use maprender_core::{
     HillshadingDatasets, ImageFormat, RenderRequest, SvgCache, layers::routes::RouteTypes,
-    load_hillshading_datasets, render,
+    load_geometry_from_geojson, load_hillshading_datasets, render,
 };
 use napi::bindgen_prelude::*;
+use napi::{Error, Result};
 use napi_derive::napi;
 use postgres::NoTls;
 
@@ -12,6 +13,7 @@ pub struct Renderer {
     client: postgres::Client,
     svg_cache: SvgCache,
     shading_data: HillshadingDatasets,
+    mask_geometry: Option<Geometry>,
 }
 
 #[napi(object)]
@@ -38,6 +40,7 @@ impl Renderer {
         hillshading_base: String,
         svg_base: String,
         db_priority: Option<u8>,
+        mask_geojson_path: Option<String>,
     ) -> Result<Self> {
         let mut client = postgres::Client::connect(&connection_str, NoTls).map_err(|err| {
             Error::new(
@@ -55,10 +58,25 @@ impl Renderer {
                 .unwrap();
         };
 
+        let mask_geometry = if let Some(path) = mask_geojson_path {
+            match load_geometry_from_geojson(path.as_ref()) {
+                Ok(geom) => Some(geom),
+                Err(err) => {
+                    return Err(Error::from_reason(format!(
+                        "failed to load mask geojson {}: {}",
+                        path, err
+                    )));
+                }
+            }
+        } else {
+            None
+        };
+
         Ok(Self {
             svg_cache: SvgCache::new(svg_base),
             shading_data: load_hillshading_datasets(hillshading_base),
             client,
+            mask_geometry,
         })
     }
 
@@ -100,6 +118,7 @@ impl Renderer {
             &mut self.client,
             &mut self.svg_cache,
             &mut self.shading_data,
+            self.mask_geometry.as_ref(),
         );
 
         Ok(RenderResult {

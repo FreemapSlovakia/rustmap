@@ -7,7 +7,7 @@ export declare const enum ImageFormat {
   Svg = 'Svg'
 }
 export declare class Renderer {
-  constructor(connectionStr: string, hillshadingBase: string, svgBase: string, dbPriority?: number | undefined | null)
+  constructor(connectionStr: string, hillshadingBase: string, svgBase: string, dbPriority?: number | undefined | null, maskGeojsonPath?: string | undefined | null)
   render(bbox: [number, number, number, number], zoom: number, scales: Array<number>, format: ImageFormat, extra?: RequestExtra | undefined | null): RenderResult
 }
 

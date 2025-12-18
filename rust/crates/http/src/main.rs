@@ -111,6 +111,7 @@ impl RenderWorkerPool {
                                 &mut client,
                                 &mut svg_cache,
                                 &mut hillshading_datasets,
+                                None,
                             )),
                             Err(e) => Err(format!("db pool error: {e}")),
                         };

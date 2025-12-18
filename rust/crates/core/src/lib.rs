@@ -9,6 +9,7 @@ use cairo::{
 };
 use collision::Collision;
 use ctx::Ctx;
+use geo::Geometry;
 use geo::Rect;
 use image::codecs::jpeg::JpegEncoder;
 use image::{ExtendedColorType, ImageEncoder};
@@ -28,13 +29,14 @@ pub mod collision;
 pub mod colors;
 pub mod ctx;
 pub mod draw;
+pub mod geojson_utils;
 pub mod layers;
 pub mod projectable;
 pub mod re_replacer;
 pub mod size;
 pub mod svg_cache;
 pub mod xyz;
-
+pub use geojson_utils::load_geometry_from_geojson;
 pub use layers::hillshading_datasets::{HillshadingDatasets, load_hillshading_datasets};
 pub use svg_cache::SvgCache;
 
@@ -45,6 +47,7 @@ pub fn render(
     client: &mut postgres::Client,
     svg_cache: &mut SvgCache,
     hillshading_datasets: &mut HillshadingDatasets,
+    mask_geometry: Option<&Geometry>,
 ) -> RenderedMap {
     let _span = tracy_client::span!("render_tile");
 
@@ -97,6 +100,7 @@ pub fn render(
             svg_cache,
             hillshading_datasets,
             hillshade_scale,
+            mask_geometry,
         );
     }
 
@@ -244,6 +248,7 @@ fn draw(
     svg_cache: &mut SvgCache,
     hillshading_datasets: &mut HillshadingDatasets,
     hillshade_scale: f64,
+    mask_geometry: Option<&Geometry>,
 ) {
     let shading = true; // TODO to args
     let contours = true; // TODO to args
@@ -438,7 +443,7 @@ fn draw(
         country_names::render(ctx, client);
     }
 
-    blur_edges::render(ctx);
+    blur_edges::render(ctx, mask_geometry);
 
     hillshading_datasets.evict_unused();
 }
