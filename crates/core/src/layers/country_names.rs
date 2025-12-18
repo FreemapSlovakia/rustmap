@@ -86,9 +86,9 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             // TODO offset_line_string produces bad results for `align: Align::Justify`
             // options.offset = offset;
 
-            let geom = offset_line_string(&geom, offset);
-
             while options.flo.size > 10.0 {
+                let geom = offset_line_string(&geom, offset);
+
                 if draw_text_on_line(context, &geom, name, None, &options) {
                     break;
                 }
