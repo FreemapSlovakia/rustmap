@@ -197,7 +197,7 @@ async function renderScales(
 
   const tmpNames: [string, string][] = [];
 
-  for (let i = 0; i < scales.length; i++) {
+  for (let i = 0; i < scales2.length; i++) {
     const scale = scales2[i];
 
     const tmpName = `${pathnameBase}${toScaleSpec(scale)}_${cnt++}_tmp.${extension}`;
