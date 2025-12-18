@@ -380,7 +380,9 @@ fn draw(
         national_park_names::render(ctx, client, collision);
     }
 
-    features::render(ctx, client, collision, svg_cache);
+    if zoom >= 10 {
+        features::render(ctx, client, collision, svg_cache);
+    }
 
     if zoom >= 10 {
         water_area_names::render(ctx, client, collision);
