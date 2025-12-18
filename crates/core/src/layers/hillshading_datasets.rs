@@ -2,6 +2,7 @@ use gdal::Dataset;
 use std::{
     collections::{HashMap, hash_map::Entry},
     path::{Path, PathBuf},
+    time::{Duration, Instant},
 };
 
 const DATASET_PATHS: [(&str, &str); 17] = [
@@ -25,10 +26,12 @@ const DATASET_PATHS: [(&str, &str); 17] = [
 ];
 
 const MAX_UNUSED_USES: u64 = 100;
+const EVICT_AFTER: Duration = Duration::from_secs(10);
 
 struct CachedDataset {
     dataset: Dataset,
     last_use: u64,
+    last_used_at: Instant,
 }
 
 pub struct HillshadingDatasets {
@@ -48,8 +51,12 @@ impl HillshadingDatasets {
 
     pub fn evict_unused(&mut self) {
         let threshold = self.use_counter.saturating_sub(MAX_UNUSED_USES);
-        self.datasets
-            .retain(|_, cached| cached.last_use >= threshold);
+
+        let now = Instant::now();
+
+        self.datasets.retain(|_, cached| {
+            cached.last_use >= threshold && now.duration_since(cached.last_used_at) <= EVICT_AFTER
+        });
     }
 
     pub fn get(&mut self, name: &str) -> Option<&Dataset> {
@@ -68,6 +75,7 @@ impl HillshadingDatasets {
                         let entry = vac.insert(CachedDataset {
                             dataset,
                             last_use: self.use_counter,
+                            last_used_at: Instant::now(),
                         });
                         Some(&entry.dataset)
                     }
@@ -89,9 +97,8 @@ impl HillshadingDatasets {
 
         if let Some(entry) = self.datasets.get_mut(name) {
             entry.last_use = self.use_counter;
+            entry.last_used_at = Instant::now();
         }
-
-        self.evict_unused();
     }
 }
 

@@ -16,8 +16,6 @@ pub fn render(
 ) {
     let _span = tracy_client::span!("shading_and_contours::render");
 
-    hillshading_datasets.evict_unused();
-
     let fade_alpha = 1.0f64.min(1.0 - (ctx.zoom as f64 - 7.0).ln() / 5.0);
 
     let context = ctx.context;

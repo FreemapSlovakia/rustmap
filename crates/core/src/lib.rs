@@ -35,7 +35,7 @@ pub mod size;
 pub mod svg_cache;
 pub mod xyz;
 
-pub use layers::hillshading_datasets::{load_hillshading_datasets, HillshadingDatasets};
+pub use layers::hillshading_datasets::{HillshadingDatasets, load_hillshading_datasets};
 pub use svg_cache::SvgCache;
 
 pub struct Renderer;
@@ -439,6 +439,8 @@ fn draw(
     }
 
     blur_edges::render(ctx);
+
+    hillshading_datasets.evict_unused();
 }
 
 fn paint_recording_surface(
