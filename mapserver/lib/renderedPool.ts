@@ -99,7 +99,7 @@ function createWorkerRenderer(worker: Worker): WorkerRenderer {
     handleFailure(err);
   });
 
-  worker.on("exit", (code) => {
+  worker.once("exit", (code) => {
     if (code !== 0) {
       handleFailure(new Error(`Render worker exited with code ${code}`));
     }
