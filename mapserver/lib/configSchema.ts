@@ -27,10 +27,12 @@ export const configSchema = strictObject({
     hillshading: nullish(pipe(string(), nonEmpty())),
     svg: pipe(string(), nonEmpty()),
   }),
-  server: strictObject({
-    host: nullish(string()),
-    port: number(),
-  }),
+  server: nullish(
+    strictObject({
+      host: nullish(string()),
+      port: number(),
+    })
+  ),
   // min/max are optional, otherwise use number of CPUs
   workers: nullish(
     strictObject({
@@ -66,7 +68,7 @@ export const configSchema = strictObject({
     })
   ),
   rerenderOlderThanMs: nullish(number()),
-  exportMapConcurrency: number(),
+  exportMapConcurrency: nullish(number()),
   format: strictObject({
     extension: string(),
     mimeType: string(),

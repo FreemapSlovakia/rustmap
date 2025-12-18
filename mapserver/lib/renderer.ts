@@ -325,6 +325,10 @@ export async function exportMap(
   cancelHolder: { cancelled: boolean } | undefined,
   format: ImageFormat
 ) {
+  if (config.exportMapConcurrency == null) {
+    throw new Error("exporting disabled");
+  }
+
   if (exportMapCount >= config.exportMapConcurrency) {
     await new Promise<void>((unlock) => {
       exportMapUnlocks.push(unlock);

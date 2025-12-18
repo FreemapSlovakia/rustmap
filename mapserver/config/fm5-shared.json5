@@ -2,7 +2,7 @@
   postgresConnectionString: "postgres://freemap:freemap4ever@localhost/freemap",
   dirs: {
     hillshading: "/fm/data2/hillshading",
-    svg: "/home/freemap/X/rustmap/images",
+    svg: "/home/freemap/X/rustmap/rust/images",
     tiles: "/fm/data4/X-tiles",
     expires: "/home/freemap/X/expires",
   },
