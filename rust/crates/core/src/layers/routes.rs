@@ -496,7 +496,7 @@ pub fn render_labels(
             ] {
                 options.offset = offset;
 
-                draw_text_on_line(ctx.context, &geom, refs, Some(collision), &options);
+                draw_text_on_line(ctx.context, geom, refs, Some(collision), &options);
             }
         });
     }

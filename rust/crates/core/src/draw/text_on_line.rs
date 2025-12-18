@@ -256,11 +256,10 @@ fn trim_line_to_span(pts: &[Coord], cum: &[f64], span_start: f64, span_end: f64)
         trimmed.push(pts[i + 1]);
     }
 
-    if let Some((p, _)) = position_at(pts, cum, end) {
-        if trimmed.last().map(|q| *q != p).unwrap_or(true) {
+    if let Some((p, _)) = position_at(pts, cum, end)
+        && trimmed.last().map(|q| *q != p).unwrap_or(true) {
             trimmed.push(p);
         }
-    }
 
     trimmed
 }
@@ -924,8 +923,8 @@ pub fn draw_text_on_line(
                 }
             }
 
-            if let Some(col) = collision.as_deref() {
-                if let Some((idx, _)) = glyph_bboxes
+            if let Some(col) = collision.as_deref()
+                && let Some((idx, _)) = glyph_bboxes
                     .iter()
                     .enumerate()
                     .find(|(_, bb)| col.collides(bb))
@@ -953,7 +952,6 @@ pub fn draw_text_on_line(
 
                     continue 'outer;
                 }
-            }
 
             if repeat.defer_collision {
                 new_collision_bboxes.extend(glyph_bboxes);

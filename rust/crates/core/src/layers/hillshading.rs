@@ -94,7 +94,7 @@ fn read_rgba_from_gdal(
                 let rgba_index = ((y + offset_y) * w_scaled + (x + offset_x)) * 4;
 
                 let value = data[data_index];
-                let is_no_data = no_data.map_or(false, |nd| (nd as u8) == value);
+                let is_no_data = no_data.is_some_and(|nd| (nd as u8) == value);
 
                 if !is_no_data {
                     used_data = true;

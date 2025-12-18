@@ -90,7 +90,7 @@ fn tile_intersects_mask(mask: &Geometry, ctx: &Ctx) -> bool {
         return false;
     };
 
-    let blur_radius_m = BLUR_RADIUS_PX as f64 * ctx.meters_per_pixel() * 3.0;
+    let blur_radius_m = BLUR_RADIUS_PX * ctx.meters_per_pixel() * 3.0;
 
     Rect::new(
         (bbox.min().x - blur_radius_m, bbox.min().y - blur_radius_m),

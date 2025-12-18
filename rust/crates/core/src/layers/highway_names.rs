@@ -48,7 +48,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         let name: &str = row.get("name");
 
         walk_geometry_line_strings(&geom, &mut |geom| {
-            draw_text_on_line(ctx.context, &geom, name, Some(collision), &options);
+            draw_text_on_line(ctx.context, geom, name, Some(collision), &options);
         });
     }
 }
