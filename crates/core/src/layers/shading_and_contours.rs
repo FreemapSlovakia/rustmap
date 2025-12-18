@@ -102,19 +102,19 @@ pub fn render(
 
         if contours && ctx.zoom >= 12 {
             context.push_group(); // contours
-            contours::render(ctx, client, country);
+            contours::render(ctx, client, Some(country));
             context.pop_group_to_source().unwrap(); // contours
             context.paint_with_alpha(0.33).unwrap();
         }
 
         if shading {
-        hillshading::render(
-            ctx,
-            country,
-            fade_alpha,
-            hillshading_datasets,
-            hillshade_scale,
-        );
+            hillshading::render(
+                ctx,
+                country,
+                fade_alpha,
+                hillshading_datasets,
+                hillshade_scale,
+            );
         }
 
         context.pop_group_to_source().unwrap(); // contours-and-shading
@@ -158,7 +158,7 @@ pub fn render(
 
             if contours && ctx.zoom >= 12 {
                 context.push_group(); // contours
-                contours::render(ctx, client, "contour_split");
+                contours::render(ctx, client, None);
                 context.pop_group_to_source().unwrap(); // contours
                 context.paint_with_alpha(0.33).unwrap();
             }

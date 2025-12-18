@@ -12,7 +12,7 @@ use crate::{
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, country: &str) {
+pub fn render(ctx: &Ctx, client: &mut Client, country: Option<&str>) {
     let _span = tracy_client::span!("contours::render");
 
     let context = ctx.context;
@@ -35,9 +35,13 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: &str) {
     // TODO measure performance impact of simplification, if it makes something faster
     let sql = format!(
         "SELECT ST_SimplifyVW(wkb_geometry, $6) AS geometry, height
-        FROM contour_{}_split
+        FROM {}
         WHERE wkb_geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)",
-        country
+        &(if let Some(country) = country {
+            format!("contour_{country}_split")
+        } else {
+            "contour_split".to_string()
+        })
     );
 
     let mut params = ctx.bbox_query_params(Some(8.0));
