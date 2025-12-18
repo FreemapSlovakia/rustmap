@@ -308,7 +308,7 @@ fn prepare_label_span(
     trim_padding: f64,
     offset: f64,
     keep_offset_side: bool,
-    halo_width: f64,
+    clip_padding: f64,
     clip_extents: Option<(f64, f64, f64, f64)>,
 ) -> Option<PreparedLine> {
     // Orient the geometry according to the chosen upright direction.
@@ -357,7 +357,7 @@ fn prepare_label_span(
     }
 
     if let Some(clip) = clip_extents
-        && !bbox_intersects_clip(&pts_use, clip, halo_width)
+        && !bbox_intersects_clip(&pts_use, clip, clip_padding)
     {
         return None;
     }
@@ -647,6 +647,7 @@ pub fn draw_text_on_line(
     if total_length == 0.0 {
         return true;
     }
+
     let clip_extents = context.clip_extents().ok();
 
     let TextOnLineOptions {
@@ -757,6 +758,7 @@ pub fn draw_text_on_line(
 
             let trim_padding = (options.flo.size * 5.0) + options.halo_width + offset.abs();
             let keep_offset_side = options.keep_offset_side && matches!(upright, Upright::Auto);
+            let clip_padding = options.halo_width + options.flo.size;
             let prepared = match prepare_label_span(
                 &pts,
                 total_length,
@@ -766,7 +768,7 @@ pub fn draw_text_on_line(
                 trim_padding,
                 *offset,
                 keep_offset_side,
-                options.halo_width,
+                clip_padding,
                 clip_extents,
             ) {
                 Some(p) => p,

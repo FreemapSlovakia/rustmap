@@ -58,7 +58,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     );
 
     let rows = client
-        .query(sql, &ctx.bbox_query_params(Some(20.0)).as_params())
+        .query(sql, &ctx.bbox_query_params(Some(128.0)).as_params())
         .expect("db data");
 
     for row in rows {
