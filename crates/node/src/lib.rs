@@ -1,10 +1,7 @@
-use std::collections::HashMap;
-
-use gdal::Dataset;
 use geo::Rect;
 use maprender_core::{
-    ImageFormat, RenderRequest, SvgCache, layers::routes::RouteTypes, load_hillshading_datasets,
-    render,
+    HillshadingDatasets, ImageFormat, RenderRequest, SvgCache, layers::routes::RouteTypes,
+    load_hillshading_datasets, render,
 };
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
@@ -14,7 +11,7 @@ use postgres::NoTls;
 pub struct Renderer {
     client: postgres::Client,
     svg_cache: SvgCache,
-    shading_data: HashMap<String, Dataset>,
+    shading_data: HillshadingDatasets,
 }
 
 #[napi(object)]

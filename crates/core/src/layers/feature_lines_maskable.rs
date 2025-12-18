@@ -1,21 +1,18 @@
-use std::collections::HashMap;
-
 use crate::{
     SvgCache,
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::{line_pattern::draw_line_pattern, path_geom::path_line_string},
-    layers::hillshading,
+    layers::{hillshading, shading_and_contours::HillshadingDatasets},
     projectable::{TileProjectable, geometry_line_string},
 };
-use gdal::Dataset;
 use postgres::Client;
 
 pub fn render(
     ctx: &Ctx,
     client: &mut Client,
     svg_cache: &mut SvgCache,
-    hillshading_datasets: &mut HashMap<String, Dataset>,
+    hillshading_datasets: &mut HillshadingDatasets,
     shading: bool,
     hillshade_scale: f64,
 ) {

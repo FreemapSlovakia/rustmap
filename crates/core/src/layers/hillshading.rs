@@ -1,6 +1,7 @@
-use std::collections::HashMap;
-
-use crate::ctx::Ctx;
+use crate::{
+    ctx::Ctx,
+    layers::shading_and_contours::HillshadingDatasets,
+};
 use cairo::{Format, ImageSurface};
 use gdal::Dataset;
 
@@ -153,7 +154,7 @@ pub fn render(
     ctx: &Ctx,
     country: &str,
     alpha: f64,
-    shading_data: &mut HashMap<String, Dataset>,
+    shading_data: &mut HillshadingDatasets,
     raster_scale: f64,
 ) {
     let hillshading_dataset = shading_data

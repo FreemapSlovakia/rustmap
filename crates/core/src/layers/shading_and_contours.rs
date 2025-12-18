@@ -4,63 +4,128 @@ use crate::{
 };
 use gdal::Dataset;
 use postgres::Client;
-use std::{collections::HashMap, path::Path};
+use std::{
+    collections::{HashMap, hash_map::Entry},
+    path::{Path, PathBuf},
+    time::{Duration, Instant},
+};
 
 const FALLBACK: bool = true;
 
-pub fn load_hillshading_datasets(base: impl AsRef<Path>) -> HashMap<String, Dataset> {
-    let base = base.as_ref();
-    let datasets = [
-        (String::from("sk"), "sk/final.tif"),
-        (String::from("sk-mask"), "sk/mask.tif"),
-        (String::from("cz"), "cz/final.tif"),
-        (String::from("cz-mask"), "cz/mask.tif"),
-        (String::from("at"), "at/final.tif"),
-        (String::from("at-mask"), "at/mask.tif"),
-        (String::from("pl"), "pl/final.tif"),
-        (String::from("pl-mask"), "pl/mask.tif"),
-        (String::from("it"), "it/final.tif"),
-        (String::from("it-mask"), "it/mask.tif"),
-        (String::from("ch"), "ch/final.tif"),
-        (String::from("ch-mask"), "ch/mask.tif"),
-        (String::from("si"), "si/final.tif"),
-        (String::from("si-mask"), "si/mask.tif"),
-        (String::from("fr"), "fr/final.tif"),
-        (String::from("fr-mask"), "fr/mask.tif"),
-        (String::from("_"), "final.tiff"),
-    ];
+const DATASET_PATHS: [(&str, &str); 17] = [
+    ("sk", "sk/final.tif"),
+    ("sk-mask", "sk/mask.tif"),
+    ("cz", "cz/final.tif"),
+    ("cz-mask", "cz/mask.tif"),
+    ("at", "at/final.tif"),
+    ("at-mask", "at/mask.tif"),
+    ("pl", "pl/final.tif"),
+    ("pl-mask", "pl/mask.tif"),
+    ("it", "it/final.tif"),
+    ("it-mask", "it/mask.tif"),
+    ("ch", "ch/final.tif"),
+    ("ch-mask", "ch/mask.tif"),
+    ("si", "si/final.tif"),
+    ("si-mask", "si/mask.tif"),
+    ("fr", "fr/final.tif"),
+    ("fr-mask", "fr/mask.tif"),
+    ("_", "final.tiff"),
+];
 
-    let mut hillshading_datasets = HashMap::new();
+const EVICT_AFTER: Duration = Duration::from_secs(10);
 
-    for (name, path) in datasets {
-        let full_path = base.join(path);
+struct CachedDataset {
+    dataset: Dataset,
+    last_used: Instant,
+}
 
-        match Dataset::open(&full_path) {
-            Ok(dataset) => {
-                hillshading_datasets.insert(name.clone(), dataset);
-            }
-            Err(err) => {
-                eprintln!(
-                    "Error opening hillshading geotiff {}: {}",
-                    full_path.display(),
-                    err
-                );
-            }
+pub struct HillshadingDatasets {
+    base: PathBuf,
+    datasets: HashMap<String, CachedDataset>,
+}
+
+impl HillshadingDatasets {
+    pub fn new(base: impl AsRef<Path>) -> Self {
+        Self {
+            base: base.as_ref().to_path_buf(),
+            datasets: HashMap::new(),
         }
     }
 
-    hillshading_datasets
+    pub fn evict_unused(&mut self) {
+        let now = Instant::now();
+
+        self.datasets
+            .retain(|_, cached| now.duration_since(cached.last_used) <= EVICT_AFTER);
+    }
+
+    pub fn get(&mut self, name: &str) -> Option<&Dataset> {
+        let now = Instant::now();
+
+        self.evict_unused();
+
+        match self.datasets.entry(name.to_string()) {
+            Entry::Occupied(occ) => {
+                let entry = occ.into_mut();
+
+                entry.last_used = now;
+
+                Some(&entry.dataset)
+            }
+            Entry::Vacant(vac) => {
+                let Some(path) = dataset_path(name) else {
+                    eprintln!("Unknown hillshading dataset key: {name}");
+                    return None;
+                };
+
+                let full_path = self.base.join(path);
+
+                match Dataset::open(&full_path) {
+                    Ok(dataset) => {
+                        let entry = vac.insert(CachedDataset {
+                            dataset,
+                            last_used: now,
+                        });
+
+                        Some(&entry.dataset)
+                    }
+                    Err(err) => {
+                        eprintln!(
+                            "Error opening hillshading geotiff {}: {}",
+                            full_path.display(),
+                            err
+                        );
+
+                        None
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn dataset_path(name: &str) -> Option<&'static str> {
+    DATASET_PATHS
+        .iter()
+        .find(|(dataset_name, _)| dataset_name == &name)
+        .map(|(_, path)| *path)
+}
+
+pub fn load_hillshading_datasets(base: impl AsRef<Path>) -> HillshadingDatasets {
+    HillshadingDatasets::new(base)
 }
 
 pub fn render(
     ctx: &Ctx,
     client: &mut Client,
-    hillshading_datasets: &mut HashMap<String, Dataset>,
+    hillshading_datasets: &mut HillshadingDatasets,
     shading: bool,
     contours: bool,
     hillshade_scale: f64,
 ) {
     let _span = tracy_client::span!("shading_and_contours::render");
+
+    hillshading_datasets.evict_unused();
 
     let fade_alpha = 1.0f64.min(1.0 - (ctx.zoom as f64 - 7.0).ln() / 5.0);
 

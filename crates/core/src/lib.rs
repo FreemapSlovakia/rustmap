@@ -9,7 +9,6 @@ use cairo::{
 };
 use collision::Collision;
 use ctx::Ctx;
-use gdal::Dataset;
 use geo::Rect;
 use image::codecs::jpeg::JpegEncoder;
 use image::{ExtendedColorType, ImageEncoder};
@@ -23,7 +22,6 @@ use layers::{
 };
 use napi_derive::napi;
 use projectable::TileProjector;
-use std::collections::HashMap;
 use xyz::bbox_size_in_pixels;
 
 pub mod collision;
@@ -37,7 +35,7 @@ pub mod size;
 pub mod svg_cache;
 pub mod xyz;
 
-pub use shading_and_contours::load_hillshading_datasets;
+pub use shading_and_contours::{load_hillshading_datasets, HillshadingDatasets};
 pub use svg_cache::SvgCache;
 
 pub struct Renderer;
@@ -46,7 +44,7 @@ pub fn render(
     request: &RenderRequest,
     client: &mut postgres::Client,
     svg_cache: &mut SvgCache,
-    hillshading_datasets: &mut HashMap<String, Dataset>,
+    hillshading_datasets: &mut HillshadingDatasets,
 ) -> RenderedMap {
     let _span = tracy_client::span!("render_tile");
 
@@ -244,7 +242,7 @@ fn draw(
     bbox: Rect<f64>,
     size: crate::size::Size<u32>,
     svg_cache: &mut SvgCache,
-    hillshading_datasets: &mut HashMap<String, Dataset>,
+    hillshading_datasets: &mut HillshadingDatasets,
     hillshade_scale: f64,
 ) {
     let shading = true; // TODO to args
