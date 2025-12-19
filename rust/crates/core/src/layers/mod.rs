@@ -9,6 +9,7 @@ pub mod building_names;
 pub mod buildings;
 pub mod contours;
 pub mod country_names;
+pub mod custom;
 pub mod cutlines;
 pub mod embankments;
 pub mod feature_lines;

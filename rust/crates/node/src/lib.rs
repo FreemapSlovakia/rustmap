@@ -1,4 +1,5 @@
 use geo::{Geometry, Rect};
+use geojson::FeatureCollection;
 use maprender_core::{
     HillshadingDatasets, ImageFormat, RenderRequest, SvgCache, layers::routes::RouteTypes,
     load_geometry_from_geojson, load_hillshading_datasets, render,
@@ -31,6 +32,7 @@ pub struct RequestExtra {
     pub bicycle_routes: Option<bool>,
     pub ski_routes: Option<bool>,
     pub horse_routes: Option<bool>,
+    pub feature_collection: Option<String>,
 }
 
 #[napi]
@@ -105,6 +107,14 @@ impl Renderer {
                 route_types.set(RouteTypes::HORSE, extra.horse_routes.unwrap_or(true));
 
                 request.route_types = route_types;
+            }
+
+            if let Some(feature_collection) = extra.feature_collection {
+                let feature_collection: FeatureCollection =
+                    serde_json::from_str(&feature_collection)
+                        .map_err(|err| Error::from_reason(format!("parse: {err}")))?;
+
+                request.featues = Some(feature_collection.features);
             }
         }
 

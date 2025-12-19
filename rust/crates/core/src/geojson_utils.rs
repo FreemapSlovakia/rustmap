@@ -5,7 +5,9 @@ use std::{cell::Cell, fs::File, io::BufReader, path::Path};
 
 pub fn load_geometry_from_geojson(path: &Path) -> Result<Geometry, String> {
     let file = File::open(path).map_err(|err| format!("open {}: {err}", path.display()))?;
+
     let reader = BufReader::new(file);
+
     let geojson: GeoJson = serde_json::from_reader(reader)
         .map_err(|err| format!("parse {}: {err}", path.display()))?;
 

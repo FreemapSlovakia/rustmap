@@ -358,6 +358,7 @@ export async function exportMap(
         horseRoutes: features.horseTrails,
         hikingRoutes: features.hikingTrails,
         skiRoutes: features.skiTrails,
+        featureCollection: JSON.stringify(features.featureCollection),
       }
     );
 

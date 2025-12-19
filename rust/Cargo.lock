@@ -1598,11 +1598,13 @@ version = "0.1.0"
 dependencies = [
  "gdal",
  "geo",
+ "geojson",
  "maprender-core",
  "napi",
  "napi-derive",
  "postgres",
  "regex",
+ "serde_json",
 ]
 
 [[package]]

@@ -1,6 +1,6 @@
 use cairo::Context;
 use cavalier_contours::polyline::{PlineSource, PlineSourceMut, PlineVertex, Polyline};
-use geo::{Geometry, LineString, Polygon};
+use geo::{Geometry, LineString, Point, Polygon};
 
 pub fn path_geometry(context: &Context, geom: &Geometry) {
     walk_geometry_line_strings(geom, &mut |line_string| {
@@ -44,6 +44,62 @@ where
             dl(&LineString::new(vec![line.start, line.end]));
         }
         Geometry::Point(_) | Geometry::MultiPoint(_) => {}
+    }
+}
+
+pub fn path_polygons(context: &Context, geom: &Geometry) {
+    walk_geometry_polygons(geom, &mut |line_string| {
+        path_line_string(context, line_string)
+    });
+}
+
+pub fn walk_geometry_polygons<F>(geom: &Geometry, dl: &mut F)
+where
+    F: FnMut(&LineString),
+{
+    match geom {
+        Geometry::GeometryCollection(gc) => {
+            for geometry in gc {
+                walk_geometry_polygons(geometry, dl);
+            }
+        }
+        Geometry::Polygon(p) => {
+            path_polygon(p, dl);
+        }
+        Geometry::MultiPolygon(mp) => {
+            for p in mp {
+                path_polygon(p, dl);
+            }
+        }
+        Geometry::Rect(r) => {
+            dl(r.to_polygon().exterior());
+        }
+        Geometry::Triangle(r) => {
+            dl(r.to_polygon().exterior());
+        }
+        _ => {}
+    }
+}
+
+pub fn walk_geometry_points<F>(geom: &Geometry, dl: &mut F)
+where
+    F: FnMut(&Point),
+{
+    match geom {
+        Geometry::GeometryCollection(gc) => {
+            for geometry in gc {
+                walk_geometry_points(geometry, dl);
+            }
+        }
+        Geometry::Point(p) => {
+            dl(p);
+        }
+        Geometry::MultiPoint(mp) => {
+            for p in mp {
+                dl(p);
+            }
+        }
+        _ => {}
     }
 }
 

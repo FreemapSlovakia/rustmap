@@ -23,4 +23,5 @@ export interface RequestExtra {
   bicycleRoutes?: boolean
   skiRoutes?: boolean
   horseRoutes?: boolean
+  featureCollection?: string
 }

@@ -1,6 +1,6 @@
 use crate::layers::routes::RouteTypes;
 use crate::layers::{
-    blur_edges, embankments, feature_lines_maskable, fixmes, geonames, landcover_names,
+    blur_edges, custom, embankments, feature_lines_maskable, fixmes, geonames, landcover_names,
     national_park_names, valleys_ridges,
 };
 use cairo::{
@@ -11,6 +11,7 @@ use collision::Collision;
 use ctx::Ctx;
 use geo::Geometry;
 use geo::Rect;
+use geojson::Feature;
 use image::codecs::jpeg::JpegEncoder;
 use image::{ExtendedColorType, ImageEncoder};
 use layers::{
@@ -510,6 +511,10 @@ fn draw(
         blur_edges::render(ctx, mask_geometry);
     }
 
+    if let Some(ref features) = request.featues {
+        custom::render(ctx, features);
+    }
+
     if let Some(hillshading_datasets) = hillshading_datasets {
         hillshading_datasets.evict_unused();
     }
@@ -546,6 +551,7 @@ pub struct RenderRequest {
     pub shading: bool,
     pub contours: bool,
     pub route_types: RouteTypes,
+    pub featues: Option<Vec<Feature>>,
 }
 
 impl RenderRequest {
@@ -558,6 +564,7 @@ impl RenderRequest {
             shading: true,
             contours: true,
             route_types: RouteTypes::all(),
+            featues: None,
         }
     }
 }
