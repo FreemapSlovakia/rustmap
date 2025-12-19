@@ -13,16 +13,14 @@ import { renderTile, exportMap } from "./renderer.js";
 import { tileOverlapsLimits } from "./tileCalc.js";
 import { config, limitPolygon } from "./config.js";
 import { JSONSchema7 } from "json-schema";
-import { Legend } from "./types.js";
 import { ImageFormat } from "maprender-node";
+import { legend } from "./legend.js";
 
 const app = new Koa();
 
 const router = new Router();
 
 const tilesDir = config.dirs.tiles;
-
-let legend: Legend;
 
 async function getTileMiddleware(ctx: Context) {
   const { zz, xx, yy } = ctx.params;
@@ -588,35 +586,35 @@ router.get("/service", async (ctx) => {
   ctx.status = 400;
 });
 
-// router.get('/legend', async (ctx) => {
-//   const language = getQueryParam(ctx, 'language');
+router.get("/legend", async (ctx) => {
+  const language = getQueryParam(ctx, "language");
 
-//   function msg(messages: Record<string, string>) {
-//     return (
-//       messages[
-//         language || ctx.acceptsLanguages(Object.keys(messages)) || 'en'
-//       ] || messages['en']
-//     );
-//   }
+  function msg(messages: Record<string, string>) {
+    return (
+      messages[
+        language || ctx.acceptsLanguages(Object.keys(messages)) || "en"
+      ] || messages["en"]
+    );
+  }
 
-//   ctx.body = {
-//     categories: legend.categories.map((item) => ({
-//       id: item.id,
-//       name: msg(item.name),
-//     })),
-//     items: legend.items.map((item) => ({
-//       categoryId: item.categoryId,
-//       name: msg(item.name),
-//     })),
-//   };
-// });
+  ctx.body = {
+    categories: legend.categories.map((item) => ({
+      id: item.id,
+      name: msg(item.name),
+    })),
+    items: legend.items.map((item) => ({
+      categoryId: item.categoryId,
+      name: msg(item.name),
+    })),
+  };
+});
 
-// router.get('/legend-image/:id', async (ctx) => {
+// router.get("/legend-image/:id", async (ctx) => {
 //   // TODO schema validation
 
 //   const legendItem = legend.items[Number(ctx.params.id)];
 
-//   ctx.set('Content-Type', 'image/png');
+//   ctx.set("Content-Type", "image/png");
 
 //   // 360 = 256 * 2^zoom
 
@@ -634,7 +632,7 @@ router.get("/service", async (ctx) => {
 //         (legendItem.bbox[2] - legendItem.bbox[0]) *
 //         Math.pow(2, legendItem.zoom),
 //       undefined,
-//       'png',
+//       "png"
 //     ));
 // });
 
