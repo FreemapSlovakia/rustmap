@@ -257,9 +257,10 @@ fn trim_line_to_span(pts: &[Coord], cum: &[f64], span_start: f64, span_end: f64)
     }
 
     if let Some((p, _)) = position_at(pts, cum, end)
-        && trimmed.last().map(|q| *q != p).unwrap_or(true) {
-            trimmed.push(p);
-        }
+        && trimmed.last().map(|q| *q != p).unwrap_or(true)
+    {
+        trimmed.push(p);
+    }
 
     trimmed
 }
@@ -928,30 +929,30 @@ pub fn draw_text_on_line(
                     .iter()
                     .enumerate()
                     .find(|(_, bb)| col.collides(bb))
-                {
-                    if retries == 0 {
-                        retries -= 1;
-                        let skip = (options.halo_width + options.flo.size).max(1.0);
+            {
+                if retries > 0 {
+                    retries -= 1;
+                    let skip = (options.halo_width + options.flo.size).max(1.0);
 
-                        let collided_end_oriented =
-                            prepared.trim_start + glyph_span_ends.get(idx).copied().unwrap_or(0.0);
+                    let collided_end_oriented =
+                        prepared.trim_start + glyph_span_ends.get(idx).copied().unwrap_or(0.0);
 
-                        let next_start_oriented = (collided_end_oriented + skip).min(total_length);
+                    let next_start_oriented = (collided_end_oriented + skip).min(total_length);
 
-                        let next_label_start = if flip_needed {
-                            (total_length - repeat_span - next_start_oriented).max(0.0)
-                        } else {
-                            next_start_oriented
-                        };
+                    let next_label_start = if flip_needed {
+                        (total_length - repeat_span - next_start_oriented).max(0.0)
+                    } else {
+                        next_start_oriented
+                    };
 
-                        if next_label_start + repeat_span <= total_length {
-                            label_start_try = next_label_start;
-                            continue 'attempt;
-                        }
+                    if next_label_start + repeat_span <= total_length {
+                        label_start_try = next_label_start;
+                        continue 'attempt;
                     }
-
-                    continue 'outer;
                 }
+
+                continue 'outer;
+            }
 
             if repeat.defer_collision {
                 new_collision_bboxes.extend(glyph_bboxes);
