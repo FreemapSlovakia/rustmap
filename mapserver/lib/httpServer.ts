@@ -14,6 +14,7 @@ import { tileOverlapsLimits } from "./tileCalc.js";
 import { config, limitPolygon } from "./config.js";
 import { JSONSchema7 } from "json-schema";
 import { Legend } from "./types.js";
+import { ImageFormat } from "maprender-node";
 
 const app = new Koa();
 
@@ -709,7 +710,13 @@ exportRouter.post("/", koaBody({ jsonLimit: "16mb" }), async (ctx) => {
     ctx.throw(400, ajv.errorsText(validate.errors));
   }
 
-  const { zoom, bbox, format = "pdf", scale } = ctx.request.body as any;
+  const {
+    zoom,
+    bbox,
+    format = "pdf",
+    scale,
+    features,
+  } = ctx.request.body as any;
 
   const token = crypto.randomBytes(16).toString("hex");
 
@@ -730,7 +737,23 @@ exportRouter.post("/", koaBody({ jsonLimit: "16mb" }), async (ctx) => {
       exportFile,
       filename,
       cancelHandler,
-      promise: exportMap(exportFile, zoom, bbox, scale, cancelHolder, format),
+      promise: exportMap(
+        exportFile,
+        zoom,
+        bbox,
+        scale,
+        features,
+        cancelHolder,
+        (
+          {
+            jpg: "Jpeg",
+            jpeg: "Jpeg",
+            png: "Png",
+            svg: "Svg",
+            pdf: "Pdf",
+          } as Record<string, ImageFormat>
+        )[format] ?? ("Jpeg" as ImageFormat)
+      ),
     });
   } finally {
     ctx.req.off("close", cancelHandler);

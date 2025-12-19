@@ -66,7 +66,8 @@ pp.on("message", (message: RenderRequest) => {
       message.bbox,
       message.zoom,
       message.scales,
-      message.format
+      message.format,
+      message.extra
     );
 
     const images = result.images.map((image) => Uint8Array.from(image));

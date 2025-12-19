@@ -70,59 +70,38 @@ pub fn render(
     let size = bbox_size_in_pixels(bbox, request.zoom as f64);
 
     let scales = request.scales.clone();
-    let max_scale = scales
-        .iter()
-        .copied()
-        .fold(1.0_f64, |acc, scale| acc.max(scale));
-
-    let recording_surface = RecordingSurface::create(
-        Content::ColorAlpha,
-        Some(Rectangle::new(
-            0.0,
-            0.0,
-            size.width as f64,
-            size.height as f64,
-        )),
-    )
-    .unwrap();
-
-    {
-        let _span = tracy_client::span!("render_tile::draw");
-
-        let hillshade_scale = max_scale.max(1.0);
-
-        draw(
-            &recording_surface,
-            request,
-            client,
-            bbox,
-            size,
-            svg_cache,
-            hillshading_datasets,
-            hillshade_scale,
-            mask_geometry,
-        );
-    }
+    let primary_scale = scales.first().copied().unwrap_or(1.0);
 
     match request.format {
         ImageFormat::Svg => {
-            let mut images = Vec::with_capacity(scales.len());
+            let w = size.width as f64 * primary_scale;
+            let h = size.height as f64 * primary_scale;
+            let surface = SvgSurface::for_stream(w, h, Vec::new()).unwrap();
 
-            for scale in scales {
-                let w = size.width as f64 * scale;
-                let h = size.height as f64 * scale;
-                let surface = SvgSurface::for_stream(w, h, Vec::new()).unwrap();
+            {
+                let _span = tracy_client::span!("render_tile::draw");
 
-                paint_recording_surface(&recording_surface, &surface, scale);
+                draw(
+                    &surface,
+                    request,
+                    client,
+                    bbox,
+                    size,
+                    svg_cache,
+                    hillshading_datasets,
+                    primary_scale.max(1.0),
+                    mask_geometry,
+                    primary_scale,
+                );
+            }
 
-                let buffer = *surface
+            let images = vec![
+                *surface
                     .finish_output_stream()
                     .unwrap()
                     .downcast::<Vec<u8>>()
-                    .unwrap();
-
-                images.push(buffer);
-            }
+                    .unwrap(),
+            ];
 
             RenderedMap {
                 content_type,
@@ -130,23 +109,34 @@ pub fn render(
             }
         }
         ImageFormat::Pdf => {
-            let mut images = Vec::with_capacity(scales.len());
+            let w = size.width as f64 * primary_scale;
+            let h = size.height as f64 * primary_scale;
+            let surface = PdfSurface::for_stream(w, h, Vec::new()).unwrap();
 
-            for scale in scales {
-                let w = size.width as f64 * scale;
-                let h = size.height as f64 * scale;
-                let surface = PdfSurface::for_stream(w, h, Vec::new()).unwrap();
+            {
+                let _span = tracy_client::span!("render_tile::draw");
 
-                paint_recording_surface(&recording_surface, &surface, scale);
+                draw(
+                    &surface,
+                    request,
+                    client,
+                    bbox,
+                    size,
+                    svg_cache,
+                    hillshading_datasets,
+                    primary_scale.max(1.0),
+                    mask_geometry,
+                    primary_scale,
+                );
+            }
 
-                let buffer = *surface
+            let images = vec![
+                *surface
                     .finish_output_stream()
                     .unwrap()
                     .downcast::<Vec<u8>>()
-                    .unwrap();
-
-                images.push(buffer);
-            }
+                    .unwrap(),
+            ];
 
             RenderedMap {
                 content_type,
@@ -154,6 +144,41 @@ pub fn render(
             }
         }
         ImageFormat::Png => {
+            let max_scale = scales
+                .iter()
+                .copied()
+                .fold(1.0_f64, |acc, scale| acc.max(scale));
+
+            let recording_surface = RecordingSurface::create(
+                Content::ColorAlpha,
+                Some(Rectangle::new(
+                    0.0,
+                    0.0,
+                    size.width as f64,
+                    size.height as f64,
+                )),
+            )
+            .unwrap();
+
+            {
+                let _span = tracy_client::span!("render_tile::draw");
+
+                let hillshade_scale = max_scale.max(1.0);
+
+                draw(
+                    &recording_surface,
+                    request,
+                    client,
+                    bbox,
+                    size,
+                    svg_cache,
+                    hillshading_datasets,
+                    hillshade_scale,
+                    mask_geometry,
+                    1.0,
+                );
+            }
+
             let mut images = Vec::with_capacity(scales.len());
 
             for scale in scales {
@@ -178,6 +203,41 @@ pub fn render(
             }
         }
         ImageFormat::Jpeg => {
+            let max_scale = scales
+                .iter()
+                .copied()
+                .fold(1.0_f64, |acc, scale| acc.max(scale));
+
+            let recording_surface = RecordingSurface::create(
+                Content::ColorAlpha,
+                Some(Rectangle::new(
+                    0.0,
+                    0.0,
+                    size.width as f64,
+                    size.height as f64,
+                )),
+            )
+            .unwrap();
+
+            {
+                let _span = tracy_client::span!("render_tile::draw");
+
+                let hillshade_scale = max_scale.max(1.0);
+
+                draw(
+                    &recording_surface,
+                    request,
+                    client,
+                    bbox,
+                    size,
+                    svg_cache,
+                    hillshading_datasets,
+                    hillshade_scale,
+                    mask_geometry,
+                    1.0,
+                );
+            }
+
             let mut images = Vec::with_capacity(scales.len());
 
             for scale in scales {
@@ -249,11 +309,12 @@ fn draw(
     hillshading_datasets: &mut Option<HillshadingDatasets>,
     hillshade_scale: f64,
     mask_geometry: Option<&Geometry>,
+    render_scale: f64,
 ) {
-    let shading = true; // TODO to args
-    let contours = true; // TODO to args
-
     let context = &Context::new(surface).unwrap();
+    if render_scale != 1.0 {
+        context.scale(render_scale, render_scale);
+    }
 
     let collision = &mut Collision::new(Some(context));
 
@@ -301,7 +362,7 @@ fn draw(
             client,
             svg_cache,
             hillshading_datasets,
-            shading,
+            request.shading,
             hillshade_scale,
         );
     }
@@ -318,15 +379,15 @@ fn draw(
         road_access_restrictions::render(ctx, client, svg_cache);
     }
 
-    if (shading || contours)
+    if (request.shading || request.contours)
         && let Some(hillshading_datasets) = hillshading_datasets
     {
         shading_and_contours::render(
             ctx,
             client,
             hillshading_datasets,
-            shading,
-            contours,
+            request.shading,
+            request.contours,
             hillshade_scale,
         );
     }
@@ -371,7 +432,7 @@ fn draw(
         military_areas::render(ctx, client);
     }
 
-    routes::render_marking(ctx, client, &routes::RouteTypes::all(), svg_cache);
+    routes::render_marking(ctx, client, &request.route_types, svg_cache);
 
     if (9..=11).contains(&zoom) {
         geonames::render(ctx, client);
@@ -418,7 +479,7 @@ fn draw(
     }
 
     if zoom >= 14 {
-        routes::render_labels(ctx, client, &routes::RouteTypes::all(), collision);
+        routes::render_labels(ctx, client, &request.route_types, collision);
     }
 
     if zoom >= 16 {
@@ -445,7 +506,9 @@ fn draw(
         country_names::render(ctx, client);
     }
 
-    blur_edges::render(ctx, mask_geometry);
+    if matches!(request.format, ImageFormat::Jpeg | ImageFormat::Png) {
+        blur_edges::render(ctx, mask_geometry);
+    }
 
     if let Some(hillshading_datasets) = hillshading_datasets {
         hillshading_datasets.evict_unused();

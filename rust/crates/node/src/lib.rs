@@ -23,6 +23,7 @@ pub struct RenderResult {
 }
 
 #[napi(object)]
+#[derive(Debug)]
 pub struct RequestExtra {
     pub shading: Option<bool>,
     pub contours: Option<bool>,

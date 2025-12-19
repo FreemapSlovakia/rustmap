@@ -1,10 +1,10 @@
 use crate::{
+    SvgCache,
     colors::{self, Color, ContextExt},
     ctx::Ctx,
     draw::path_geom::path_geometry,
-    projectable::{geometry_geometry, TileProjectable},
+    projectable::{TileProjectable, geometry_geometry},
     xyz::to_absolute_pixel_coords,
-    SvgCache,
 };
 use cairo::{Extend, Matrix, SurfacePattern};
 use postgres::Client;

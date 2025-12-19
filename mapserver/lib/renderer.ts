@@ -323,6 +323,7 @@ export async function exportMap(
   zoom: number,
   bbox: [number, number, number, number],
   scale = 1,
+  features: any,
   cancelHolder: { cancelled: boolean } | undefined,
   format: ImageFormat
 ) {
@@ -349,7 +350,15 @@ export async function exportMap(
       bbox4326To3857(bbox),
       zoom,
       [scale],
-      format
+      format,
+      {
+        shading: features.shading,
+        contours: features.contours,
+        bicycleRoutes: features.bicycleTrails,
+        horseRoutes: features.horseTrails,
+        hikingRoutes: features.hikingTrails,
+        skiRoutes: features.skiTrails,
+      }
     );
 
     if (!destFile) {
