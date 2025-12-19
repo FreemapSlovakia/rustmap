@@ -19,7 +19,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     let zoom = ctx.zoom;
 
     let sql = format!(
-        "SELECT ST_Buffer(geometry, $5) AS geometry FROM {}
+        "SELECT ST_Intersection(ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5), ST_Buffer(geometry, $6)) AS geometry FROM {}
         WHERE geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)",
         match zoom {
             ..=7 => "land_z5_7",
@@ -29,7 +29,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         }
     );
 
-    let mut params = ctx.bbox_query_params(None);
+    let mut params = ctx.bbox_query_params(Some(2.0));
 
     params.push((20.0 - zoom as f64).exp2() / 25.0);
 

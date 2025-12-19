@@ -19,7 +19,7 @@
   },
   limits: {
     minZoom: 0,
-    maxZoom: 19,
+    maxZoom: 20,
     polygon: "/home/martin/fm/maprender/mapserver/limit-shading.geojson",
     scales: [1, 2, 3],
     cleanup: true,
