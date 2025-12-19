@@ -20,7 +20,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
         ORDER BY type, st_x(geometry)";
 
     let rows = client
-        .query(sql, &ctx.bbox_query_params(Some(8.0)).as_params())
+        .query(sql, &ctx.bbox_query_params(Some(16.0)).as_params())
         .expect("db data");
 
     for row in rows {
