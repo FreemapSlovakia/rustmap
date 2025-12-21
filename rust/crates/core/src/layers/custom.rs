@@ -1,5 +1,3 @@
-use std::f64;
-
 use crate::{
     colors::parse_hex_rgb,
     ctx::Ctx,
