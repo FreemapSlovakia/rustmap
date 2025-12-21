@@ -18,89 +18,125 @@ fn read_rgba_from_gdal(
     let max = bbox.max();
 
     // Convert geographic coordinates (min_x, min_y, max_x, max_y) to pixel coordinates
-    let pixel_min_x = ((min.x - gt_x_off) / gt_x_width).floor() as isize;
-    let pixel_max_x = ((max.x - gt_x_off) / gt_x_width).ceil() as isize;
+    let pixel_min_x_f = (min.x - gt_x_off) / gt_x_width;
+    let pixel_max_x_f = (max.x - gt_x_off) / gt_x_width;
 
-    let pixel_y0 = (min.y - gt_y_off) / gt_y_width;
-    let pixel_y1 = (max.y - gt_y_off) / gt_y_width;
-    let pixel_min_y = pixel_y0.min(pixel_y1).floor() as isize;
-    let pixel_max_y = pixel_y0.max(pixel_y1).ceil() as isize;
+    let pixel_min_x = pixel_min_x_f.floor() as isize;
+    let pixel_max_x = pixel_max_x_f.ceil() as isize;
 
-    let window_x = pixel_min_x;
-    let window_y = pixel_min_y;
-    let source_width = (pixel_max_x - pixel_min_x) as usize;
-    let source_height = (pixel_max_y - pixel_min_y) as usize;
+    let (pixel_min_y_f, pixel_max_y_f) = {
+        let pixel_y0 = (min.y - gt_y_off) / gt_y_width;
+        let pixel_y1 = (max.y - gt_y_off) / gt_y_width;
 
-    let w_scaled = (size.width as f64 * raster_scale) as usize;
+        (pixel_y0.min(pixel_y1), pixel_y0.max(pixel_y1))
+    };
 
-    let h_scaled = (size.height as f64 * raster_scale) as usize;
+    let pixel_min_y = pixel_min_y_f.floor() as isize;
+    let pixel_max_y = pixel_max_y_f.ceil() as isize;
 
-    let band_size = w_scaled * h_scaled;
+    let window_width_px = (pixel_max_x - pixel_min_x) as usize;
+    let window_height_px = (pixel_max_y - pixel_min_y) as usize;
 
-    let count = dataset.raster_count();
+    let scaled_width_px = (size.width as f64 * raster_scale) as usize;
+    let scaled_height_px = (size.height as f64 * raster_scale) as usize;
 
-    let mut rgba_data = vec![0u8; band_size * 4];
+    let scale_x = scaled_width_px as f64 / (pixel_max_x_f - pixel_min_x_f).abs().max(1e-6);
+    let scale_y = scaled_height_px as f64 / (pixel_max_y_f - pixel_min_y_f).abs().max(1e-6);
+
+    let buffered_w = (scale_x * window_width_px as f64).ceil().max(1.0) as usize;
+    let buffered_h = (scale_y * window_height_px as f64).ceil().max(1.0) as usize;
+
+    let mut rgba_data = vec![0u8; buffered_w * buffered_h * 4];
 
     let (raster_width, raster_height) = dataset.raster_size();
 
     // Adjust the window to fit within the raster bounds
-    let adj_window_x = window_x.max(0).min(raster_width as isize);
-    let adj_window_y = window_y.max(0).min(raster_height as isize);
+    let clamped_window_x = pixel_min_x.max(0).min(raster_width as isize);
+    let clamped_window_y = pixel_min_y.max(0).min(raster_height as isize);
 
-    let adj_source_width = ((window_x + source_width as isize).min(raster_width as isize)
-        - adj_window_x)
+    let clamped_source_width = ((pixel_min_x + window_width_px as isize).min(raster_width as isize)
+        - clamped_window_x)
         .max(0) as usize;
 
-    let adj_source_height = ((window_y + source_height as isize).min(raster_height as isize)
-        - adj_window_y)
-        .max(0) as usize;
+    let clamped_source_height =
+        ((pixel_min_y + window_height_px as isize).min(raster_height as isize) - clamped_window_y)
+            .max(0) as usize;
 
-    let ww = (w_scaled as f64 * (adj_source_width as f64 / source_width as f64)).ceil() as usize;
-    let hh = (h_scaled as f64 * (adj_source_height as f64 / source_height as f64)).ceil() as usize;
+    if clamped_source_width == 0 || clamped_source_height == 0 {
+        return (
+            ImageSurface::create_for_data(
+                vec![0u8; scaled_width_px * scaled_height_px * 4],
+                Format::ARgb32,
+                (size.width as f64 * raster_scale) as i32,
+                (size.height as f64 * raster_scale) as i32,
+                (size.width as f64 * raster_scale) as i32 * 4,
+            )
+            .unwrap(),
+            false,
+        );
+    }
 
-    let offset_x = (((adj_window_x - window_x) as f64 / source_width as f64) * w_scaled as f64)
+    let resampled_width = (buffered_w as f64
+        * (clamped_source_width as f64 / window_width_px as f64))
+        .ceil() as usize;
+
+    let resampled_height = (buffered_h as f64
+        * (clamped_source_height as f64 / window_height_px as f64))
+        .ceil() as usize;
+
+    let offset_x = (((clamped_window_x - pixel_min_x) as f64 / window_width_px as f64)
+        * buffered_w as f64)
         .floor()
         .max(0.0) as usize;
 
-    let offset_y = (((adj_window_y - window_y) as f64 / source_height as f64) * h_scaled as f64)
+    let offset_y = (((clamped_window_y - pixel_min_y) as f64 / window_height_px as f64)
+        * buffered_h as f64)
         .floor()
         .max(0.0) as usize;
 
-    let copy_w = ww.min(w_scaled.saturating_sub(offset_x));
-    let copy_h = hh.min(h_scaled.saturating_sub(offset_y));
+    let copy_width = resampled_width.min(buffered_w.saturating_sub(offset_x));
+    let copy_height = resampled_height.min(buffered_h.saturating_sub(offset_y));
 
-    let mut data = vec![0u8; hh * ww];
+    let mut band_buffer = vec![0u8; resampled_height * resampled_width];
 
-    let mut used_data = false;
+    let mut has_data = false;
 
-    for band_index in 0..count {
+    let band_count = dataset.raster_count();
+
+    for band_index in 0..band_count {
         let band = dataset.rasterband(band_index + 1).unwrap();
 
         let no_data = band.no_data_value();
 
-        band.read_into_slice::<u8>(
-            (adj_window_x, adj_window_y),
-            (adj_source_width, adj_source_height),
-            (ww, hh), // Resampled size
-            &mut data,
-            Some(gdal::raster::ResampleAlg::Lanczos),
-        )
-        .unwrap();
+        if clamped_source_width > 0
+            && clamped_source_height > 0
+            && resampled_width > 0
+            && resampled_height > 0
+        {
+            band.read_into_slice::<u8>(
+                (clamped_window_x, clamped_window_y),
+                (clamped_source_width, clamped_source_height),
+                (resampled_width, resampled_height), // Resampled size
+                &mut band_buffer,
+                Some(gdal::raster::ResampleAlg::Lanczos),
+            )
+            .unwrap();
+        }
 
-        for y in 0..copy_h {
-            for x in 0..copy_w {
-                let data_index = y * ww + x;
+        for y in 0..copy_height {
+            for x in 0..copy_width {
+                let data_index = y * resampled_width + x;
 
-                let rgba_index = ((y + offset_y) * w_scaled + (x + offset_x)) * 4;
+                let rgba_index = ((y + offset_y) * buffered_w + (x + offset_x)) * 4;
 
-                let value = data[data_index];
+                let value = band_buffer[data_index];
                 let is_no_data = no_data.is_some_and(|nd| (nd as u8) == value);
 
                 if !is_no_data {
-                    used_data = true;
+                    has_data = true;
                 }
 
-                match (count, band_index) {
+                match (band_count, band_index) {
                     (1, _) => {
                         rgba_data[rgba_index] = value;
                         rgba_data[rgba_index + 1] = value;
@@ -132,20 +168,52 @@ fn read_rgba_from_gdal(
         }
     }
 
-    for i in (0..rgba_data.len()).step_by(4) {
-        let alpha = rgba_data[i + 3] as f32 / 255.0;
+    let frac_x = pixel_min_x_f - pixel_min_x as f64;
+    let frac_y = pixel_min_y_f - pixel_min_y as f64;
 
-        let r = (rgba_data[i] as f32 * alpha) as u8;
-        let g = (rgba_data[i + 1] as f32 * alpha) as u8;
-        let b = (rgba_data[i + 2] as f32 * alpha) as u8;
+    let crop_x_base = offset_x + (frac_x * scale_x).round().max(0.0) as usize;
+    let crop_y_base = offset_y + (frac_y * scale_y).round().max(0.0) as usize;
 
-        rgba_data[i] = b;
-        rgba_data[i + 1] = g;
-        rgba_data[i + 2] = r;
+    // If rounding pushed the origin too far, clamp so we still copy a full tile when possible.
+    let crop_x = crop_x_base.min(buffered_w.saturating_sub(scaled_width_px));
+    let crop_y = crop_y_base.min(buffered_h.saturating_sub(scaled_height_px));
+
+    let crop_w = scaled_width_px.min(buffered_w.saturating_sub(crop_x));
+    let crop_h = scaled_height_px.min(buffered_h.saturating_sub(crop_y));
+
+    let mut final_rgba_data = vec![0u8; scaled_width_px * scaled_height_px * 4];
+
+    if crop_w > 0 && crop_h > 0 && crop_x < buffered_w && crop_y < buffered_h {
+        for y in 0..crop_h {
+            let src_offset = ((y + crop_y) * buffered_w + crop_x) * 4;
+            let dst_offset = y * scaled_width_px * 4;
+
+            // Guard against any edge rounding that would push past the buffer.
+            let max_copy = ((buffered_w - crop_x) * 4).min(crop_w * 4);
+            let src_end = (src_offset + max_copy).min(rgba_data.len());
+            let dst_end = dst_offset + (src_end - src_offset);
+
+            if src_end > src_offset && dst_end > dst_offset {
+                final_rgba_data[dst_offset..dst_end]
+                    .copy_from_slice(&rgba_data[src_offset..src_end]);
+            }
+        }
+    }
+
+    for i in (0..final_rgba_data.len()).step_by(4) {
+        let alpha = final_rgba_data[i + 3] as f32 / 255.0;
+
+        let r = (final_rgba_data[i] as f32 * alpha) as u8;
+        let g = (final_rgba_data[i + 1] as f32 * alpha) as u8;
+        let b = (final_rgba_data[i + 2] as f32 * alpha) as u8;
+
+        final_rgba_data[i] = b;
+        final_rgba_data[i + 1] = g;
+        final_rgba_data[i + 2] = r;
     }
 
     let surface = ImageSurface::create_for_data(
-        rgba_data.to_vec(),
+        final_rgba_data,
         Format::ARgb32,
         (size.width as f64 * raster_scale) as i32,
         (size.height as f64 * raster_scale) as i32,
@@ -153,7 +221,7 @@ fn read_rgba_from_gdal(
     )
     .unwrap();
 
-    (surface, used_data)
+    (surface, has_data)
 }
 
 pub fn render(
