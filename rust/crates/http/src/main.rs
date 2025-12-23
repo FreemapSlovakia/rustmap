@@ -1,7 +1,11 @@
 use clap::Parser;
 use dotenvy::dotenv;
+use geo::Geometry;
 use maprender_core::xyz::tile_bounds_to_epsg3857;
-use maprender_core::{ImageFormat, RenderRequest, SvgCache, load_hillshading_datasets, render};
+use maprender_core::{
+    ImageFormat, RenderRequest, SvgCache, load_geometry_from_geojson, load_hillshading_datasets,
+    render,
+};
 use oxhttp::{
     Server,
     model::{Body, Request, Response, StatusCode},
@@ -59,6 +63,10 @@ struct Cli {
     /// Database pool max size.
     #[arg(long, env = "MAPRENDER_POOL_MAX_SIZE", default_value_t = 48)]
     pool_max_size: u32,
+
+    /// Mask geojson polygon file
+    #[arg(long, env = "MAPRENDER_MASK_GEOJSON")]
+    mask_geojson: Option<String>,
 }
 
 struct RenderTask {
@@ -77,6 +85,7 @@ impl RenderWorkerPool {
         worker_count: usize,
         svg_base_path: Arc<str>,
         hillshading_base_path: Arc<str>,
+        mask_geometry: Option<Geometry>,
     ) -> Self {
         let tasks = Arc::new(Mutex::new(VecDeque::new()));
         let cv = Arc::new(Condvar::new());
@@ -87,6 +96,7 @@ impl RenderWorkerPool {
             let pool = pool.clone();
             let svg_base_path = svg_base_path.clone();
             let hillshading_base_path = hillshading_base_path.clone();
+            let mask_geometry = mask_geometry.clone();
 
             std::thread::Builder::new()
                 .name(format!("render-worker-{worker_id}"))
@@ -111,7 +121,7 @@ impl RenderWorkerPool {
                                 &mut client,
                                 &mut svg_cache,
                                 &mut hillshading_datasets,
-                                None,
+                                mask_geometry.as_ref(),
                             )),
                             Err(e) => Err(format!("db pool error: {e}")),
                         };
@@ -155,11 +165,19 @@ fn main() {
         .build(manager)
         .expect("build db pool");
 
+    let mask_geometry =
+        cli.mask_geojson
+            .map(|path| match load_geometry_from_geojson(path.as_ref()) {
+                Ok(g) => g,
+                Err(err) => panic!("failed to load mask geojson {path}: {err}"),
+            });
+
     let worker_pool = Arc::new(RenderWorkerPool::new(
-        connection_pool.clone(),
+        connection_pool,
         cli.worker_count,
         Arc::from(cli.svg_base_path.as_str()),
         Arc::from(cli.hillshading_base_path.as_str()),
+        mask_geometry,
     ));
 
     Server::new(move |request| render_response(request, worker_pool.clone()))
@@ -167,9 +185,9 @@ fn main() {
         .with_global_timeout(Duration::from_secs(cli.global_timeout_secs))
         .bind((cli.host, cli.port))
         .spawn()
-        .unwrap()
+        .expect("server spawned")
         .join()
-        .unwrap();
+        .expect("server joined");
 }
 
 fn render_response(request: &Request<Body>, worker_pool: Arc<RenderWorkerPool>) -> Response<Body> {
@@ -184,6 +202,7 @@ fn render_response(request: &Request<Body>, worker_pool: Arc<RenderWorkerPool>) 
         Ok(rendered) => rendered,
         Err(err) => {
             eprintln!("render failed: {err}");
+
             return Response::builder()
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
                 .body(Body::from("render error"))
@@ -191,20 +210,18 @@ fn render_response(request: &Request<Body>, worker_pool: Arc<RenderWorkerPool>) 
         }
     };
 
-    let content_type = rendered.content_type;
-    let Some(tile) = rendered.images.into_iter().next() else {
-        return Response::builder()
+    if let Some(tile) = rendered.images.into_iter().next() {
+        Response::builder()
+            .status(StatusCode::OK)
+            .header("Content-Type", rendered.content_type)
+            .header("Access-Control-Allow-Origin", "*")
+            .body(Body::from(tile))
+    } else {
+        Response::builder()
             .status(StatusCode::INTERNAL_SERVER_ERROR)
             .body(Body::from("empty render result"))
-            .expect("body should be built");
-    };
-
-    Response::builder()
-        .status(StatusCode::OK)
-        .header("Content-Type", content_type)
-        .header("Access-Control-Allow-Origin", "*")
-        .body(Body::from(tile))
-        .expect("body should be built")
+    }
+    .expect("body should be built")
 }
 
 fn parse_tile_path(path: &str) -> Option<RenderRequest> {

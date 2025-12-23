@@ -1583,12 +1583,15 @@ dependencies = [
  "clap",
  "dotenvy",
  "gdal",
+ "geo",
+ "geojson",
  "maprender-core",
  "oxhttp",
  "postgres",
  "r2d2",
  "r2d2_postgres",
  "regex",
+ "serde_json",
  "tracy-client",
 ]
 

@@ -22,7 +22,7 @@ const DATASET_PATHS: [(&str, &str); 17] = [
     ("si-mask", "si/mask.tif"),
     ("fr", "fr/final.tif"),
     ("fr-mask", "fr/mask.tif"),
-    ("_", "final-new.tiff"),
+    ("_", "final.tif"),
 ];
 
 const MAX_UNUSED_USES: u64 = 100;
