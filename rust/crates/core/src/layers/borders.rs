@@ -10,20 +10,9 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     let _span = tracy_client::span!("borders::render");
 
     let sql = "
-        WITH segs AS (
-            SELECT DISTINCT ON (m.member)
-                m.member,
-                m.geometry
-            FROM osm_admin_members m
-            JOIN osm_admin_relations r
-                ON r.osm_id = m.osm_id
-                AND r.admin_level = 2
-            WHERE
-                m.type = 1
-                AND m.geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
-        )
-        SELECT ST_LineMerge(ST_Collect(geometry)) AS geometry
-        FROM segs";
+        SELECT geometry
+        FROM osm_country_members
+        WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)";
 
     let rows = client
         .query(sql, &ctx.bbox_query_params(Some(10.0)).as_params())

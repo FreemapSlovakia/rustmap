@@ -1,0 +1,37 @@
+---
+generalized_tables:
+  country_members_gen0:
+    source: country_members_gen1
+    tolerance: 200
+  country_members_gen1:
+    source: country_members
+    tolerance: 50
+
+tables:
+  country_relations:
+    type: relation
+    relation_types: [boundary]
+    mapping:
+      boundary: [administrative]
+    filters:
+      require:
+        admin_level: ["2"]
+    columns:
+      - { name: osm_id, type: id }
+      - { name: admin_level, type: integer, key: admin_level }
+      - { name: iso3166_1, type: string, key: "ISO3166-1" }
+
+  country_members:
+    type: relation_member
+    relation_types: [boundary]
+    mapping:
+      boundary: [administrative]
+    filters:
+      require:
+        admin_level: ["2"]
+    columns:
+      - { name: osm_id, type: id }
+      - { name: member, type: member_id }
+      - { name: geometry, type: geometry }
+      - { name: role, type: member_role, key: role }
+      - { name: type, type: member_type }
