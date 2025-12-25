@@ -69,6 +69,30 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
         context.restore().expect("context restored");
     }
 
+    let sql = &format!(
+        "SELECT
+            type, protect_class, ST_Intersection(geometry, ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), 10000)) AS geometry
+        FROM osm_protected_areas
+        WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) {}",
+        if zoom < 12 {
+            " AND NOT (type = 'nature_reserve' OR type = 'protected_area' AND protect_class <> '2')"
+        } else {
+            ""
+        }
+    );
+
+    let rows = &client
+        .query(sql, &ctx.bbox_query_params(Some(10.0)).as_params())
+        .expect("db data");
+
+    let geometries: Vec<_> = rows
+        .iter()
+        .filter_map(|row| {
+            geometry_geometry(row)
+                .map(|geom| (geom.project_to_tile(&ctx.tile_projector), geom, row))
+        })
+        .collect();
+
     // border
     for (projected, _, row) in &geometries {
         let typ: &str = row.get("type");
