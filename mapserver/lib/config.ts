@@ -28,9 +28,10 @@ if (!parsedConfig.success) {
 
 export const config = parsedConfig.output;
 
-export const limitPolygon: Polygon | undefined =
-  config.limits.polygon &&
-  JSON.parse(fs.readFileSync(config.limits.polygon).toString());
+export const limitPolygon: Polygon | undefined = undefined;
+//  =
+//   config.limits.polygon &&
+//   JSON.parse(fs.readFileSync(config.limits.polygon).toString());
 
 function loadConfig(
   configFilePath: string,
