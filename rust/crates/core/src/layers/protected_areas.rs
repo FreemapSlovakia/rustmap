@@ -69,9 +69,11 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
         context.restore().expect("context restored");
     }
 
+    // NOTE we do ST_Intersection to prevent memory error for very long borders on bigger zooms
+
     let sql = &format!(
         "SELECT
-            type, protect_class, ST_Intersection(geometry, ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), 10000)) AS geometry
+            type, protect_class, ST_Intersection(geometry, ST_Expand(ST_MakeEnvelope($6, $7, $8, $9, 3857), 50000)) AS geometry
         FROM osm_protected_areas
         WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) {}",
         if zoom < 12 {
@@ -81,9 +83,16 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
         }
     );
 
-    let rows = &client
-        .query(sql, &ctx.bbox_query_params(Some(10.0)).as_params())
-        .expect("db data");
+    let mut params = ctx.bbox_query_params(Some(10.0));
+
+    let snap = (26f64 - ctx.zoom as f64).exp2();
+
+    params.push(((ctx.bbox.min().x - snap) / snap).floor() * snap);
+    params.push(((ctx.bbox.min().y - snap) / snap).floor() * snap);
+    params.push(((ctx.bbox.max().x + snap) / snap).ceil() * snap);
+    params.push(((ctx.bbox.max().y + snap) / snap).ceil() * snap);
+
+    let rows = &client.query(sql, &params.as_params()).expect("db data");
 
     let geometries: Vec<_> = rows
         .iter()
