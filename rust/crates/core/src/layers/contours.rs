@@ -40,7 +40,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: Option<&str>) {
         &(if let Some(country) = country {
             format!("contour_{country}_split")
         } else {
-            "contour_split".to_string()
+            "cont_dmr_split".to_string()
         })
     );
 
