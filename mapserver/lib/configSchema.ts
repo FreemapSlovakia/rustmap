@@ -77,7 +77,7 @@ export const configSchema = strictObject({
   expiresZoom: number(),
   prerenderMaxZoom: number(),
   prerenderDelayWhenExpiring: number(),
-  maskPolygon: string(),
+  maskPolygon: nullish(pipe(string(), nonEmpty())),
 });
 
 export type Config = InferOutput<typeof configSchema>;
