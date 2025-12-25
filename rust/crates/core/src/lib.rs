@@ -4,8 +4,8 @@ use crate::layers::{
     national_park_names, valleys_ridges,
 };
 use cairo::{
-    Content, Context, Format, ImageSurface, PdfSurface, RecordingSurface, Rectangle, Surface,
-    SvgSurface,
+    Content, Context, Format, ImageSurface, PdfSurface, RecordingSurface, Rectangle, Result,
+    Surface, SvgSurface,
 };
 use collision::Collision;
 use ctx::Ctx;
@@ -189,7 +189,9 @@ pub fn render(
 
                 let surface = ImageSurface::create(Format::ARgb32, w as i32, h as i32).unwrap();
 
-                paint_recording_surface(&recording_surface, &surface, scale);
+                if let Err(err) = paint_recording_surface(&recording_surface, &surface, scale) {
+                    panic!("Error rendering {:?}@{}: {err}", request.bbox, request.zoom);
+                }
 
                 let _span = tracy_client::span!("render_tile::write_to_png");
 
@@ -246,7 +248,9 @@ pub fn render(
                 let h = size.height as f64 * scale;
                 let mut surface = ImageSurface::create(Format::ARgb32, w as i32, h as i32).unwrap();
 
-                paint_recording_surface(&recording_surface, &surface, scale);
+                if let Err(err) = paint_recording_surface(&recording_surface, &surface, scale) {
+                    panic!("Error rendering {:?}@{}: {err}", request.bbox, request.zoom);
+                }
 
                 let width = surface.width() as u32;
                 let height = surface.height() as u32;
@@ -530,13 +534,12 @@ fn paint_recording_surface(
     recording_surface: &RecordingSurface,
     target_surface: &Surface,
     scale: f64,
-) {
-    let context = Context::new(target_surface).unwrap();
+) -> Result<()> {
+    let context = Context::new(target_surface)?;
     context.scale(scale, scale);
-    context
-        .set_source_surface(recording_surface, 0.0, 0.0)
-        .unwrap();
-    context.paint().unwrap();
+    context.set_source_surface(recording_surface, 0.0, 0.0)?;
+    context.paint()?;
+    Ok(())
 }
 
 #[derive(Debug, Clone, Copy)]
