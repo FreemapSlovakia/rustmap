@@ -327,28 +327,38 @@ pub fn draw_line_pattern_scaled(
 
         context.close_path();
 
-        // context.set_line_width(1.0);
-        // context.set_dash(&[], 0.0);
-        // context.set_source_rgb(0.0, 0.0, 0.0);
-        // context.stroke_preserve().unwrap();
+        let (x1, y1, x2, y2) = context.path_extents().unwrap();
 
-        let mut matrix = Matrix::identity();
+        if (x1 <= 0.0 && x2 >= 0.0
+            || x1 <= ctx.size.width as f64 && x2 >= ctx.size.width as f64
+            || x1 > 0.0 && x2 <= ctx.size.width as f64)
+            && (y1 <= 0.0 && y2 >= 0.0
+                || y1 <= ctx.size.height as f64 && y2 >= ctx.size.height as f64
+                || y1 > 0.0 && y2 <= ctx.size.height as f64)
+        {
+            // context.set_line_width(1.0);
+            // context.set_dash(&[], 0.0);
+            // context.set_source_rgb(0.0, 0.0, 0.0);
+            // context.stroke_preserve().unwrap();
 
-        matrix.translate(width / 2.0 + ((dist / scale) % width), height / 2.0);
+            let mut matrix = Matrix::identity();
 
-        matrix.scale(1.0 / scale, 1.0 / scale);
+            matrix.translate(width / 2.0 + ((dist / scale) % width), height / 2.0);
 
-        matrix.rotate((p1.y - p2.y).atan2(p2.x - p1.x));
+            matrix.scale(1.0 / scale, 1.0 / scale);
 
-        matrix.translate(-p1.x, -p1.y);
+            matrix.rotate((p1.y - p2.y).atan2(p2.x - p1.x));
 
-        pattern.set_matrix(matrix);
+            matrix.translate(-p1.x, -p1.y);
 
-        pattern.set_extend(cairo::Extend::Repeat);
+            pattern.set_matrix(matrix);
 
-        context.set_source(&pattern).unwrap();
+            pattern.set_extend(cairo::Extend::Repeat);
 
-        context.fill().unwrap();
+            context.set_source(&pattern).unwrap();
+
+            context.fill().unwrap();
+        }
 
         dist += length;
     }
