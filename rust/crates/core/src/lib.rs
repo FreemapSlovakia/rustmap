@@ -331,6 +331,8 @@ fn draw(
 
     sea::render(ctx, client);
 
+    ctx.context.push_group();
+
     landuse::render(ctx, client, svg_cache);
 
     if zoom >= 13 {
@@ -425,12 +427,12 @@ fn draw(
         protected_areas::render(ctx, client, svg_cache);
     }
 
-    if zoom >= 8 {
-        borders::render(ctx, client);
-    }
-
     if zoom >= 10 {
         military_areas::render(ctx, client);
+    }
+
+    if zoom >= 8 {
+        borders::render(ctx, client);
     }
 
     routes::render_marking(ctx, client, &request.route_types, svg_cache);
@@ -503,12 +505,16 @@ fn draw(
         place_names::render(ctx, client, &mut None);
     }
 
-    if zoom < 8 {
-        country_names::render(ctx, client);
-    }
-
     if matches!(request.format, ImageFormat::Jpeg | ImageFormat::Png) {
         blur_edges::render(ctx, mask_geometry);
+    }
+
+    ctx.context.pop_group_to_source().unwrap();
+
+    ctx.context.paint().unwrap();
+
+    if zoom < 8 {
+        country_names::render(ctx, client);
     }
 
     if let Some(ref features) = request.featues {

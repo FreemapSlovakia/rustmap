@@ -23,7 +23,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     borders::render(ctx, client);
 
-    let sr = 1.5f64.powf(ctx.zoom as f64 - 6.0);
+    let sr = 1.5f64.powf(ctx.zoom as f64 - 6.0).max(0.66);
 
     let options_upper = TextOnLineOptions {
         flo: FontAndLayoutOptions {

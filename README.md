@@ -41,3 +41,18 @@ ogr2ogr \
   -nlt PROMOTE_TO_MULTI \
   -overwrite
 ```
+
+## Country borders
+
+```sh
+aria2c -x 16 https://planet.osm.org/pbf/planet-latest.osm.pbf
+osmium tags-filter -t -o admin_level_2.osm.pbf planet-251215.osm.pbf r/admin_level=2
+borders-tool  make-borders planet-251215.osm.pbf countries.osm.pbf
+```
+
+open countries.osm.pbf and download missing members, then
+
+```sh
+imposm import -connection postgis://martin:b0n0@localhost/martin -mapping ../borders.yaml -read ~/hs/countries2.osm.pbf -write -overwritecache
+imposm import -connection postgis://martin:b0n0@localhost/martin -mapping ../borders.yaml -deployproduction
+```
