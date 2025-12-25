@@ -8,7 +8,7 @@
   },
   limits: {
     maxZoom: 20,
-    polygon: "limit-shading.geojson",
+    polygon: "/home/freemap/X/europe-ok.geojson",
     scales: [1, 2, 3],
   },
   mapFeatures: {
