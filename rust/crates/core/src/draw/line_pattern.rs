@@ -329,13 +329,7 @@ pub fn draw_line_pattern_scaled(
 
         let (x1, y1, x2, y2) = context.path_extents().unwrap();
 
-        if (x1 <= 0.0 && x2 >= 0.0
-            || x1 <= ctx.size.width as f64 && x2 >= ctx.size.width as f64
-            || x1 > 0.0 && x2 <= ctx.size.width as f64)
-            && (y1 <= 0.0 && y2 >= 0.0
-                || y1 <= ctx.size.height as f64 && y2 >= ctx.size.height as f64
-                || y1 > 0.0 && y2 <= ctx.size.height as f64)
-        {
+        if !(x2 < 0.0 || x1 > ctx.size.width as f64 || y2 < 0.0 || y1 > ctx.size.width as f64) {
             // context.set_line_width(1.0);
             // context.set_dash(&[], 0.0);
             // context.set_source_rgb(0.0, 0.0, 0.0);
