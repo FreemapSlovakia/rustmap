@@ -1441,6 +1441,7 @@ export const legend: Legend = {
       "zona industriale",
     ]),
     landcover("quarry", ["quarry", "lom", "cava"]),
+    landcover("glacier", ["glacier", "ľadovec", "ghiacciaio"]),
     landcover("cemetery", ["cemetery", "cintorín", "cimitero"]),
     // TODO + storage tank
     landcover(

@@ -224,18 +224,21 @@ tables:
       natural:
         mapping:
           natural:
-            - wood
-            - scrub
-            - wetland # TODO as overlay layer
-            - heath
-            - grassland
-            - beach
-            - sand
-            - moor
-            - fell
             - bare_rock
-            - scree
+            - beach
             - blockfield
+            - fell
+            - glacier
+            - grassland
+            - heath
+            - moor
+            - sand
+            - scree
+            - scrub
+            - shingle # TODO
+            - wetland # TODO as overlay layer
+            - wood
+
       landuse:
         mapping:
           landuse:
@@ -266,7 +269,6 @@ tables:
             - garages
             - military # TODO maybe as overlay layer
             - plant_nursery
-            - glacier
       highway:
         mapping:
           highway:
