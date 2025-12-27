@@ -196,6 +196,7 @@ static POIS: LazyLock<HashMap<&'static str, Vec<Def>>> = LazyLock::new(|| {
         (15, NN, Y, N, "guidepost_noname", Extra { icon: Some("guidepost_x"), ..Extra::default() }),
         (15, 15, Y, Y, "saddle", Extra { font_size: 13.0, ..Extra::default() }),
         (15, 16, N, N, "ruins", Extra::default()),
+        (15, 16, N, N, "generator_wind", Extra::default()),
         (15, 16, N, N, "chimney", Extra::default()),
         (15, 16, N, N, "fire_station", Extra {
             replacements: build_replacements(&[(r"^([Hh]asičská zbrojnica|[Pp]ožiarná stanica)\b *", "")]),
@@ -602,6 +603,22 @@ pub fn render(
     if zoom >= 15 {
         sql.push_str(
                 r#"
+                    UNION ALL
+
+                    SELECT
+                        osm_id,
+                        ST_PointOnSurface(geometry) AS geometry,
+                        name AS n,
+                        null AS ele,
+                        null AS access,
+                        null AS isolation,
+                        'generator_wind' AS type
+                    FROM
+                        osm_power_generators
+                    WHERE
+                        geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) AND
+                        (source = 'wind' OR method = 'wind_turbine')
+
                     UNION ALL
 
                     SELECT
