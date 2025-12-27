@@ -343,6 +343,7 @@ VALUES
   ('railway'),
   ('quarry'),
   ('scree'),
+  ('blockfield'),
   ('landfill'),
   ('vineyard'),
   ('orchard'),

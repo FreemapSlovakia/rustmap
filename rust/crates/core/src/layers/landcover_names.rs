@@ -38,7 +38,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) ->
         WITH lcn AS (
             SELECT DISTINCT ON (osm_landusages.osm_id)
                 osm_landusages.geometry, osm_landusages.name, osm_landusages.area,
-                osm_landusages.type IN ('forest', 'wood', 'scrub', 'heath', 'grassland', 'scree', 'meadow', 'fell', 'wetland') AS natural,
+                osm_landusages.type IN ('forest', 'wood', 'scrub', 'heath', 'grassland', 'scree', 'blockfield', 'meadow', 'fell', 'wetland') AS natural,
                 z_order,
                 osm_landusages.osm_id AS osm_id
             FROM
@@ -55,7 +55,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) ->
                 osm_sports.osm_id IS NULL AND
                 osm_landusages.geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
             ORDER BY
-                osm_landusages.osm_id, osm_landusages.type IN ('forest', 'wood', 'scrub', 'heath', 'grassland', 'scree', 'meadow', 'fell', 'wetland') DESC
+                osm_landusages.osm_id, osm_landusages.type IN ('forest', 'wood', 'scrub', 'heath', 'grassland', 'scree', 'blockfield', 'meadow', 'fell', 'wetland') DESC
         ) SELECT name, area, \"natural\", ST_PointOnSurface(geometry) AS geometry FROM lcn ORDER BY z_order, osm_id";
 
     let mut text_options = TextOptions {

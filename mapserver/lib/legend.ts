@@ -1406,6 +1406,7 @@ export const legend: Legend = {
     landcover("scrub", ["scrub", "kroviny", "boscaglia"]),
     landcover("clearcut", ["clearcut", "holorub", "area disboscata"]),
     landcover("scree", ["scree", "štrk", "ghiaione"]),
+    landcover("blockfield", ["blockfield", "kamenné more", "mare di pietre"]),
     landcover("bare_rock", ["bare rock", "holá skala", "roccia nuda"]),
     landcover("wetland", ["wetland", "mokraď", "zona umida"]),
     landcover("bog", ["bog", "rašelinisko", "palude"]),
