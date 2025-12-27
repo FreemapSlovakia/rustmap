@@ -52,6 +52,8 @@ pub(crate) mod routes;
 mod sea;
 mod shading_and_contours;
 mod solar_power_plants;
+mod special_park_names;
+mod special_parks;
 mod trees;
 mod valleys_ridges;
 mod water_area_names;
@@ -219,6 +221,10 @@ pub fn render(
         protected_areas::render(ctx, client, svg_cache).with_layer("protected_areas")?;
     }
 
+    if zoom >= 13 {
+        special_parks::render(ctx, client).with_layer("special_parks")?;
+    }
+
     if zoom >= 10 {
         military_areas::render(ctx, client).with_layer("military_areas")?;
     }
@@ -239,6 +245,10 @@ pub fn render(
 
     if (8..=10).contains(&zoom) {
         national_park_names::render(ctx, client, collision).with_layer("national_park_names")?;
+    }
+
+    if (13..=16).contains(&zoom) {
+        special_park_names::render(ctx, client, collision).with_layer("special_park_names")?;
     }
 
     if zoom >= 10 {

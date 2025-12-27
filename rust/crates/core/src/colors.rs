@@ -86,6 +86,7 @@ pub const PITCH: Color = hsl_to_rgb(110, 35, 75);
 pub const POWER_LINE: Color = hsl_to_rgb(0, 0, 0);
 pub const POWER_LINE_MINOR: Color = hsl_to_rgb(0, 0, 50);
 pub const PROTECTED: Color = hsl_to_rgb(120, 75, 25);
+pub const SPECIAL_PARK: Color = hsl_to_rgb(330, 75, 25);
 pub const GLACIER: Color = hsl_to_rgb(216, 65, 90);
 pub const QUARRY: Color = hsl_to_rgb(0, 0, 78);
 pub const RESIDENTIAL: Color = hsl_to_rgb(100, 0, 91);
