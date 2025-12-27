@@ -5,10 +5,11 @@ use crate::{
     SvgCache,
     ctx::Ctx,
     draw::{markers_on_path::draw_markers_on_path, path_geom::path_line_string},
+    layer_render_error::LayerRenderResult,
     projectable::{TileProjectable, geometry_line_string},
 };
 
-pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) -> LayerRenderResult {
     let _span = tracy_client::span!("road_access_restrictions::render");
 
     let sql = "
@@ -30,16 +31,14 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
 
     // TODO lazy
 
-    let no_bicycle_icon = &svg_cache.get("no_bicycle.svg").clone();
+    let no_bicycle_icon = &svg_cache.get("no_bicycle.svg")?.clone();
 
-    let no_foot_icon = &svg_cache.get("no_foot.svg").clone();
+    let no_foot_icon = &svg_cache.get("no_foot.svg")?.clone();
 
-    let no_bicycle_rect = no_bicycle_icon.extents().unwrap();
-    let no_foot_rect = no_foot_icon.extents().unwrap();
+    let no_bicycle_rect = no_bicycle_icon.extents().expect("surface extents");
+    let no_foot_rect = no_foot_icon.extents().expect("surface extents");
 
-    let rows = client
-        .query(sql, &ctx.bbox_query_params(Some(32.0)).as_params())
-        .expect("db data");
+    let rows = client.query(sql, &ctx.bbox_query_params(Some(32.0)).as_params())?;
 
     let context = ctx.context;
 
@@ -49,7 +48,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
             &geometry_line_string(&row).project_to_tile(&ctx.tile_projector),
         );
 
-        let path = context.copy_path_flat().unwrap();
+        let path = context.copy_path_flat()?;
 
         context.new_path();
 
@@ -62,7 +61,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
 
         let i_cell = Cell::new(0);
 
-        draw_markers_on_path(&path, 12.0, 24.0, &|x, y, angle| {
+        draw_markers_on_path(&path, 12.0, 24.0, &|x, y, angle| -> cairo::Result<()> {
             let i = i_cell.get();
 
             let (arrow, rect) = if no_bicycle && no_foot && i % 2 == 0 {
@@ -73,16 +72,18 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
                 (no_bicycle_icon, no_bicycle_rect)
             };
 
-            context.save().expect("context saved");
+            context.save()?;
             context.translate(x, y);
             context.rotate(angle);
-            context
-                .set_source_surface(arrow, -rect.width() / 2.0, -rect.height() / 2.0)
-                .unwrap();
-            context.paint_with_alpha(0.75).unwrap();
-            context.restore().expect("context restored");
+            context.set_source_surface(arrow, -rect.width() / 2.0, -rect.height() / 2.0)?;
+            context.paint_with_alpha(0.75)?;
+            context.restore()?;
 
             i_cell.set(i + 1);
-        });
+
+            Ok(())
+        })?;
     }
+
+    Ok(())
 }

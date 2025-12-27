@@ -3,11 +3,12 @@ use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::{markers_on_path::draw_markers_on_path, smooth_line::path_smooth_bezier_spline},
+    layer_render_error::LayerRenderResult,
     projectable::{TileProjectable, geometry_line_string},
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) -> LayerRenderResult {
     let _span = tracy_client::span!("water_lines::render");
 
     let zoom = ctx.zoom;
@@ -27,22 +28,20 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
         }
     );
 
-    let rows = &client
-        .query(sql, &ctx.bbox_query_params(Some(8.0)).as_params())
-        .expect("db data");
+    let rows = &client.query(sql, &ctx.bbox_query_params(Some(8.0)).as_params())?;
 
     // TODO lazy
-    let arrow = svg_cache.get("waterway-arrow.svg");
+    let arrow = svg_cache.get("waterway-arrow.svg")?;
 
     let (dx, dy) = {
-        let rect = arrow.extents().unwrap();
+        let rect = arrow.extents().expect("surface extents");
 
         (-rect.width() / 2.0, -rect.height() / 2.0)
     };
 
     let context = ctx.context;
 
-    context.save().expect("context saved");
+    context.save()?;
 
     for pass in 0..=1 {
         let glow = pass == 0;
@@ -84,7 +83,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
 
                     path_smooth_bezier_spline(context, &geom, smooth);
 
-                    context.stroke().unwrap();
+                    context.stroke()?;
                 }
             } else {
                 context
@@ -94,21 +93,25 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
 
                 path_smooth_bezier_spline(context, &geom, smooth);
 
-                let path = context.copy_path_flat().unwrap();
+                let path = context.copy_path_flat()?;
 
-                context.stroke().unwrap();
+                context.stroke()?;
 
-                draw_markers_on_path(&path, 150.0, 300.0, &|x, y, angle| {
-                    context.save().unwrap();
+                draw_markers_on_path(&path, 150.0, 300.0, &|x, y, angle| -> cairo::Result<()> {
+                    context.save()?;
                     context.translate(x, y);
                     context.rotate(angle);
-                    context.set_source_surface(arrow, dx, dy).unwrap();
-                    context.paint().unwrap();
-                    context.restore().unwrap();
-                });
+                    context.set_source_surface(arrow, dx, dy)?;
+                    context.paint()?;
+                    context.restore()?;
+
+                    Ok(())
+                })?;
             }
         }
     }
 
-    context.restore().expect("context restored");
+    context.restore()?;
+
+    Ok(())
 }

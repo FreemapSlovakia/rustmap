@@ -89,10 +89,7 @@ function createWorkerRenderer(worker: Worker): WorkerRenderer {
       return;
     }
 
-    pendingItem.resolve({
-      images: message.result.images.map((image) => Buffer.from(image)),
-      contentType: message.result.contentType,
-    });
+    pendingItem.resolve(message.images.map((image) => Buffer.from(image)));
   });
 
   worker.on("error", (err) => {

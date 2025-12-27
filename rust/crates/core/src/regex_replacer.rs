@@ -6,7 +6,7 @@ pub type Replacement<'a> = (Regex, &'a str);
 pub fn build_replacements<'a>(pairs: &[(&str, &'a str)]) -> Vec<(Regex, &'a str)> {
     pairs
         .iter()
-        .map(|(pattern, replacement)| (Regex::new(pattern).unwrap(), *replacement))
+        .map(|(pattern, replacement)| (Regex::new(pattern).expect("pattern"), *replacement))
         .collect()
 }
 

@@ -6,11 +6,12 @@ use crate::{
         create_pango_layout::FontAndLayoutOptions,
         text::{TextOptions, draw_text},
     },
+    layer_render_error::LayerRenderResult,
     projectable::{TileProjectable, geometry_point},
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
+pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) -> LayerRenderResult {
     let _span = tracy_client::span!("housenumbers::render");
 
     let sql = r#"
@@ -35,9 +36,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         ..TextOptions::default()
     };
 
-    let rows = client
-        .query(sql, &ctx.bbox_query_params(Some(128.0)).as_params())
-        .expect("db data");
+    let rows = client.query(sql, &ctx.bbox_query_params(Some(128.0)).as_params())?;
 
     for row in rows {
         draw_text(
@@ -46,6 +45,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
             &geometry_point(&row).project_to_tile(&ctx.tile_projector),
             row.get("housenumber"),
             &text_options,
-        );
+        )?;
     }
+
+    Ok(())
 }

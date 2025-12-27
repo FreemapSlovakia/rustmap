@@ -42,7 +42,7 @@
   "scripts": {
     "build": "tsc",
     "start": "UV_THREADPOOL_SIZE=$(nproc); node --enable-source-maps dist",
-    "watch": "UV_THREADPOOL_SIZE=$(nproc); tsc-watch --onSuccess \"bash -c 'node --enable-source-maps dist; echo Exited $?'\""
+    "watch": "UV_THREADPOOL_SIZE=$(nproc); tsc-watch --onSuccess \"bash -c 'node --enable-source-maps dist config/development.json5; echo Exited $?'\""
   },
   "exports": {
     ".": "./dist/index.js"

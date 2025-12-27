@@ -3,13 +3,14 @@ use crate::{
     colors::{self, Color, ContextExt},
     ctx::Ctx,
     draw::path_geom::path_geometry,
+    layer_render_error::LayerRenderResult,
     projectable::{TileProjectable, geometry_geometry},
     xyz::to_absolute_pixel_coords,
 };
 use cairo::{Extend, Matrix, SurfacePattern};
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) -> LayerRenderResult {
     let _span = tracy_client::span!("landuse::render");
 
     let context = ctx.context;
@@ -46,11 +47,9 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
         }
     );
 
-    let rows = client
-        .query(query, &ctx.bbox_query_params(None).as_params())
-        .expect("db data");
+    let rows = client.query(query, &ctx.bbox_query_params(None).as_params())?;
 
-    context.save().unwrap();
+    context.save()?;
 
     for row in rows {
         let Some(geom) =
@@ -59,20 +58,22 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
             continue;
         };
 
-        let colour_area = |color: Color| {
+        let colour_area = |color: Color| -> cairo::Result<()> {
             context.set_source_color(color);
             path_geometry(context, &geom);
-            context.fill().unwrap();
+            context.fill()?;
+
+            Ok(())
         };
 
-        let mut pattern_area = |path: &str| {
-            let tile = svg_cache.get(path);
+        let mut pattern_area = |path: &str| -> LayerRenderResult {
+            let tile = svg_cache.get(path)?;
 
             let pattern = SurfacePattern::create(tile);
 
             let (x, y) = to_absolute_pixel_coords(min.x, min.y, ctx.zoom as u8);
 
-            let rect = tile.extents().unwrap();
+            let rect = tile.extents().expect("tile extents");
 
             let mut matrix = Matrix::identity();
             matrix.translate((x % rect.width()).round(), (y % rect.height()).round());
@@ -80,213 +81,217 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
 
             pattern.set_extend(Extend::Repeat);
 
-            context.set_source(&pattern).unwrap();
+            context.set_source(&pattern)?;
 
             path_geometry(context, &geom);
 
-            context.fill().unwrap();
+            context.fill()?;
+
+            Ok(())
         };
 
         let typ: &str = row.get("type");
 
         match typ {
             "allotments" => {
-                colour_area(colors::ALLOTMENTS);
+                colour_area(colors::ALLOTMENTS)?;
             }
             "cemetery" => {
-                colour_area(colors::GRASSY);
-                pattern_area("grave.svg");
+                colour_area(colors::GRASSY)?;
+                pattern_area("grave.svg")?;
             }
             "clearcut" => {
-                pattern_area("clearcut2.svg");
+                pattern_area("clearcut2.svg")?;
             }
             "bare_rock" => {
-                pattern_area("bare_rock.svg");
+                pattern_area("bare_rock.svg")?;
             }
             "beach" => {
-                colour_area(colors::BEACH);
-                pattern_area("sand.svg");
+                colour_area(colors::BEACH)?;
+                pattern_area("sand.svg")?;
             }
             "brownfield" => {
-                colour_area(colors::BROWNFIELD);
+                colour_area(colors::BROWNFIELD)?;
             }
             "bog" => {
-                colour_area(colors::GRASSY);
-                pattern_area("wetland.svg");
-                pattern_area("bog.svg");
+                colour_area(colors::GRASSY)?;
+                pattern_area("wetland.svg")?;
+                pattern_area("bog.svg")?;
             }
             "college" => {
-                colour_area(colors::COLLEGE);
+                colour_area(colors::COLLEGE)?;
             }
             "commercial" => {
-                colour_area(colors::COMMERCIAL);
+                colour_area(colors::COMMERCIAL)?;
             }
             "dam" => {
-                colour_area(colors::DAM);
+                colour_area(colors::DAM)?;
             }
             "farmland" => {
-                colour_area(colors::FARMLAND);
+                colour_area(colors::FARMLAND)?;
             }
             "farmyard" => {
-                colour_area(colors::FARMYARD);
+                colour_area(colors::FARMYARD)?;
             }
             "fell" => {
-                colour_area(colors::GRASSY);
+                colour_area(colors::GRASSY)?;
             }
             "marsh" | "wet_meadow" | "fen" => {
-                colour_area(colors::GRASSY);
-                pattern_area("wetland.svg");
-                pattern_area("marsh.svg");
+                colour_area(colors::GRASSY)?;
+                pattern_area("wetland.svg")?;
+                pattern_area("marsh.svg")?;
             }
             "footway" => {
-                colour_area(colors::NONE);
+                colour_area(colors::NONE)?;
             }
             "forest" => {
-                colour_area(colors::FOREST);
+                colour_area(colors::FOREST)?;
 
                 context.set_source_rgb(0.0, 0.0, 0.0);
                 context.set_line_width(1.0);
             }
             "garages" => {
-                colour_area(colors::NONE);
+                colour_area(colors::NONE)?;
             }
             "grass" => {
-                colour_area(colors::GRASSY);
+                colour_area(colors::GRASSY)?;
             }
             "garden" => {
-                colour_area(colors::ORCHARD);
+                colour_area(colors::ORCHARD)?;
 
                 context.set_source_rgba(0.0, 0.0, 0.0, 0.2);
                 context.set_line_width(1.0);
                 path_geometry(context, &geom);
-                context.stroke().unwrap();
+                context.stroke()?;
             }
             "grassland" => {
-                colour_area(colors::GRASSY);
+                colour_area(colors::GRASSY)?;
             }
             "heath" => {
-                colour_area(colors::HEATH);
+                colour_area(colors::HEATH)?;
             }
             "hospital" => {
-                colour_area(colors::HOSPITAL);
+                colour_area(colors::HOSPITAL)?;
             }
             "industrial" => {
-                colour_area(colors::INDUSTRIAL);
+                colour_area(colors::INDUSTRIAL)?;
             }
             "landfill" => {
-                colour_area(colors::LANDFILL);
+                colour_area(colors::LANDFILL)?;
             }
             "living_street" => {
-                colour_area(colors::RESIDENTIAL);
+                colour_area(colors::RESIDENTIAL)?;
             }
             "mangrove" => {
-                colour_area(colors::GRASSY);
-                pattern_area("wetland.svg");
-                pattern_area("mangrove.svg");
+                colour_area(colors::GRASSY)?;
+                pattern_area("wetland.svg")?;
+                pattern_area("mangrove.svg")?;
             }
             "meadow" => {
-                colour_area(colors::GRASSY);
+                colour_area(colors::GRASSY)?;
             }
             "orchard" => {
-                colour_area(colors::ORCHARD);
-                pattern_area("orchard.svg");
+                colour_area(colors::ORCHARD)?;
+                pattern_area("orchard.svg")?;
             }
             "park" => {
-                colour_area(colors::GRASSY);
+                colour_area(colors::GRASSY)?;
             }
             "parking" => {
-                colour_area(colors::PARKING);
+                colour_area(colors::PARKING)?;
 
                 context.set_source_color(colors::PARKING_STROKE);
                 context.set_line_width(1.0);
                 path_geometry(context, &geom);
-                context.stroke().unwrap();
+                context.stroke()?;
             }
             "pedestrian" => {
-                colour_area(colors::NONE);
+                colour_area(colors::NONE)?;
             }
             "pitch" | "playground" | "golf_course" | "track" => {
-                colour_area(colors::PITCH);
+                colour_area(colors::PITCH)?;
 
                 context.set_source_color(colors::PITCH_STROKE);
                 context.set_line_width(1.0);
                 path_geometry(context, &geom);
-                context.stroke().unwrap();
+                context.stroke()?;
             }
             "plant_nursery" => {
-                colour_area(colors::SCRUB);
-                pattern_area("plant_nursery.svg");
+                colour_area(colors::SCRUB)?;
+                pattern_area("plant_nursery.svg")?;
             }
             "quarry" => {
-                colour_area(colors::QUARRY);
-                pattern_area("quarry.svg");
+                colour_area(colors::QUARRY)?;
+                pattern_area("quarry.svg")?;
             }
             "railway" => {
-                colour_area(colors::NONE);
+                colour_area(colors::NONE)?;
             }
             "reedbed" => {
-                colour_area(colors::GRASSY);
-                pattern_area("wetland.svg");
-                pattern_area("reedbed.svg");
+                colour_area(colors::GRASSY)?;
+                pattern_area("wetland.svg")?;
+                pattern_area("reedbed.svg")?;
             }
             "recreation_ground" => {
-                colour_area(colors::NONE);
+                colour_area(colors::NONE)?;
             }
             "residential" => {
-                colour_area(colors::RESIDENTIAL);
+                colour_area(colors::RESIDENTIAL)?;
             }
             "retail" => {
-                colour_area(colors::COMMERCIAL);
+                colour_area(colors::COMMERCIAL)?;
             }
             "silo" => {
-                colour_area(colors::SILO);
+                colour_area(colors::SILO)?;
 
                 context.set_source_color(colors::SILO_STROKE);
                 context.set_line_width(1.0);
                 path_geometry(context, &geom);
-                context.stroke().unwrap();
+                context.stroke()?;
             }
             "school" => {
-                colour_area(colors::COLLEGE);
+                colour_area(colors::COLLEGE)?;
             }
             "scree" => {
-                colour_area(colors::SCREE);
-                pattern_area("scree.svg");
+                colour_area(colors::SCREE)?;
+                pattern_area("scree.svg")?;
             }
             "scrub" => {
-                colour_area(colors::SCRUB);
-                pattern_area("scrub.svg");
+                colour_area(colors::SCRUB)?;
+                pattern_area("scrub.svg")?;
             }
             "swamp" => {
-                colour_area(colors::GRASSY);
-                pattern_area("wetland.svg");
-                pattern_area("swamp.svg");
+                colour_area(colors::GRASSY)?;
+                pattern_area("wetland.svg")?;
+                pattern_area("swamp.svg")?;
             }
             "university" => {
-                colour_area(colors::COLLEGE);
+                colour_area(colors::COLLEGE)?;
             }
             "village_green" => {
-                colour_area(colors::GRASSY);
+                colour_area(colors::GRASSY)?;
             }
             "vineyard" => {
-                colour_area(colors::ORCHARD);
-                pattern_area("grapes.svg");
+                colour_area(colors::ORCHARD)?;
+                pattern_area("grapes.svg")?;
             }
             "wastewater_plant" => {
-                colour_area(colors::INDUSTRIAL);
+                colour_area(colors::INDUSTRIAL)?;
             }
             "weir" => {
-                colour_area(colors::DAM);
+                colour_area(colors::DAM)?;
             }
             "wetland" => {
-                pattern_area("wetland.svg");
+                pattern_area("wetland.svg")?;
             }
             "wood" => {
-                colour_area(colors::FOREST);
+                colour_area(colors::FOREST)?;
             }
             _ => (),
         }
     }
 
-    context.restore().unwrap();
+    context.restore()?;
+
+    Ok(())
 }

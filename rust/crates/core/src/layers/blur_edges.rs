@@ -1,15 +1,18 @@
-use crate::{ctx::Ctx, draw::path_geom::path_geometry, projectable::TileProjectable};
+use crate::{
+    ctx::Ctx, draw::path_geom::path_geometry, layer_render_error::LayerRenderResult,
+    projectable::TileProjectable,
+};
 use cairo::{Format, ImageSurface, Operator};
 use geo::{BoundingRect, Geometry, Intersects, Rect};
 use image::{GrayImage, imageops};
 
 const BLUR_RADIUS_PX: f64 = 10.0;
 
-pub fn render(ctx: &Ctx, mask_geometry: Option<&Geometry>) {
+pub fn render(ctx: &Ctx, mask_geometry: Option<&Geometry>) -> LayerRenderResult {
     let _span = tracy_client::span!("blur_edges::render");
 
     let Some(mask_polygon_merc) = mask_geometry.cloned() else {
-        return;
+        return Ok(());
     };
 
     let context = ctx.context;
@@ -22,15 +25,15 @@ pub fn render(ctx: &Ctx, mask_geometry: Option<&Geometry>) {
         let padded_w = (ctx.size.width + pad * 2) as i32;
         let padded_h = (ctx.size.height + pad * 2) as i32;
 
-        let mut mask_surface = ImageSurface::create(Format::A8, padded_w, padded_h).unwrap();
+        let mut mask_surface = ImageSurface::create(Format::A8, padded_w, padded_h)?;
 
         {
-            let mask_ctx = cairo::Context::new(&mask_surface).unwrap();
+            let mask_ctx = cairo::Context::new(&mask_surface)?;
 
             mask_ctx.translate(pad as f64, pad as f64);
             path_geometry(&mask_ctx, &mask_geometry);
             mask_ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0);
-            mask_ctx.fill().unwrap();
+            mask_ctx.fill()?;
             mask_surface.flush();
         }
 
@@ -39,7 +42,7 @@ pub fn render(ctx: &Ctx, mask_geometry: Option<&Geometry>) {
         let stride = mask_surface.stride() as usize;
 
         let alpha: Vec<u8> = {
-            let data = mask_surface.data().unwrap();
+            let data = mask_surface.data().expect("surface data");
 
             data.chunks(stride)
                 .take(mask_height as usize)
@@ -65,18 +68,17 @@ pub fn render(ctx: &Ctx, mask_geometry: Option<&Geometry>) {
             padded_w,
             padded_h,
             (mask_width * 4) as i32,
-        )
-        .unwrap();
+        )?;
 
-        context
-            .set_source_surface(&blurred_surface, -(pad as f64), -(pad as f64))
-            .unwrap();
+        context.set_source_surface(&blurred_surface, -(pad as f64), -(pad as f64))?;
     } else {
         context.set_source_rgba(0.0, 0.0, 0.0, 0.0);
     }
 
     context.set_operator(Operator::DestIn);
-    context.paint().unwrap();
+    context.paint()?;
+
+    Ok(())
 }
 
 fn tile_intersects_mask(mask: &Geometry, ctx: &Ctx) -> bool {

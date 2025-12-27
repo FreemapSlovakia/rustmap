@@ -13,8 +13,13 @@ pub fn offset_line_string(line_string: &LineString, offset: f64) -> LineString {
     }
 
     for pc in polyline.parallel_offset(offset) {
-        for v in pc.arcs_to_approx_lines(3.0).unwrap().vertex_data {
-            result.push(Coord { x: v.x, y: v.y });
+        if let Some(polyline) = pc.arcs_to_approx_lines(3.0) {
+            for vertex in polyline.vertex_data {
+                result.push(Coord {
+                    x: vertex.x,
+                    y: vertex.y,
+                });
+            }
         }
     }
 

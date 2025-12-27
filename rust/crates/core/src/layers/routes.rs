@@ -9,6 +9,7 @@ use crate::{
         path_geom::{path_line_string_with_offset, walk_geometry_line_strings},
         text_on_line::{Align, Distribution, Repeat, TextOnLineOptions, draw_text_on_line},
     },
+    layer_render_error::{LayerRenderError, LayerRenderResult},
     projectable::{TileProjectable, geometry_geometry},
 };
 use bitflags::bitflags;
@@ -264,7 +265,7 @@ pub fn render_marking(
     client: &mut Client,
     route_types: &RouteTypes,
     svg_cache: &mut SvgCache,
-) {
+) -> LayerRenderResult {
     let _span = tracy_client::span!("routes::render_marking");
 
     let zoom = ctx.zoom;
@@ -279,12 +280,10 @@ pub fn render_marking(
         ),
         12..=13 => get_routes_query(route_types, None, ""),
         14.. => get_routes_query(route_types, None, ""),
-        _ => return,
+        _ => return Ok(()),
     };
 
-    let rows = client
-        .query(&query, &ctx.bbox_query_params(Some(512.0)).as_params())
-        .expect("db data");
+    let rows = client.query(&query, &ctx.bbox_query_params(Some(512.0)).as_params())?;
 
     for row in rows {
         let Some(geom) = geometry_geometry(&row) else {
@@ -308,7 +307,8 @@ pub fn render_marking(
                 if off > 0 {
                     let offset = ((off as f64 - 1.0) * wf).mul_add(df, zo) + 0.5;
 
-                    let sample = svg_cache.get(&format!("horse.svg|path {{ fill: #{} }}", color.1));
+                    let sample =
+                        svg_cache.get(&format!("horse.svg|path {{ fill: #{} }}", color.1))?;
 
                     walk_geometry_line_strings(&geom, &mut |part| {
                         draw_line_pattern_scaled(
@@ -317,8 +317,8 @@ pub fn render_marking(
                             0.5,
                             wf / 2.0,
                             sample,
-                        );
-                    });
+                        )
+                    })?;
 
                     // <LinePatternSymbolizer
                     //   file={path.resolve(tmpdir(), `horse-${color}.svg`)}
@@ -334,9 +334,9 @@ pub fn render_marking(
                 if off > 0 {
                     let offset = -((off as f64 - 1.0) * wf).mul_add(2.0, zo) - 1.0;
 
-                    walk_geometry_line_strings(&geom, &mut |part| {
+                    walk_geometry_line_strings::<_, LayerRenderError>(&geom, &mut |part| {
                         let pattern =
-                            svg_cache.get(&format!("ski.svg|path {{ fill: #{} }}", color.1));
+                            svg_cache.get(&format!("ski.svg|path {{ fill: #{} }}", color.1))?;
 
                         draw_line_pattern_scaled(
                             ctx,
@@ -344,8 +344,10 @@ pub fn render_marking(
                             0.5,
                             wf / 2.0,
                             pattern,
-                        );
-                    });
+                        )?;
+
+                        Ok(())
+                    })?;
 
                     // <LinePatternSymbolizer
                     //   file={path.resolve(tmpdir(), `ski-${color}.svg`)}
@@ -363,23 +365,25 @@ pub fn render_marking(
                 if off > 0 {
                     let offset = -((off as f64 - 1.0) * wf).mul_add(2.0, zo) - 1.0;
 
-                    context.save().unwrap();
+                    context.save()?;
 
                     walk_geometry_line_strings(&geom, &mut |part| {
                         path_line_string_with_offset(context, part, offset);
-                    });
+
+                        cairo::Result::Ok(())
+                    })?;
 
                     context.set_line_width(wf * 2.0);
                     context.set_line_join(cairo::LineJoin::Round);
                     context.set_line_cap(cairo::LineCap::Round);
 
-                    let rgb: RgbRatio = Rgb::from_hex_str(color.1).unwrap().as_ratio();
+                    let rgb: RgbRatio = Rgb::from_hex_str(color.1).expect("color").as_ratio();
                     context.set_source_rgb(rgb.r(), rgb.g(), rgb.b());
                     context.set_dash(&[0.001, wf * 3.0], 0.0);
 
-                    context.stroke().unwrap();
+                    context.stroke()?;
 
-                    context.restore().unwrap();
+                    context.restore()?;
 
                     // for part in geom {
                     //     draw_polyline_outline_scaled(
@@ -400,22 +404,24 @@ pub fn render_marking(
                     if off > 0 {
                         let offset = ((off as f64 - 1.0) * wf).mul_add(df, zo) + 0.5;
 
-                        context.save().unwrap();
+                        context.save()?;
 
                         walk_geometry_line_strings(&geom, &mut |part| {
                             path_line_string_with_offset(context, part, offset);
-                        });
+
+                            cairo::Result::Ok(())
+                        })?;
 
                         context.set_line_width(wf);
                         context.set_line_join(cairo::LineJoin::Round);
                         context.set_line_cap(cairo::LineCap::Butt);
-                        let rgb: RgbRatio = Rgb::from_hex_str(color.1).unwrap().as_ratio();
+                        let rgb: RgbRatio = Rgb::from_hex_str(color.1).expect("color").as_ratio();
                         context.set_source_rgb(rgb.r(), rgb.g(), rgb.b());
                         context.set_dash(&[], 0.0);
 
-                        context.stroke().unwrap();
+                        context.stroke()?;
 
-                        context.restore().unwrap();
+                        context.restore()?;
                     }
                 }
 
@@ -425,27 +431,31 @@ pub fn render_marking(
                     if off > 0 {
                         let offset = ((off as f64 - 1.0) * wf).mul_add(df, zo) + 0.5;
 
-                        context.save().unwrap();
+                        context.save()?;
 
                         walk_geometry_line_strings(&geom, &mut |part| {
                             path_line_string_with_offset(context, part, offset);
-                        });
+
+                            cairo::Result::Ok(())
+                        })?;
 
                         context.set_line_width(wf);
                         context.set_line_join(cairo::LineJoin::Round);
                         context.set_line_cap(cairo::LineCap::Butt);
-                        let rgb: RgbRatio = Rgb::from_hex_str(color.1).unwrap().as_ratio();
+                        let rgb: RgbRatio = Rgb::from_hex_str(color.1).expect("color").as_ratio();
                         context.set_source_rgb(rgb.r(), rgb.g(), rgb.b());
                         context.set_dash(&[wf * 3.0, wf], 0.0);
 
-                        context.stroke().unwrap();
+                        context.stroke()?;
 
-                        context.restore().unwrap();
+                        context.restore()?;
                     }
                 }
             }
         }
     }
+
+    Ok(())
 }
 
 pub fn render_labels(
@@ -453,14 +463,12 @@ pub fn render_labels(
     client: &mut Client,
     route_types: &RouteTypes,
     collision: &mut Collision,
-) {
+) -> LayerRenderResult {
     let _span = tracy_client::span!("routes::render_labels");
 
     let query = get_routes_query(route_types, None, "");
 
-    let rows = client
-        .query(&query, &ctx.bbox_query_params(Some(2048.0)).as_params())
-        .expect("db data");
+    let rows = client.query(&query, &ctx.bbox_query_params(Some(2048.0)).as_params())?;
 
     for row in rows {
         let Some(geom) = geometry_geometry(&row) else {
@@ -496,8 +504,12 @@ pub fn render_labels(
             ] {
                 options.offset = offset;
 
-                draw_text_on_line(ctx.context, geom, refs, Some(collision), &options);
+                let _drawn = draw_text_on_line(ctx.context, geom, refs, Some(collision), &options)?;
             }
-        });
+
+            cairo::Result::Ok(())
+        })?;
     }
+
+    Ok(())
 }

@@ -6,6 +6,7 @@ use crate::{
         path_geom::{path_geometry, path_polygons, walk_geometry_points},
         text::{TextOptions, draw_text},
     },
+    layer_render_error::LayerRenderResult,
     projectable::TileProjectable,
 };
 use cairo::{LineCap, LineJoin};
@@ -14,12 +15,14 @@ use geojson::Feature;
 use proj::Proj;
 use serde_json::Value;
 
-pub fn render(ctx: &Ctx, features: &Vec<Feature>) {
+pub fn render(ctx: &Ctx, features: &Vec<Feature>) -> LayerRenderResult {
     let context = ctx.context;
 
-    let proj = Proj::new_known_crs("EPSG:4326", "EPSG:3857", None).unwrap();
+    // TODO lazy
+    let proj =
+        Proj::new_known_crs("EPSG:4326", "EPSG:3857", None).expect("projection 4326 -> 3857");
 
-    context.save().unwrap();
+    context.save()?;
 
     context.set_line_join(LineJoin::Round);
     context.set_line_cap(LineCap::Round);
@@ -66,17 +69,17 @@ pub fn render(ctx: &Ctx, features: &Vec<Feature>) {
 
         context.set_source_rgb(r, g, b);
 
-        context.stroke().unwrap();
+        context.stroke()?;
 
         path_polygons(ctx.context, &geom);
 
         context.set_source_rgba(r, g, b, 0.25);
 
-        context.fill().unwrap();
+        context.fill()?;
 
         context.set_source_rgb(r, g, b);
 
-        walk_geometry_points(&geom, &mut |point| {
+        walk_geometry_points(&geom, &mut |point| -> cairo::Result<()> {
             let x = point.x();
             let y = point.y();
             let r = 10f64;
@@ -92,8 +95,10 @@ pub fn render(ctx: &Ctx, features: &Vec<Feature>) {
             context.line_to(x, y);
             context.close_path();
 
-            context.fill().unwrap();
-        });
+            context.fill()?;
+
+            Ok(())
+        })?;
 
         if let Some(name) = name {
             let point = if let Geometry::Point(point) = geom {
@@ -121,5 +126,7 @@ pub fn render(ctx: &Ctx, features: &Vec<Feature>) {
         }
     }
 
-    context.restore().unwrap();
+    context.restore()?;
+
+    Ok(())
 }

@@ -7,8 +7,9 @@ use crate::{
         path_geom::walk_geometry_line_strings,
         text_on_line::{Align, Distribution, Repeat, TextOnLineOptions, draw_text_on_line},
     },
+    layer_render_error::LayerRenderResult,
     projectable::{TileProjectable, geometry_geometry},
-    re_replacer::{Replacement, replace},
+    regex_replacer::{Replacement, replace},
 };
 use pangocairo::pango::Style;
 use postgres::Client;
@@ -17,12 +18,12 @@ use std::sync::LazyLock;
 
 static REPLACEMENTS: LazyLock<Vec<Replacement>> = LazyLock::new(|| {
     vec![
-        (Regex::new(r"\b[Pp]otok$").unwrap(), "p."),
-        (Regex::new(r"^[Pp]otok\b *").unwrap(), ""),
+        (Regex::new(r"\b[Pp]otok$").expect("regex"), "p."),
+        (Regex::new(r"^[Pp]otok\b *").expect("regex"), ""),
     ]
 });
 
-pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
+pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) -> LayerRenderResult {
     let _span = tracy_client::span!("water_line_names::render");
 
     let sql = format!(
@@ -43,9 +44,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         }
     );
 
-    let rows = client
-        .query(&sql, &ctx.bbox_query_params(Some(2048.0)).as_params())
-        .expect("db data");
+    let rows = client.query(&sql, &ctx.bbox_query_params(Some(2048.0)).as_params())?;
 
     let mut options = TextOnLineOptions {
         flo: FontAndLayoutOptions {
@@ -73,13 +72,17 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         };
 
         walk_geometry_line_strings(&geom, &mut |geom| {
-            draw_text_on_line(
+            let _drawn = draw_text_on_line(
                 ctx.context,
                 geom,
                 &replace(row.get("name"), &REPLACEMENTS),
                 Some(collision),
                 &options,
-            );
-        })
+            )?;
+
+            cairo::Result::Ok(())
+        })?;
     }
+
+    Ok(())
 }

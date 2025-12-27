@@ -1,11 +1,12 @@
 use crate::{
     SvgCache,
     ctx::Ctx,
+    layer_render_error::LayerRenderResult,
     projectable::{TileProjectable, geometry_point},
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) -> LayerRenderResult {
     let _span = tracy_client::span!("trees::render");
 
     let sql = "
@@ -19,9 +20,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
             )
         ORDER BY type, st_x(geometry)";
 
-    let rows = client
-        .query(sql, &ctx.bbox_query_params(Some(32.0)).as_params())
-        .expect("db data");
+    let rows = client.query(sql, &ctx.bbox_query_params(Some(32.0)).as_params())?;
 
     for row in rows {
         let typ: &str = row.get("type");
@@ -31,13 +30,13 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
         let scale =
             (2.0 + (ctx.zoom as f64 - 15.0).exp2()) * (if typ == "shrub" { 0.1 } else { 0.2 });
 
-        let surface = svg_cache.get("tree2.svg");
+        let surface = svg_cache.get("tree2.svg")?;
 
-        let rect = surface.extents().unwrap();
+        let rect = surface.extents().expect("surface extents");
 
         let context = ctx.context;
 
-        context.save().unwrap();
+        context.save()?;
 
         context.translate(
             point.x() - scale * rect.width() / 2.0,
@@ -46,10 +45,12 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
 
         context.scale(scale, scale);
 
-        context.set_source_surface(surface, 0.0, 0.0).unwrap();
+        context.set_source_surface(surface, 0.0, 0.0)?;
 
-        context.paint().unwrap();
+        context.paint()?;
 
-        context.restore().unwrap();
+        context.restore()?;
     }
+
+    Ok(())
 }

@@ -3,115 +3,129 @@ use cavalier_contours::polyline::{PlineSource, PlineSourceMut, PlineVertex, Poly
 use geo::{Geometry, LineString, Point, Polygon};
 
 pub fn path_geometry(context: &Context, geom: &Geometry) {
-    walk_geometry_line_strings(geom, &mut |line_string| {
-        path_line_string(context, line_string)
-    });
+    walk_geometry_line_strings::<_, Result<(), ()>>(geom, &mut |line_string| {
+        path_line_string(context, line_string);
+
+        Ok(())
+    })
+    .expect("ok");
 }
 
-pub fn walk_geometry_line_strings<F>(geom: &Geometry, dl: &mut F)
+pub fn walk_geometry_line_strings<F, E>(geom: &Geometry, dl: &mut F) -> Result<(), E>
 where
-    F: FnMut(&LineString),
+    F: FnMut(&LineString) -> Result<(), E>,
 {
     match geom {
         Geometry::GeometryCollection(gc) => {
             for geometry in gc {
-                walk_geometry_line_strings(geometry, dl);
+                walk_geometry_line_strings(geometry, dl)?;
             }
         }
         Geometry::Polygon(p) => {
-            path_polygon(p, dl);
+            path_polygon(p, dl)?;
         }
         Geometry::MultiPolygon(mp) => {
             for p in mp {
-                path_polygon(p, dl);
+                path_polygon(p, dl)?;
             }
         }
         Geometry::MultiLineString(mls) => {
             for ls in mls {
-                dl(ls);
+                dl(ls)?;
             }
         }
         Geometry::LineString(ls) => {
-            dl(ls);
+            dl(ls)?;
         }
         Geometry::Rect(r) => {
-            dl(r.to_polygon().exterior());
+            dl(r.to_polygon().exterior())?;
         }
         Geometry::Triangle(r) => {
-            dl(r.to_polygon().exterior());
+            dl(r.to_polygon().exterior())?;
         }
         Geometry::Line(line) => {
-            dl(&LineString::new(vec![line.start, line.end]));
+            dl(&LineString::new(vec![line.start, line.end]))?;
         }
         Geometry::Point(_) | Geometry::MultiPoint(_) => {}
     }
+
+    Ok(())
 }
 
 pub fn path_polygons(context: &Context, geom: &Geometry) {
-    walk_geometry_polygons(geom, &mut |line_string| {
-        path_line_string(context, line_string)
-    });
+    walk_geometry_polygons::<_, Result<(), ()>>(geom, &mut |line_string| {
+        path_line_string(context, line_string);
+
+        Ok(())
+    })
+    .expect("ok")
 }
 
-pub fn walk_geometry_polygons<F>(geom: &Geometry, dl: &mut F)
+pub fn walk_geometry_polygons<F, E>(geom: &Geometry, dl: &mut F) -> Result<(), E>
 where
-    F: FnMut(&LineString),
+    F: FnMut(&LineString) -> Result<(), E>,
 {
     match geom {
         Geometry::GeometryCollection(gc) => {
             for geometry in gc {
-                walk_geometry_polygons(geometry, dl);
+                walk_geometry_polygons(geometry, dl)?;
             }
         }
         Geometry::Polygon(p) => {
-            path_polygon(p, dl);
+            path_polygon(p, dl)?;
         }
         Geometry::MultiPolygon(mp) => {
             for p in mp {
-                path_polygon(p, dl);
+                path_polygon(p, dl)?;
             }
         }
         Geometry::Rect(r) => {
-            dl(r.to_polygon().exterior());
+            dl(r.to_polygon().exterior())?;
         }
         Geometry::Triangle(r) => {
-            dl(r.to_polygon().exterior());
+            dl(r.to_polygon().exterior())?;
         }
         _ => {}
     }
+
+    Ok(())
 }
 
-pub fn walk_geometry_points<F>(geom: &Geometry, dl: &mut F)
+pub fn walk_geometry_points<F, E>(geom: &Geometry, dl: &mut F) -> Result<(), E>
 where
-    F: FnMut(&Point),
+    F: FnMut(&Point) -> Result<(), E>,
 {
     match geom {
         Geometry::GeometryCollection(gc) => {
             for geometry in gc {
-                walk_geometry_points(geometry, dl);
+                walk_geometry_points(geometry, dl)?;
             }
         }
         Geometry::Point(p) => {
-            dl(p);
+            dl(p)?;
         }
         Geometry::MultiPoint(mp) => {
             for p in mp {
-                dl(p);
+                dl(p)?;
             }
         }
         _ => {}
     }
+
+    Ok(())
 }
 
-fn path_polygon<F>(poly: &Polygon, dl: &mut F)
+fn path_polygon<F, E>(poly: &Polygon, dl: &mut F) -> Result<(), E>
 where
-    F: FnMut(&LineString),
+    F: FnMut(&LineString) -> Result<(), E>,
 {
-    dl(poly.exterior());
+    dl(poly.exterior())?;
 
     for ring in poly.interiors() {
-        dl(ring);
+        dl(ring)?;
     }
+
+    Ok(())
 }
 
 pub fn path_line_string(context: &Context, line_string: &LineString) {

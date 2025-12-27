@@ -5,9 +5,10 @@ use crate::{
     ctx::Ctx,
     draw::path_geom::path_line_string,
     projectable::{TileProjectable, geometry_line_string},
+    layer_render_error::LayerRenderResult,
 };
 
-pub fn render(ctx: &Ctx, client: &mut Client) {
+pub fn render(ctx: &Ctx, client: &mut Client) -> LayerRenderResult {
     let _span = tracy_client::span!("barrierways::render");
 
     let sql = concat!(
@@ -17,12 +18,12 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     let rows = client
         .query(sql, &ctx.bbox_query_params(Some(8.0)).as_params())
-        .expect("db data");
+        ?;
 
     for row in rows {
         let context = ctx.context;
 
-        context.save().expect("context saved");
+        context.save()?;
 
         match row.get("type") {
             "city_wall" => {
@@ -49,8 +50,10 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             &geometry_line_string(&row).project_to_tile(&ctx.tile_projector),
         );
 
-        context.stroke().unwrap();
+        context.stroke()?;
 
-        context.restore().expect("context restored");
+        context.restore()?;
     }
+
+    Ok(())
 }

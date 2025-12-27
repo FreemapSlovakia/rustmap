@@ -57,6 +57,7 @@ impl Default for TextOnLineOptions {
 #[derive(Copy, Clone, Debug)]
 pub enum Upright {
     Left,
+    #[allow(dead_code)]
     Right,
     Auto,
 }
@@ -65,6 +66,7 @@ pub enum Upright {
 pub enum Align {
     Left,
     Center,
+    #[allow(dead_code)]
     Right,
 }
 
@@ -458,9 +460,9 @@ fn draw_label(
     cr: &cairo::Context,
     glyphs: &[(GlyphString, Font, Coord, f64)],
     opts: &TextOnLineOptions,
-) {
+) -> cairo::Result<()> {
     if glyphs.is_empty() {
-        return;
+        return Ok(());
     }
 
     let ps = 1.0 / SCALE as f64;
@@ -474,27 +476,29 @@ fn draw_label(
         let cx = (logical.x() as f64 + logical.width() as f64 / 2.0) * ps;
         let cy = (logical.y() as f64 + logical.height() as f64 / 2.0) * ps;
 
-        cr.save().expect("context saved");
+        cr.save()?;
         cr.translate(pos.x, pos.y);
         cr.rotate(*angle);
         cr.translate(-cx, -cy);
 
         glyph_string_path(cr, font, &mut gs);
 
-        cr.restore().expect("context restored");
+        cr.restore()?;
     }
 
     cr.set_source_color_a(opts.halo_color, opts.halo_opacity);
     cr.set_dash(&[], 0.0);
     cr.set_line_width(opts.halo_width * 2.0);
     cr.set_line_join(cairo::LineJoin::Round);
-    cr.stroke_preserve().unwrap();
+    cr.stroke_preserve()?;
 
     cr.set_source_color(opts.color);
-    cr.fill().unwrap();
+    cr.fill()?;
 
-    cr.pop_group_to_source().unwrap();
-    cr.paint_with_alpha(opts.alpha).unwrap();
+    cr.pop_group_to_source()?;
+    cr.paint_with_alpha(opts.alpha)?;
+
+    Ok(())
 }
 
 fn label_offsets(
@@ -629,7 +633,7 @@ pub fn draw_text_on_line(
     text: &str,
     mut collision: Option<&mut Collision<f64>>,
     options: &TextOnLineOptions,
-) -> bool {
+) -> cairo::Result<bool> {
     let _span = tracy_client::span!("text_on_line::draw_text_on_line");
 
     let ps = 1.0 / SCALE as f64;
@@ -638,14 +642,14 @@ pub fn draw_text_on_line(
     pts.dedup_by(|a, b| a == b);
 
     if pts.len() < 2 {
-        return true;
+        return Ok(true);
     }
 
     let cum = cumulative_lengths(&pts);
     let total_length = *cum.last().unwrap_or(&0.0);
 
     if total_length == 0.0 {
-        return true;
+        return Ok(true);
     }
 
     let clip_extents = context.clip_extents().ok();
@@ -697,19 +701,19 @@ pub fn draw_text_on_line(
 
     let clusters = collect_clusters(&layout);
     if clusters.is_empty() {
-        return true;
+        return Ok(true);
     }
 
     let base_total_advance: f64 = clusters.iter().map(|c| c.0).sum();
     if base_total_advance == 0.0 {
-        return true;
+        return Ok(true);
     }
 
     // If justify spacing falls below the configured minimum, abort drawing.
     let (advance_scale, extra_spacing_between_glyphs) = match min_spacing {
         Some(ms) => match justify_spacing(Some(ms), total_length, base_total_advance, &clusters) {
             Some(v) => v,
-            None => return false,
+            None => return Ok(false),
         },
         None => (1.0, 0.0),
     };
@@ -728,7 +732,7 @@ pub fn draw_text_on_line(
     let mut new_collision_bboxes: Vec<Rect<f64>> = Vec::new();
 
     if offsets.is_empty() {
-        return false;
+        return Ok(false);
     }
 
     let mut placements: Vec<Vec<(GlyphString, Font, Coord, f64)>> = Vec::new();
@@ -977,8 +981,8 @@ pub fn draw_text_on_line(
     }
 
     for label in placements {
-        draw_label(context, &label, options);
+        draw_label(context, &label, options)?;
     }
 
-    rendered
+    Ok(rendered)
 }

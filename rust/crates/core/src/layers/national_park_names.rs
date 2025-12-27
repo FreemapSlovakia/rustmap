@@ -8,8 +8,9 @@ use crate::{
         create_pango_layout::FontAndLayoutOptions,
         text::{TextOptions, draw_text},
     },
+    layer_render_error::LayerRenderResult,
     projectable::{TileProjectable, geometry_point},
-    re_replacer::{Replacement, replace},
+    regex_replacer::{Replacement, replace},
 };
 use pangocairo::pango::Style;
 use postgres::Client;
@@ -17,12 +18,18 @@ use regex::Regex;
 
 pub static REPLACEMENTS: LazyLock<Vec<Replacement>> = LazyLock::new(|| {
     vec![
-        (Regex::new(r"\b[Oo]chranné [Pp]ásmo\b").unwrap(), "OP"),
-        (Regex::new(r"\b[Nn]árodn(ého|ý) [Pp]arku?\b").unwrap(), "NP"),
+        (
+            Regex::new(r"\b[Oo]chranné [Pp]ásmo\b").expect("regex"),
+            "OP",
+        ),
+        (
+            Regex::new(r"\b[Nn]árodn(ého|ý) [Pp]arku?\b").expect("regex"),
+            "NP",
+        ),
     ]
 });
 
-pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
+pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) -> LayerRenderResult {
     let _span = tracy_client::span!("national_park_names::render");
 
     let sql = "
@@ -43,9 +50,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         ..TextOptions::default()
     };
 
-    let rows = client
-        .query(sql, &ctx.bbox_query_params(Some(512.0)).as_params())
-        .expect("db data");
+    let rows = client.query(sql, &ctx.bbox_query_params(Some(512.0)).as_params())?;
 
     for row in rows {
         draw_text(
@@ -54,6 +59,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
             &geometry_point(&row).project_to_tile(&ctx.tile_projector),
             &replace(row.get("name"), &REPLACEMENTS),
             &text_options,
-        );
+        )?;
     }
+
+    Ok(())
 }

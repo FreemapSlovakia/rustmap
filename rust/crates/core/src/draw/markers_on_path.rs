@@ -1,8 +1,13 @@
 use cairo::{Path, PathSegment};
 
-pub fn draw_markers_on_path<F>(path: &Path, offset: f64, spacing: f64, draw_maker: &F)
+pub fn draw_markers_on_path<F>(
+    path: &Path,
+    offset: f64,
+    spacing: f64,
+    draw_maker: &F,
+) -> cairo::Result<()>
 where
-    F: Fn(f64, f64, f64),
+    F: Fn(f64, f64, f64) -> cairo::Result<()>,
 {
     let mut m = offset;
     let mut px = 0.0;
@@ -31,9 +36,9 @@ where
                     // context.move_to(xx, yy);
                     // context.arc(xx, yy, 3.0, 0.0, 6.2);
                     // context.set_source_rgb(1.0, 0.0, 0.0);
-                    // context.fill().unwrap();
+                    // context.fill()?;
 
-                    draw_maker(xx, yy, angle);
+                    draw_maker(xx, yy, angle)?;
 
                     m -= spacing;
                     off += spacing;
@@ -45,4 +50,6 @@ where
             _ => panic!("invalic path segment type"),
         }
     }
+
+    Ok(())
 }

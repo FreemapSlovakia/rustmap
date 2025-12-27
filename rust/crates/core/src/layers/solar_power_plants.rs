@@ -5,9 +5,10 @@ use crate::{
     ctx::Ctx,
     draw::{hatch::hatch_geometry, path_geom::path_geometry},
     projectable::{TileProjectable, geometry_geometry},
+    layer_render_error::LayerRenderResult,
 };
 
-pub fn render(ctx: &Ctx, client: &mut Client) {
+pub fn render(ctx: &Ctx, client: &mut Client) -> LayerRenderResult {
     let _span = tracy_client::span!("solar_power_plants::render");
 
     let d = 4.0f64.max(1.33f64.powf(ctx.zoom as f64) / 20.0).round();
@@ -17,9 +18,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         "WHERE source = 'solar' AND geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)"
     );
 
-    let rows = client
-        .query(sql, &ctx.bbox_query_params(None).as_params())
-        .expect("db data");
+    let rows = client.query(sql, &ctx.bbox_query_params(None).as_params())?;
 
     let context = ctx.context;
 
@@ -34,24 +33,24 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         path_geometry(context, &projected);
 
-        let path = context.copy_path().unwrap();
+        let path = context.copy_path()?;
 
-        context.save().unwrap();
+        context.save()?;
 
         context.clip();
 
         context.set_source_color(colors::SOLAR_BG);
-        context.paint().unwrap();
+        context.paint()?;
 
-        hatch_geometry(ctx, &geom, d, 0.0);
-        hatch_geometry(ctx, &geom, d, 90.0);
+        hatch_geometry(ctx, &geom, d, 0.0)?;
+        hatch_geometry(ctx, &geom, d, 90.0)?;
 
         context.set_source_color(colors::SOLAR_FG);
         context.set_dash(&[], 0.0);
         context.set_line_width(1.0);
-        context.stroke().unwrap();
+        context.stroke()?;
 
-        context.restore().unwrap();
+        context.restore()?;
 
         context.new_path();
         context.append_path(&path);
@@ -59,9 +58,11 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         context.set_source_color(colors::SOLAR_PLANT_BORDER);
         context.set_dash(&[], 0.0);
         context.set_line_width(1.0);
-        context.stroke().unwrap();
+        context.stroke()?;
 
-        context.pop_group_to_source().unwrap();
-        context.paint().unwrap();
+        context.pop_group_to_source()?;
+        context.paint()?;
     }
+
+    Ok(())
 }

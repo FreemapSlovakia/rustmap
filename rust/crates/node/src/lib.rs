@@ -1,11 +1,10 @@
 use geo::{Geometry, Rect};
 use geojson::FeatureCollection;
 use maprender_core::{
-    HillshadingDatasets, ImageFormat, RenderRequest, SvgCache, layers::routes::RouteTypes,
+    HillshadingDatasets, ImageFormat, RenderRequest, RouteTypes, SvgCache,
     load_geometry_from_geojson, load_hillshading_datasets, render,
 };
-use napi::bindgen_prelude::*;
-use napi::{Error, Result};
+use napi::{Error, Result, bindgen_prelude::*};
 use napi_derive::napi;
 use postgres::NoTls;
 
@@ -15,12 +14,6 @@ pub struct Renderer {
     svg_cache: SvgCache,
     shading_data: Option<HillshadingDatasets>,
     mask_geometry: Option<Geometry>,
-}
-
-#[napi(object)]
-pub struct RenderResult {
-    pub content_type: String,
-    pub images: Vec<Buffer>,
 }
 
 #[napi(object)]
@@ -85,7 +78,7 @@ impl Renderer {
         scales: Vec<f64>,
         format: ImageFormat,
         extra: Option<RequestExtra>,
-    ) -> Result<RenderResult> {
+    ) -> Result<Vec<Buffer>> {
         let bbox = Rect::new((bbox.0, bbox.1), (bbox.2, bbox.3));
 
         let mut request = RenderRequest::new(bbox, zoom, scales, format);
@@ -124,11 +117,9 @@ impl Renderer {
             &mut self.svg_cache,
             &mut self.shading_data,
             self.mask_geometry.as_ref(),
-        );
+        )
+        .map_err(|err| Error::from_reason(err.to_string()))?;
 
-        Ok(RenderResult {
-            content_type: rendered.content_type.to_string(),
-            images: rendered.images.into_iter().map(Buffer::from).collect(),
-        })
+        Ok(rendered.into_iter().map(Buffer::from).collect())
     }
 }

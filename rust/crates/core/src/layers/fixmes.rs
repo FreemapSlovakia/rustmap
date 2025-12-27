@@ -1,12 +1,13 @@
 use crate::{
     SvgCache,
     ctx::Ctx,
+    layer_render_error::LayerRenderResult,
     projectable::{TileProjectable, geometry_line_string, geometry_point},
 };
 use geo::{Coord, Euclidean, Length, LineStringSegmentize};
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) -> LayerRenderResult {
     let _span = tracy_client::span!("fixmes::render");
 
     let sql = "
@@ -14,13 +15,11 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
         FROM osm_fixmes
         WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)";
 
-    let rows = client
-        .query(sql, &ctx.bbox_query_params(Some(8.0)).as_params())
-        .expect("db data");
+    let rows = client.query(sql, &ctx.bbox_query_params(Some(8.0)).as_params())?;
 
-    let surface = svg_cache.get("fixme.svg");
+    let surface = svg_cache.get("fixme.svg")?;
 
-    let rect = surface.extents().unwrap();
+    let rect = surface.extents().expect("surface extents");
 
     let hw = rect.width() / 2.0;
 
@@ -28,16 +27,16 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
 
     let context = ctx.context;
 
-    let paint = |point: &Coord| {
-        context
-            .set_source_surface(surface, (point.x - hw).round(), (point.y - hh).round())
-            .unwrap();
+    let paint = |point: &Coord| -> cairo::Result<()> {
+        context.set_source_surface(surface, (point.x - hw).round(), (point.y - hh).round())?;
 
-        context.paint().unwrap();
+        context.paint()?;
+
+        Ok(())
     };
 
     for row in rows {
-        paint(&geometry_point(&row).project_to_tile(&ctx.tile_projector).0);
+        paint(&geometry_point(&row).project_to_tile(&ctx.tile_projector).0)?;
     }
 
     let sql = "
@@ -50,9 +49,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
             fixme <> '' AND
             geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)";
 
-    let rows = client
-        .query(sql, &ctx.bbox_query_params(Some(8.0)).as_params())
-        .expect("db data");
+    let rows = client.query(sql, &ctx.bbox_query_params(Some(8.0)).as_params())?;
 
     for row in rows.into_iter().skip(1) {
         let line_string = geometry_line_string(&row).project_to_tile(&ctx.tile_projector);
@@ -65,8 +62,10 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
 
         for line_string in ml {
             if let Some(c) = line_string.0.first() {
-                paint(c);
+                paint(c)?;
             }
         }
     }
+
+    Ok(())
 }

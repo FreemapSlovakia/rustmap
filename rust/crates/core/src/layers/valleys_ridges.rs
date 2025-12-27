@@ -9,7 +9,8 @@ use crate::{
         text_on_line::{Align, Distribution, Repeat, TextOnLineOptions, draw_text_on_line},
     },
     projectable::{TileProjectable, geometry_line_string},
-    re_replacer::{Replacement, replace},
+    regex_replacer::{Replacement, replace},
+    layer_render_error::LayerRenderResult,
 };
 use geo::ChaikinSmoothing;
 use pangocairo::pango::Style;
@@ -18,13 +19,13 @@ use regex::Regex;
 
 static REPLACEMENTS: LazyLock<Vec<Replacement>> = LazyLock::new(|| {
     vec![
-        (Regex::new(r"^Dolink?a\b *").unwrap(), "Dol. "),
-        (Regex::new(r"^dolink?a\b *").unwrap(), "dol. "),
-        (Regex::new(r" *\b[Dd]olink?a$").unwrap(), " dol."),
+        (Regex::new(r"^Dolink?a\b *").expect("regex"), "Dol. "),
+        (Regex::new(r"^dolink?a\b *").expect("regex"), "dol. "),
+        (Regex::new(r" *\b[Dd]olink?a$").expect("regex"), " dol."),
     ]
 });
 
-pub fn render(ctx: &Ctx, client: &mut Client) {
+pub fn render(ctx: &Ctx, client: &mut Client) -> LayerRenderResult {
     let _span = tracy_client::span!("valleys_ridges::render");
 
     let zoom_coef = 2.5f64.powf(ctx.zoom as f64 - 12.0);
@@ -38,7 +39,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     let collision = &mut Collision::new(Some(context));
 
-    let mut render_rows = |rows: Vec<Row>| {
+    let mut render_rows = |rows: Vec<Row>| -> cairo::Result<()> {
         for row in rows {
             let name = replace(row.get("name"), &REPLACEMENTS);
 
@@ -66,7 +67,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             let geom = geom.chaikin_smoothing(3);
 
             while options.flo.letter_spacing >= 0.0 {
-                let drawn = draw_text_on_line(context, &geom, &name, Some(collision), &options);
+                let drawn = draw_text_on_line(context, &geom, &name, Some(collision), &options)?;
 
                 if drawn {
                     break;
@@ -79,6 +80,8 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             // {z > 13 && <Placement characterSpacing={0} size={size * 0.75} />}
             // {z > 14 && <Placement characterSpacing={0} size={size * 0.5} />}
         }
+
+        Ok(())
     };
 
     context.push_group();
@@ -93,11 +96,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         ORDER BY
             ST_Length(geometry) {}", if ctx.zoom > 14 {"ASC"} else {"DESC"});
 
-    render_rows(
-        client
-            .query(&sql, &ctx.bbox_query_params(Some(512.0)).as_params())
-            .expect("db data"),
-    );
+    render_rows(client.query(&sql, &ctx.bbox_query_params(Some(512.0)).as_params())?)?;
 
     let sql = "
         SELECT
@@ -109,13 +108,11 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         ORDER BY
             ST_Length(geometry) DESC";
 
-    render_rows(
-        client
-            .query(sql, &ctx.bbox_query_params(Some(512.0)).as_params())
-            .expect("db data"),
-    );
+    render_rows(client.query(sql, &ctx.bbox_query_params(Some(512.0)).as_params())?)?;
 
-    context.pop_group_to_source().unwrap();
+    context.pop_group_to_source()?;
 
-    context.paint_with_alpha(opacity).unwrap();
+    context.paint_with_alpha(opacity)?;
+
+    Ok(())
 }

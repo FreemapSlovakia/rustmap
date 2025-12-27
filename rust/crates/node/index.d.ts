@@ -8,12 +8,7 @@ export declare const enum ImageFormat {
 }
 export declare class Renderer {
   constructor(connectionStr: string, hillshadingBase: string | undefined | null, svgBase: string, dbPriority?: number | undefined | null, maskGeojsonPath?: string | undefined | null)
-  render(bbox: [number, number, number, number], zoom: number, scales: Array<number>, format: ImageFormat, extra?: RequestExtra | undefined | null): RenderResult
-}
-
-export interface RenderResult {
-  contentType: string
-  images: Array<Buffer>
+  render(bbox: [number, number, number, number], zoom: number, scales: Array<number>, format: ImageFormat, extra?: RequestExtra | undefined | null): Array<Buffer>
 }
 
 export interface RequestExtra {

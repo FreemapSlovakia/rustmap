@@ -8,14 +8,15 @@ use crate::{
         text::{TextOptions, draw_text},
         text_on_line::{Align, Distribution, Repeat, TextOnLineOptions, draw_text_on_line},
     },
+    layer_render_error::LayerRenderResult,
     layers::national_park_names::REPLACEMENTS,
     projectable::{TileProjectable, geometry_geometry, geometry_point},
-    re_replacer::replace,
+    regex_replacer::replace,
 };
 use pangocairo::pango::Style;
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
+pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) -> LayerRenderResult {
     let _span = tracy_client::span!("protected_area_names::render");
 
     let sql = "SELECT name, ST_Centroid(geometry) AS geometry
@@ -35,9 +36,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         ..TextOptions::default()
     };
 
-    let rows = client
-        .query(sql, &ctx.bbox_query_params(Some(1024.0)).as_params())
-        .expect("db data");
+    let rows = client.query(sql, &ctx.bbox_query_params(Some(1024.0)).as_params())?;
 
     for row in rows {
         draw_text(
@@ -46,7 +45,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
             &geometry_point(&row).project_to_tile(&ctx.tile_projector),
             row.get("name"),
             &text_options,
-        );
+        )?;
     }
 
     let sql = "SELECT type, name, protect_class, ST_Boundary(geometry) AS geometry
@@ -73,9 +72,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         ..TextOnLineOptions::default()
     };
 
-    let rows = client
-        .query(sql, &ctx.bbox_query_params(Some(1024.0)).as_params())
-        .expect("db data");
+    let rows = client.query(sql, &ctx.bbox_query_params(Some(1024.0)).as_params())?;
 
     for row in rows {
         let Some(geom) = geometry_geometry(&row) else {
@@ -85,13 +82,17 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         let geom = geom.project_to_tile(&ctx.tile_projector);
 
         walk_geometry_line_strings(&geom, &mut |geom| {
-            draw_text_on_line(
+            let _drawn = draw_text_on_line(
                 ctx.context,
                 geom,
                 &replace(row.get("name"), &REPLACEMENTS),
                 Some(collision),
                 &text_options,
-            );
-        });
+            )?;
+
+            cairo::Result::Ok(())
+        })?;
     }
+
+    Ok(())
 }

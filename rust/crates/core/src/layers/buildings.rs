@@ -4,9 +4,10 @@ use crate::{
     ctx::Ctx,
     draw::path_geom::path_geometry,
     projectable::{TileProjectable, geometry_geometry},
+    layer_render_error::LayerRenderResult,
 };
 
-pub fn render(ctx: &Ctx, client: &mut Client) {
+pub fn render(ctx: &Ctx, client: &mut Client) -> LayerRenderResult {
     let _span = tracy_client::span!("buildings::render");
 
     let sql = concat!(
@@ -16,11 +17,11 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     let rows = client
         .query(sql, &ctx.bbox_query_params(None).as_params())
-        .expect("db data");
+        ?;
 
     let context = ctx.context;
 
-    context.save().expect("context saved");
+    context.save()?;
 
     for row in rows {
         let Some(geom) =
@@ -33,8 +34,10 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         path_geometry(context, &geom);
 
-        context.fill().unwrap();
+        context.fill()?;
     }
 
-    context.restore().expect("context restored");
+    context.restore()?;
+
+    Ok(())
 }

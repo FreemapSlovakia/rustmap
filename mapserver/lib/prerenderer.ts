@@ -95,7 +95,9 @@ function createPrerenderer() {
 
   async function worker(tiles: AsyncIterableIterator<Tile>) {
     for await (const { x, y, zoom } of tiles) {
-      await renderTile(zoom, x, y);
+      await renderTile(zoom, x, y).catch((err) => {
+        console.error(`Error rendering tile: ${zoom}/${x}/${y}`, err);
+      });
     }
   }
 

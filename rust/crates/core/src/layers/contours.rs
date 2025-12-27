@@ -9,17 +9,18 @@ use crate::{
         },
     },
     projectable::{TileProjectable, geometry_line_string},
+    layer_render_error::LayerRenderResult,
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, country: Option<&str>) {
+pub fn render(ctx: &Ctx, client: &mut Client, country: Option<&str>) -> LayerRenderResult {
     let _span = tracy_client::span!("contours::render");
 
     let context = ctx.context;
     let zoom = ctx.zoom;
 
     if zoom < 12 {
-        return;
+        return Ok(());
     }
 
     let simplify_factor: f64 = match zoom {
@@ -30,7 +31,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: Option<&str>) {
         _ => 0.0,
     };
 
-    context.save().expect("context saved");
+    context.save()?;
 
     // TODO measure performance impact of simplification, if it makes something faster
     let sql = format!(
@@ -50,7 +51,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: Option<&str>) {
 
     let query_params = params.as_params();
 
-    let rows = client.query(&sql, &query_params).unwrap_or_default();
+    let rows = client.query(&sql, &query_params)?;
 
     for row in rows {
         let height: f64 = row.get("height");
@@ -84,11 +85,11 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: Option<&str>) {
 
             path_smooth_bezier_spline(context, &geom, 1.0);
 
-            context.stroke().unwrap();
+            context.stroke()?;
         }
 
         if labels {
-            draw_text_on_line(
+            let _drawn = draw_text_on_line(
                 context,
                 &geom,
                 &format!("{}", height),
@@ -103,9 +104,11 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: Option<&str>) {
                     },
                     ..TextOnLineOptions::default()
                 },
-            );
+            )?;
         }
     }
 
-    context.restore().expect("context restored");
+    context.restore()?;
+
+    Ok(())
 }

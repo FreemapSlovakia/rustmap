@@ -3,10 +3,11 @@ use crate::{
     ctx::Ctx,
     draw::path_geom::path_line_string,
     projectable::{TileProjectable, geometry_line_string, geometry_point},
+    layer_render_error::LayerRenderResult,
 };
 use postgres::Client;
 
-pub fn render_lines(ctx: &Ctx, client: &mut Client) {
+pub fn render_lines(ctx: &Ctx, client: &mut Client) -> LayerRenderResult {
     let _span = tracy_client::span!("power_lines::render_lines");
 
     let sql = &format!(
@@ -20,11 +21,11 @@ pub fn render_lines(ctx: &Ctx, client: &mut Client) {
 
     let rows = client
         .query(sql, &ctx.bbox_query_params(None).as_params())
-        .expect("db data");
+        ?;
 
     let context = ctx.context;
 
-    context.save().unwrap();
+    context.save()?;
 
     for row in rows {
         context.set_source_color_a(
@@ -44,13 +45,15 @@ pub fn render_lines(ctx: &Ctx, client: &mut Client) {
             &geometry_line_string(&row).project_to_tile(&ctx.tile_projector),
         );
 
-        context.stroke().unwrap();
+        context.stroke()?;
     }
 
-    context.restore().unwrap();
+    context.restore()?;
+
+    Ok(())
 }
 
-pub fn render_towers_poles(ctx: &Ctx, client: &mut Client) {
+pub fn render_towers_poles(ctx: &Ctx, client: &mut Client) -> LayerRenderResult {
     let _span = tracy_client::span!("power_lines::render_towers_poles");
 
     let sql = format!(
@@ -62,11 +65,11 @@ pub fn render_towers_poles(ctx: &Ctx, client: &mut Client) {
 
     let rows = client
         .query(&sql, &ctx.bbox_query_params(Some(1024.0)).as_params())
-        .expect("db data");
+        ?;
 
     let context = ctx.context;
 
-    context.save().unwrap();
+    context.save()?;
 
     for row in rows {
         context.set_source_color(if row.get::<_, &str>("type") == "pole" {
@@ -80,8 +83,10 @@ pub fn render_towers_poles(ctx: &Ctx, client: &mut Client) {
         // TODO align by scale
         context.rectangle((p.x() - 1.5).round(), (p.y() - 1.5).round(), 3.0, 3.0);
 
-        context.fill().unwrap();
+        context.fill()?;
     }
 
-    context.restore().unwrap();
+    context.restore()?;
+
+    Ok(())
 }

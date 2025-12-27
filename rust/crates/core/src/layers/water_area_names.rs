@@ -6,12 +6,13 @@ use crate::{
         create_pango_layout::FontAndLayoutOptions,
         text::{TextOptions, draw_text},
     },
+    layer_render_error::LayerRenderResult,
     projectable::{TileProjectable, geometry_point},
 };
 use pangocairo::pango::Style;
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
+pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) -> LayerRenderResult {
     let _span = tracy_client::span!("water_area_names::render");
 
     let sql = "
@@ -41,7 +42,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
     let mut params = ctx.bbox_query_params(Some(1024.0));
     params.push(ctx.zoom as i32);
 
-    let rows = client.query(sql, &params.as_params()).expect("db data");
+    let rows = client.query(sql, &params.as_params())?;
 
     for row in rows {
         draw_text(
@@ -50,6 +51,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
             &geometry_point(&row).project_to_tile(&ctx.tile_projector),
             row.get("name"),
             &text_options,
-        );
+        )?;
     }
+
+    Ok(())
 }

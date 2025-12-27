@@ -7,11 +7,12 @@ use crate::{
         line_pattern::draw_line_pattern,
         path_geom::{path_geometry, path_line_string_with_offset, walk_geometry_line_strings},
     },
+    layer_render_error::LayerRenderResult,
     projectable::{TileProjectable, geometry_geometry},
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) -> LayerRenderResult {
     let _span = tracy_client::span!("protected_areas::render");
 
     let zoom = ctx.zoom;
@@ -25,9 +26,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
         }
     );
 
-    let rows = &client
-        .query(sql, &ctx.bbox_query_params(Some(10.0)).as_params())
-        .expect("db data");
+    let rows = &client.query(sql, &ctx.bbox_query_params(Some(10.0)).as_params())?;
 
     let geometries: Vec<_> = rows
         .iter()
@@ -41,7 +40,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
 
     // hatching
     if zoom <= 11 {
-        context.save().expect("context saved");
+        context.save()?;
 
         for (projected, unprojected, row) in &geometries {
             let typ: &str = row.get("type");
@@ -54,19 +53,19 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
 
                 context.clip();
 
-                hatch_geometry(ctx, unprojected, 3.0, -45.0);
+                hatch_geometry(ctx, unprojected, 3.0, -45.0)?;
 
                 context.set_source_color_a(colors::PROTECTED, if zoom < 11 { 0.5 } else { 0.4 });
                 context.set_dash(&[], 0.0);
                 context.set_line_width(0.7);
-                context.stroke().unwrap();
+                context.stroke()?;
 
-                context.pop_group_to_source().unwrap();
-                context.paint().unwrap();
+                context.pop_group_to_source()?;
+                context.paint()?;
             }
         }
 
-        context.restore().expect("context restored");
+        context.restore()?;
     }
 
     // NOTE we do ST_Intersection to prevent memory error for very long borders on bigger zooms
@@ -92,7 +91,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
     params.push(((ctx.bbox.max().x + snap) / snap).ceil() * snap);
     params.push(((ctx.bbox.max().y + snap) / snap).ceil() * snap);
 
-    let rows = &client.query(sql, &params.as_params()).expect("db data");
+    let rows = &client.query(sql, &params.as_params())?;
 
     let geometries: Vec<_> = rows
         .iter()
@@ -108,11 +107,11 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
         let protect_class: &str = row.get("protect_class");
 
         if typ == "nature_reserve" || typ == "protected_area" && protect_class != "2" {
-            let sample = svg_cache.get("protected_area.svg");
+            let sample = svg_cache.get("protected_area.svg")?;
 
             walk_geometry_line_strings(projected, &mut |line_string| {
                 draw_line_pattern(ctx, line_string, 0.8, sample)
-            });
+            })?;
         }
     }
 
@@ -134,18 +133,22 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
             context.set_line_width(wb * 0.75);
             context.set_line_join(cairo::LineJoin::Round);
             path_geometry(context, projected);
-            context.stroke().unwrap();
+            context.stroke()?;
 
             context.set_line_width(wb);
             context.set_source_color_a(colors::PROTECTED, 0.5);
             walk_geometry_line_strings(projected, &mut |iter| {
-                path_line_string_with_offset(context, iter, wb * 0.75)
-            });
-            context.stroke().unwrap();
+                path_line_string_with_offset(context, iter, wb * 0.75);
+
+                cairo::Result::Ok(())
+            })?;
+            context.stroke()?;
         }
     }
 
-    context.pop_group_to_source().unwrap();
+    context.pop_group_to_source()?;
 
-    context.paint_with_alpha(0.66).unwrap();
+    context.paint_with_alpha(0.66)?;
+
+    Ok(())
 }

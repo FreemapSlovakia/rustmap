@@ -6,11 +6,12 @@ use crate::{
         offset_line::offset_line_string,
         text_on_line::{Align, Distribution, Repeat, TextOnLineOptions, draw_text_on_line},
     },
+    layer_render_error::LayerRenderResult,
     projectable::{TileProjectable, geometry_line_string},
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
+pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) -> LayerRenderResult {
     let _span = tracy_client::span!("aerialway_names::render");
 
     let sql = concat!(
@@ -18,9 +19,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         "WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)"
     );
 
-    let rows = client
-        .query(sql, &ctx.bbox_query_params(Some(512.0)).as_params())
-        .expect("db data");
+    let rows = client.query(sql, &ctx.bbox_query_params(Some(512.0)).as_params())?;
 
     let options = TextOnLineOptions {
         distribution: Distribution::Align {
@@ -38,6 +37,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
 
         let geom = offset_line_string(&geom, 10.0);
 
-        draw_text_on_line(ctx.context, &geom, name, Some(collision), &options);
+        draw_text_on_line(ctx.context, &geom, name, Some(collision), &options)?;
     }
+
+    Ok(())
 }

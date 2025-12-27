@@ -1,10 +1,9 @@
 use clap::Parser;
 use dotenvy::dotenv;
 use geo::Geometry;
-use maprender_core::xyz::tile_bounds_to_epsg3857;
 use maprender_core::{
-    ImageFormat, RenderRequest, SvgCache, load_geometry_from_geojson, load_hillshading_datasets,
-    render,
+    ImageFormat, RenderError, RenderRequest, SvgCache, load_geometry_from_geojson,
+    load_hillshading_datasets, render, tile_bounds_to_epsg3857,
 };
 use oxhttp::{
     Server,
@@ -17,7 +16,10 @@ use std::{
     collections::VecDeque,
     net::Ipv4Addr,
     str::FromStr,
-    sync::{Arc, Condvar, LazyLock, Mutex, mpsc},
+    sync::{
+        Arc, Condvar, LazyLock, Mutex,
+        mpsc::{self, RecvError},
+    },
     time::Duration,
 };
 
@@ -71,12 +73,24 @@ struct Cli {
 
 struct RenderTask {
     request: RenderRequest,
-    resp_tx: mpsc::Sender<Result<maprender_core::RenderedMap, String>>,
+    resp_tx: mpsc::Sender<Result<Vec<Vec<u8>>, ReError>>,
 }
 
 struct RenderWorkerPool {
     tasks: Arc<Mutex<VecDeque<RenderTask>>>,
     cv: Arc<Condvar>,
+}
+
+#[derive(Debug, thiserror::Error)]
+enum ReError {
+    #[error(transparent)]
+    RenderError(#[from] RenderError),
+
+    #[error(transparent)]
+    ConnectionPoolError(#[from] r2d2::Error),
+
+    #[error("worker closed: {0}")]
+    RecvError(#[from] RecvError),
 }
 
 impl RenderWorkerPool {
@@ -115,16 +129,16 @@ impl RenderWorkerPool {
                             guard.pop_front().unwrap()
                         };
 
-                        let result = match pool.get() {
-                            Ok(mut client) => Ok(render(
+                        let result = pool.get().map_err(ReError::from).and_then(|mut client| {
+                            render(
                                 &request,
                                 &mut client,
                                 &mut svg_cache,
                                 &mut hillshading_datasets,
                                 mask_geometry.as_ref(),
-                            )),
-                            Err(e) => Err(format!("db pool error: {e}")),
-                        };
+                            )
+                            .map_err(ReError::from)
+                        });
 
                         // Ignore send errors (client dropped).
                         let _ = resp_tx.send(result);
@@ -136,7 +150,7 @@ impl RenderWorkerPool {
         Self { tasks, cv }
     }
 
-    fn render(&self, request: RenderRequest) -> Result<maprender_core::RenderedMap, String> {
+    fn render(&self, request: RenderRequest) -> Result<Vec<Vec<u8>>, ReError> {
         let (resp_tx, resp_rx) = mpsc::channel();
 
         {
@@ -145,7 +159,7 @@ impl RenderWorkerPool {
             self.cv.notify_one();
         }
 
-        resp_rx.recv().map_err(|e| format!("worker closed: {e}"))?
+        resp_rx.recv()?
     }
 }
 
@@ -198,6 +212,8 @@ fn render_response(request: &Request<Body>, worker_pool: Arc<RenderWorkerPool>) 
             .expect("body should be built");
     };
 
+    let format = tile_request.format;
+
     let rendered = match worker_pool.render(tile_request) {
         Ok(rendered) => rendered,
         Err(err) => {
@@ -210,10 +226,16 @@ fn render_response(request: &Request<Body>, worker_pool: Arc<RenderWorkerPool>) 
         }
     };
 
-    if let Some(tile) = rendered.images.into_iter().next() {
+    if let Some(tile) = rendered.into_iter().next() {
+        let content_type = match format {
+            ImageFormat::Svg => "image/svg+xml",
+            ImageFormat::Pdf => "application/pdf",
+            ImageFormat::Jpeg => "image/jpeg",
+            ImageFormat::Png => "image/png",
+        };
         Response::builder()
             .status(StatusCode::OK)
-            .header("Content-Type", rendered.content_type)
+            .header("Content-Type", content_type)
             .header("Access-Control-Allow-Origin", "*")
             .body(Body::from(tile))
     } else {

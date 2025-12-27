@@ -162,6 +162,7 @@ pub fn geometry_line_string(row: &Row) -> LineString {
     }
 }
 
+#[allow(dead_code)]
 pub fn geometry_multi_line_string(row: &Row) -> MultiLineString {
     match row.get::<_, EwkbGeometry<_>>(GEOMETRY_COLUMN) {
         EwkbGeometry::MultiLineString(geom) => MultiLineString::from_postgis(&geom),
@@ -172,6 +173,7 @@ pub fn geometry_multi_line_string(row: &Row) -> MultiLineString {
     }
 }
 
+#[allow(dead_code)]
 pub fn geometry_polygon(row: &Row) -> Option<Polygon> {
     match row.get::<_, Option<EwkbGeometry<_>>>(GEOMETRY_COLUMN) {
         None => None,

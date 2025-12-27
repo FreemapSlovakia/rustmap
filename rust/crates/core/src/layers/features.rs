@@ -2,8 +2,9 @@ use crate::SvgCache;
 use crate::colors::{self, Color};
 use crate::draw::create_pango_layout::FontAndLayoutOptions;
 use crate::draw::text::{TextOptions, draw_text, draw_text_with_attrs};
+use crate::layer_render_error::LayerRenderResult;
 use crate::projectable::{TileProjectable, geometry_point};
-use crate::re_replacer::{Replacement, build_replacements, replace};
+use crate::regex_replacer::{Replacement, build_replacements, replace};
 use crate::{collision::Collision, ctx::Ctx};
 use core::f64;
 use geo::{Point, Rect};
@@ -388,7 +389,7 @@ pub fn render(
     client: &mut Client,
     collision: &mut Collision<f64>,
     svg_cache: &mut SvgCache,
-) {
+) -> LayerRenderResult {
     let _span = tracy_client::span!("features::render");
 
     let zoom = ctx.zoom;
@@ -733,9 +734,7 @@ pub fn render(
 
     let rows = {
         let _span = tracy_client::span!("features::query");
-        client
-            .query(&sql, &ctx.bbox_query_params(Some(1024.0)).as_params())
-            .expect("db data")
+        client.query(&sql, &ctx.bbox_query_params(Some(1024.0)).as_params())?
     };
 
     let mut to_label = Vec::<(Point, f64, String, Option<String>, usize, &Def)>::new();
@@ -757,9 +756,9 @@ pub fn render(
 
             let point = geometry_point(&row).project_to_tile(&ctx.tile_projector);
 
-            let surface = svg_cache.get(&format!("{}.svg", def.extra.icon.unwrap_or(typ)));
+            let surface = svg_cache.get(&format!("{}.svg", def.extra.icon.unwrap_or(typ)))?;
 
-            let rect = surface.extents().unwrap();
+            let rect = surface.extents().expect("surface extents");
 
             let corner_x = point.x() - rect.width() / 2.0;
 
@@ -801,21 +800,17 @@ pub fn render(
 
                 let _span = tracy_client::span!("features::paint_svg");
 
-                context
-                    .set_source_surface(surface, corner_x, corner_y)
-                    .unwrap();
+                context.set_source_surface(surface, corner_x, corner_y)?;
 
                 let access: Option<&str> = row.get("access");
 
-                context
-                    .paint_with_alpha(
-                        if typ != "cave_entrance" && (matches!(access, Some("private" | "no"))) {
-                            0.33
-                        } else {
-                            1.0
-                        },
-                    )
-                    .unwrap();
+                context.paint_with_alpha(
+                    if typ != "cave_entrance" && (matches!(access, Some("private" | "no"))) {
+                        0.33
+                    } else {
+                        1.0
+                    },
+                )?;
 
                 break 'outer;
             }
@@ -862,9 +857,9 @@ pub fn render(
                     format!("{}\n{}", name, ele).trim(),
                     Some(attr_list),
                     &text_options,
-                )
+                )?
             } else {
-                draw_text(context, Some(collision), &point, &name, &text_options)
+                draw_text(context, Some(collision), &point, &name, &text_options)?
             };
 
             if !drawn {
@@ -872,4 +867,6 @@ pub fn render(
             }
         }
     }
+
+    Ok(())
 }

@@ -8,8 +8,9 @@ use crate::{
         create_pango_layout::FontAndLayoutOptions,
         text::{TextOptions, draw_text},
     },
+    layer_render_error::LayerRenderResult,
     projectable::{TileProjectable, geometry_point},
-    re_replacer::{Replacement, replace},
+    regex_replacer::{Replacement, replace},
 };
 use pangocairo::pango::Style;
 use postgres::Client;
@@ -17,13 +18,19 @@ use regex::Regex;
 
 static REPLACEMENTS: LazyLock<Vec<Replacement>> = LazyLock::new(|| {
     vec![
-        (Regex::new(r"[Čč]istička odpadových vôd").unwrap(), "ČOV"),
-        (Regex::new(r"[Pp]oľnohospodárske družstvo").unwrap(), "PD"),
-        (Regex::new(r"[Nn]ámestie").unwrap(), "nám. "),
+        (
+            Regex::new(r"[Čč]istička odpadových vôd").expect("regex"),
+            "ČOV",
+        ),
+        (
+            Regex::new(r"[Pp]oľnohospodárske družstvo").expect("regex"),
+            "PD",
+        ),
+        (Regex::new(r"[Nn]ámestie").expect("regex"), "nám. "),
     ]
 });
 
-pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
+pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) -> LayerRenderResult {
     let _span = tracy_client::span!("landcover_names::render");
 
     // nested sql is to remove duplicate entries imported by imposm because we use `mappings` in yaml
@@ -60,9 +67,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         ..TextOptions::default()
     };
 
-    let rows = client
-        .query(sql, &ctx.bbox_query_params(Some(512.0)).as_params())
-        .expect("db data");
+    let rows = client.query(sql, &ctx.bbox_query_params(Some(512.0)).as_params())?;
 
     for row in rows {
         let area: f32 = row.get("area");
@@ -91,6 +96,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
             &geometry_point(&row).project_to_tile(&ctx.tile_projector),
             &replace(row.get("name"), &REPLACEMENTS),
             &text_options,
-        );
+        )?;
     }
+
+    Ok(())
 }

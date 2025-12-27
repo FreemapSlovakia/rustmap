@@ -5,23 +5,24 @@ use crate::draw::offset_line::offset_line_string;
 use crate::draw::text_on_line::{Distribution, TextOnLineOptions, draw_text_on_line};
 use crate::layers::borders;
 use crate::projectable::{TileProjectable, geometry_line_string};
+use crate::layer_render_error::LayerRenderResult;
 use postgres::Client;
 use std::f64;
 
-pub fn render(ctx: &Ctx, client: &mut Client) {
+pub fn render(ctx: &Ctx, client: &mut Client) -> LayerRenderResult {
     let _span = tracy_client::span!("country_names::render");
 
     let context = ctx.context;
 
     let rect = ctx.bbox.project_to_tile(&ctx.tile_projector);
 
-    context.save().unwrap();
+    context.save()?;
     context.rectangle(rect.min().x, rect.min().y, rect.width(), rect.height());
     context.set_source_color_a(colors::WHITE, 0.33);
-    context.fill().unwrap();
-    context.restore().unwrap();
+    context.fill()?;
+    context.restore()?;
 
-    borders::render(ctx, client);
+    borders::render(ctx, client)?;
 
     let sr = 1.5f64.powf(ctx.zoom as f64 - 6.0).max(0.66);
 
@@ -57,9 +58,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         "WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)"
     );
 
-    let rows = client
-        .query(sql, &ctx.bbox_query_params(Some(128.0)).as_params())
-        .expect("db data");
+    let rows = client.query(sql, &ctx.bbox_query_params(Some(128.0)).as_params())?;
 
     for row in rows {
         let name: &str = row.get("name");
@@ -68,12 +67,12 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         let geom = geometry_line_string(&row).project_to_tile(&ctx.tile_projector);
 
-        // context.save().unwrap();
+        // context.save();
         // path_line_string(context, &geom);
         // context.set_source_color(colors::BLACK);
         // context.set_line_width(2.0);
-        // context.stroke().unwrap();
-        // context.restore().unwrap();
+        // context.stroke();
+        // context.restore();
 
         context.push_group();
 
@@ -89,7 +88,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             while options.flo.size > 10.0 {
                 let geom = offset_line_string(&geom, offset);
 
-                if draw_text_on_line(context, &geom, name, None, &options) {
+                if draw_text_on_line(context, &geom, name, None, &options)? {
                     break;
                 }
 
@@ -99,7 +98,9 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             }
         }
 
-        context.pop_group_to_source().unwrap();
-        context.paint_with_alpha(0.66).unwrap();
+        context.pop_group_to_source()?;
+        context.paint_with_alpha(0.66)?;
     }
+
+    Ok(())
 }

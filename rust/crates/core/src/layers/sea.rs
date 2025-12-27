@@ -3,18 +3,19 @@ use crate::{
     ctx::Ctx,
     draw::path_geom::path_geometry,
     projectable::{TileProjectable, geometry_geometry},
+    layer_render_error::LayerRenderResult,
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client) {
+pub fn render(ctx: &Ctx, client: &mut Client) -> LayerRenderResult {
     let _span = tracy_client::span!("sea::render");
 
     let context = ctx.context;
 
-    context.save().unwrap();
+    context.save()?;
 
     context.set_source_color(colors::WATER);
-    context.paint().unwrap();
+    context.paint()?;
 
     let zoom = ctx.zoom;
 
@@ -33,7 +34,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     params.push((20.0 - zoom as f64).exp2() / 25.0);
 
-    let rows = client.query(&sql, &params.as_params()).expect("db data");
+    let rows = client.query(&sql, &params.as_params())?;
 
     for row in rows {
         let Some(geom) = geometry_geometry(&row) else {
@@ -45,8 +46,10 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         path_geometry(context, &geom);
 
         context.set_source_color(colors::WHITE);
-        context.fill().unwrap();
+        context.fill()?;
     }
 
-    context.restore().unwrap();
+    context.restore()?;
+
+    Ok(())
 }

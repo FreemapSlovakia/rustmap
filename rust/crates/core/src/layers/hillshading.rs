@@ -1,4 +1,7 @@
-use crate::{ctx::Ctx, layers::hillshading_datasets::HillshadingDatasets};
+use crate::{
+    ctx::Ctx, layer_render_error::LayerRenderResult,
+    layers::hillshading_datasets::HillshadingDatasets,
+};
 use cairo::{Format, ImageSurface};
 use gdal::Dataset;
 
@@ -230,7 +233,7 @@ pub fn render(
     alpha: f64,
     shading_data: &mut HillshadingDatasets,
     raster_scale: f64,
-) {
+) -> LayerRenderResult {
     let (surface, used_data) = {
         let hillshading_dataset = shading_data
             .get(country)
@@ -256,16 +259,18 @@ pub fn render(
 
     let context = ctx.context;
 
-    context.save().expect("context saved");
+    context.save()?;
 
     context.identity_matrix();
     if raster_scale != 1.0 {
         context.scale(1.0 / raster_scale, 1.0 / raster_scale);
     }
 
-    context.set_source_surface(surface, 0.0, 0.0).unwrap();
+    context.set_source_surface(surface, 0.0, 0.0)?;
 
-    context.paint_with_alpha(alpha).unwrap();
+    context.paint_with_alpha(alpha)?;
 
-    context.restore().expect("context restored");
+    context.restore()?;
+
+    Ok(())
 }

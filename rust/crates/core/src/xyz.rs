@@ -1,6 +1,5 @@
-use geo::Rect;
-
 use crate::size::Size;
+use geo::Rect;
 
 const EARTH_RADIUS: f64 = 6_378_137.0; // Equatorial radius of the Earth in meters (WGS 84)
 

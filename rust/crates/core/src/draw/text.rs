@@ -45,7 +45,7 @@ pub fn draw_text(
     point: &Point,
     text: &str,
     options: &TextOptions,
-) -> bool {
+) -> cairo::Result<bool> {
     draw_text_with_attrs(context, collision, point, text, None, options)
 }
 
@@ -56,9 +56,9 @@ pub fn draw_text_with_attrs(
     text: &str,
     attrs: Option<AttrList>,
     options: &TextOptions,
-) -> bool {
+) -> cairo::Result<bool> {
     if text.is_empty() {
-        return true;
+        return Ok(true);
     }
 
     let TextOptions {
@@ -118,8 +118,8 @@ pub fn draw_text_with_attrs(
                 last_baseline = Some(last);
             }
 
-            let fb = first_baseline.unwrap();
-            let lb = last_baseline.unwrap();
+            let fb = first_baseline.expect("first_baseline");
+            let lb = last_baseline.expect("last_baseline");
 
             if dy > 0.0 {
                 anchor_y - fb + ch
@@ -185,7 +185,7 @@ pub fn draw_text_with_attrs(
 
     let y = match my {
         Some(y) => y,
-        None => return false,
+        None => return Ok(false),
     };
 
     context.push_group();
@@ -198,14 +198,14 @@ pub fn draw_text_with_attrs(
     context.set_dash(&[], 0.0);
     context.set_line_join(cairo::LineJoin::Round);
     context.set_line_width(halo_width * 2.0);
-    context.stroke_preserve().unwrap();
+    context.stroke_preserve()?;
     context.set_source_color(*color);
 
-    context.fill().unwrap();
+    context.fill()?;
 
-    context.pop_group_to_source().unwrap();
+    context.pop_group_to_source()?;
 
-    context.paint_with_alpha(*alpha).unwrap();
+    context.paint_with_alpha(*alpha)?;
 
-    true
+    Ok(true)
 }

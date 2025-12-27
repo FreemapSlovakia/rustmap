@@ -6,21 +6,19 @@ use crate::{
 };
 use geo::{BoundingRect, Geometry, LineString};
 
-pub fn hatch_geometry(ctx: &Ctx, geom: &Geometry, spacing: f64, angle: f64) {
-    walk_geometry_line_strings(geom, &mut |iter| {
-        hatch(ctx, iter, spacing, angle);
-    });
+pub fn hatch_geometry(ctx: &Ctx, geom: &Geometry, spacing: f64, angle: f64) -> cairo::Result<()> {
+    walk_geometry_line_strings(geom, &mut |iter| hatch(ctx, iter, spacing, angle))
 }
 
-fn hatch(ctx: &Ctx, line_string: &LineString, spacing: f64, angle: f64) {
+fn hatch(ctx: &Ctx, line_string: &LineString, spacing: f64, angle: f64) -> cairo::Result<()> {
     let projected = line_string.project_to_tile(&ctx.tile_projector);
 
     let Some(bounds) = projected.bounding_rect() else {
-        return;
+        return Ok(());
     };
 
     let Some(merc_bounds) = line_string.bounding_rect() else {
-        return;
+        return Ok(());
     };
 
     let center = merc_bounds.center();
@@ -33,7 +31,7 @@ fn hatch(ctx: &Ctx, line_string: &LineString, spacing: f64, angle: f64) {
 
     let context = ctx.context;
 
-    context.save().unwrap();
+    context.save()?;
 
     let center = bounds.center();
 
@@ -55,5 +53,7 @@ fn hatch(ctx: &Ctx, line_string: &LineString, spacing: f64, angle: f64) {
         off += spacing;
     }
 
-    context.restore().unwrap();
+    context.restore()?;
+
+    Ok(())
 }

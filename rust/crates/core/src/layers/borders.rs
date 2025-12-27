@@ -2,11 +2,12 @@ use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::path_geom::path_geometry,
+    layer_render_error::LayerRenderResult,
     projectable::{TileProjectable, geometry_geometry},
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client) {
+pub fn render(ctx: &Ctx, client: &mut Client) -> LayerRenderResult {
     let _span = tracy_client::span!("borders::render");
 
     let sql = "
@@ -14,9 +15,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         FROM osm_country_members
         WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)";
 
-    let rows = client
-        .query(sql, &ctx.bbox_query_params(Some(10.0)).as_params())
-        .expect("db data");
+    let rows = client.query(sql, &ctx.bbox_query_params(Some(10.0)).as_params())?;
 
     ctx.context.push_group();
 
@@ -38,9 +37,11 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         });
         ctx.context.set_line_join(cairo::LineJoin::Round);
         path_geometry(context, &geometry);
-        ctx.context.stroke().unwrap();
+        ctx.context.stroke()?;
     }
 
-    context.pop_group_to_source().unwrap();
-    context.paint_with_alpha(0.5).unwrap();
+    context.pop_group_to_source()?;
+    context.paint_with_alpha(0.5)?;
+
+    Ok(())
 }

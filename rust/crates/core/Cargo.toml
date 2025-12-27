@@ -31,3 +31,4 @@ serde_json = { workspace = true }
 tracy-client = { workspace = true }
 napi = { workspace = true }
 napi-derive = { workspace = true }
+thiserror = { workspace = true }

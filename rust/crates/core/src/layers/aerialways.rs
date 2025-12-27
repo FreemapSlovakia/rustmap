@@ -2,10 +2,11 @@ use crate::{
     ctx::Ctx,
     draw::path_geom::path_line_string,
     projectable::{TileProjectable, geometry_line_string},
+    layer_render_error::LayerRenderResult,
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client) {
+pub fn render(ctx: &Ctx, client: &mut Client) -> LayerRenderResult {
     let _span = tracy_client::span!("aerialways::render");
 
     let sql = concat!(
@@ -13,13 +14,11 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         "WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)"
     );
 
-    let rows = client
-        .query(sql, &ctx.bbox_query_params(Some(10.0)).as_params())
-        .expect("db data");
+    let rows = client.query(sql, &ctx.bbox_query_params(Some(10.0)).as_params())?;
 
     let context = ctx.context;
 
-    context.save().expect("context saved");
+    context.save()?;
 
     for row in rows {
         context.set_source_rgb(0.0, 0.0, 0.0);
@@ -31,13 +30,15 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
             &geometry_line_string(&row).project_to_tile(&ctx.tile_projector),
         );
 
-        context.stroke_preserve().unwrap();
+        context.stroke_preserve()?;
 
         context.set_dash(&[1.0, 25.0], 0.0);
         context.set_line_width(5.0);
 
-        context.stroke().unwrap();
+        context.stroke()?;
     }
 
-    context.restore().expect("context restored");
+    context.restore()?;
+
+    Ok(())
 }

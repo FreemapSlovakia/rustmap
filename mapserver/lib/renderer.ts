@@ -172,7 +172,7 @@ async function renderScales(
   try {
     t = Date.now();
 
-    const result = await renderer.render(
+    buffers = await renderer.render(
       tile2bbox3859(x, y, zoom),
       zoom,
       scales2,
@@ -186,8 +186,6 @@ async function renderScales(
         } as Record<string, ImageFormat>
       )[extension] ?? ("Jpeg" as ImageFormat)
     );
-
-    buffers = result.images;
 
     measure("render", Date.now() - t);
   } finally {
@@ -346,7 +344,7 @@ export async function exportMap(
   const renderer = await pool.acquire(1);
 
   try {
-    const result = await renderer.render(
+    const images = await renderer.render(
       bbox4326To3857(bbox),
       zoom,
       [scale],
@@ -363,10 +361,10 @@ export async function exportMap(
     );
 
     if (!destFile) {
-      return result.images[0];
+      return images[0];
     }
 
-    await writeFile(destFile, result.images[0]);
+    await writeFile(destFile, images[0]);
   } finally {
     pool.release(renderer);
 

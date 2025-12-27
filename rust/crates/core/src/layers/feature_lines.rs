@@ -3,11 +3,12 @@ use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::{line_pattern::draw_line_pattern_scaled, path_geom::path_line_string},
+    layer_render_error::LayerRenderResult,
     projectable::{TileProjectable, geometry_line_string},
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) -> LayerRenderResult {
     let _span = tracy_client::span!("feature_lines::render");
 
     let sql = "
@@ -17,16 +18,14 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
             type IN ('weir', 'dam', 'tree_row') AND
             geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)";
 
-    let rows = client
-        .query(sql, &ctx.bbox_query_params(Some(8.0)).as_params())
-        .expect("db data");
+    let rows = client.query(sql, &ctx.bbox_query_params(Some(8.0)).as_params())?;
 
     let context = ctx.context;
 
     for row in rows {
         let geom = geometry_line_string(&row).project_to_tile(&ctx.tile_projector);
 
-        context.save().expect("context saved");
+        context.save()?;
 
         let zoom = ctx.zoom;
 
@@ -37,7 +36,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
                     context.set_source_color(colors::DAM_LINE);
                     context.set_line_width(3.0);
                     path_line_string(context, &geom);
-                    context.stroke().unwrap();
+                    context.stroke()?;
                 }
             }
             "dam" => {
@@ -45,7 +44,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
                     context.set_source_color(colors::DAM_LINE);
                     context.set_line_width(3.0);
                     path_line_string(context, &geom);
-                    context.stroke().unwrap();
+                    context.stroke()?;
                 }
             }
             "tree_row" => {
@@ -54,12 +53,14 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) {
                     &geom,
                     0.8,
                     (2.0 + (zoom as f64 - 15.0).exp2()) / 4.5,
-                    svg_cache.get("tree2.svg"),
-                );
+                    svg_cache.get("tree2.svg")?,
+                )?;
             }
             _ => panic!("unexpected type"),
         }
 
-        context.restore().expect("context restored");
+        context.restore()?;
     }
+
+    Ok(())
 }

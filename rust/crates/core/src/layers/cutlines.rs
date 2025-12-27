@@ -3,10 +3,11 @@ use crate::{
     ctx::Ctx,
     draw::path_geom::path_line_string,
     projectable::{TileProjectable, geometry_line_string},
+    layer_render_error::LayerRenderResult,
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client) {
+pub fn render(ctx: &Ctx, client: &mut Client) -> LayerRenderResult {
     let _span = tracy_client::span!("cutlines::render");
 
     let sql = concat!(
@@ -16,11 +17,11 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     let rows = client
         .query(sql, &ctx.bbox_query_params(Some(8.0)).as_params())
-        .expect("db data");
+        ?;
 
     let context = ctx.context;
 
-    context.save().expect("context saved");
+    context.save()?;
 
     for row in rows {
         path_line_string(
@@ -31,9 +32,11 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         context.set_source_color(colors::SCRUB);
         context.set_dash(&[], 0.0);
         context.set_line_width(0.33f64.mul_add(((ctx.zoom - 12) as f64).exp2(), 2.0));
-        context.stroke_preserve().unwrap();
-        context.stroke().unwrap();
+        context.stroke_preserve()?;
+        context.stroke()?;
     }
 
-    context.restore().expect("context restored");
+    context.restore()?;
+
+    Ok(())
 }

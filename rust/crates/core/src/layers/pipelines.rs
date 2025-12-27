@@ -3,10 +3,11 @@ use crate::{
     ctx::Ctx,
     draw::path_geom::path_line_string,
     projectable::{TileProjectable, geometry_line_string},
+    layer_render_error::LayerRenderResult,
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client) {
+pub fn render(ctx: &Ctx, client: &mut Client) -> LayerRenderResult {
     let _span = tracy_client::span!("pipelines::render");
 
     let sql = format!(
@@ -22,7 +23,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
     let rows = client
         .query(&sql, &ctx.bbox_query_params(Some(8.0)).as_params())
-        .expect("db data");
+        ?;
 
     let context = ctx.context;
 
@@ -39,17 +40,19 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         context.set_line_join(cairo::LineJoin::Round);
         context.set_line_width(2.0);
 
-        context.stroke_preserve().unwrap();
+        context.stroke_preserve()?;
 
         context.set_line_width(4.0);
         context.set_dash(&[0.0, 15.0, 1.5, 1.5, 1.5, 1.0], 0.0);
 
-        context.stroke().unwrap();
+        context.stroke()?;
 
-        context.pop_group_to_source().unwrap();
+        context.pop_group_to_source()?;
 
         context
             .paint_with_alpha(if row.get("below") { 0.33 } else { 1.0 })
-            .unwrap();
+            ?;
     }
+
+    Ok(())
 }

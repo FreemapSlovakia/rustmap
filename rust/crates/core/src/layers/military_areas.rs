@@ -3,10 +3,11 @@ use crate::{
     ctx::Ctx,
     draw::{hatch::hatch_geometry, path_geom::path_geometry},
     projectable::{TileProjectable, geometry_geometry},
+    layer_render_error::LayerRenderResult,
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client) {
+pub fn render(ctx: &Ctx, client: &mut Client) -> LayerRenderResult {
     let _span = tracy_client::span!("military_areas::render");
 
     let sql = "
@@ -20,7 +21,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
     let mut params = ctx.bbox_query_params(Some(10.0));
     params.push(ctx.zoom as i32);
 
-    let rows = &client.query(sql, &params.as_params()).expect("db data");
+    let rows = &client.query(sql, &params.as_params())?;
 
     ctx.context.push_group();
 
@@ -42,21 +43,19 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
 
         context.clip();
 
-        hatch_geometry(ctx, unprojected, 10.0, -45.0);
+        hatch_geometry(ctx, unprojected, 10.0, -45.0)?;
 
         ctx.context.set_source_color(colors::MILITARY);
         ctx.context.set_dash(&[], 0.0);
         ctx.context.set_line_width(1.5);
-        ctx.context.stroke().unwrap();
+        ctx.context.stroke()?;
 
-        context.pop_group_to_source().unwrap();
-        context.paint().unwrap();
+        context.pop_group_to_source()?;
+        context.paint()?;
     }
 
-    context.pop_group_to_source().unwrap();
-    context
-        .paint_with_alpha(if ctx.zoom < 14 { 0.5 / 0.8 } else { 0.2 / 0.8 })
-        .unwrap();
+    context.pop_group_to_source()?;
+    context.paint_with_alpha(if ctx.zoom < 14 { 0.5 / 0.8 } else { 0.2 / 0.8 })?;
 
     // border
 
@@ -65,10 +64,12 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         ctx.context.set_dash(&[25.0, 7.0], 0.0);
         ctx.context.set_line_width(3.0);
         path_geometry(context, projected);
-        ctx.context.stroke().unwrap();
+        ctx.context.stroke()?;
     }
 
-    ctx.context.pop_group_to_source().unwrap();
+    ctx.context.pop_group_to_source()?;
 
-    ctx.context.paint_with_alpha(0.8).unwrap();
+    ctx.context.paint_with_alpha(0.8)?;
+
+    Ok(())
 }

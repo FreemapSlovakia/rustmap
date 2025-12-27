@@ -6,11 +6,12 @@ use crate::{
         text_on_line::{Distribution, TextOnLineOptions, draw_text_on_line},
     },
     projectable::{TileProjectable, geometry_line_string},
+    layer_render_error::LayerRenderResult,
 };
 use pangocairo::pango::Style;
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client) {
+pub fn render(ctx: &Ctx, client: &mut Client) -> LayerRenderResult {
     let _span = tracy_client::span!("geonames::render");
 
     let sql = concat!(
@@ -18,9 +19,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         "WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)"
     );
 
-    let rows = client
-        .query(sql, &ctx.bbox_query_params(Some(20.0)).as_params())
-        .expect("db data");
+    let rows = client.query(sql, &ctx.bbox_query_params(Some(20.0)).as_params())?;
 
     let options = TextOnLineOptions {
         flo: FontAndLayoutOptions {
@@ -49,7 +48,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         let mut options = options;
 
         for _ in 0..3 {
-            if draw_text_on_line(context, &geom, name, None, &options) {
+            if draw_text_on_line(context, &geom, name, None, &options)? {
                 break;
             }
 
@@ -58,9 +57,9 @@ pub fn render(ctx: &Ctx, client: &mut Client) {
         }
     }
 
-    context.pop_group_to_source().unwrap();
+    context.pop_group_to_source()?;
 
-    context
-        .paint_with_alpha(0.8 - 1.5f64.powf(ctx.zoom as f64 - 9.0) / 5.0)
-        .unwrap();
+    context.paint_with_alpha(0.8 - 1.5f64.powf(ctx.zoom as f64 - 9.0) / 5.0)?;
+
+    Ok(())
 }

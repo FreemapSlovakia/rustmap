@@ -167,6 +167,7 @@ pub fn parse_hex_rgb(color: &str) -> Option<(f64, f64, f64)> {
     };
 
     const INV_255: f64 = 1.0 / 255.0;
+
     Some((
         f64::from((rh << 4) | rl) * INV_255,
         f64::from((gh << 4) | gl) * INV_255,

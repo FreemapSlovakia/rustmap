@@ -6,12 +6,13 @@ use crate::{
         path_geom::walk_geometry_line_strings,
         text_on_line::{Align, Distribution, Repeat, TextOnLineOptions, draw_text_on_line},
     },
+    layer_render_error::LayerRenderResult,
     projectable::{TileProjectable, geometry_geometry},
 };
 
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
+pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) -> LayerRenderResult {
     let _span = tracy_client::span!("highway_names::render");
 
     let sql = "
@@ -25,9 +26,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         FROM merged
         ORDER BY z_order DESC, osm_id";
 
-    let rows = client
-        .query(sql, &ctx.bbox_query_params(Some(1024.0)).as_params())
-        .expect("db data");
+    let rows = client.query(sql, &ctx.bbox_query_params(Some(1024.0)).as_params())?;
 
     let options = TextOnLineOptions {
         distribution: Distribution::Align {
@@ -48,7 +47,11 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) {
         let name: &str = row.get("name");
 
         walk_geometry_line_strings(&geom, &mut |geom| {
-            draw_text_on_line(ctx.context, geom, name, Some(collision), &options);
-        });
+            let _drawn = draw_text_on_line(ctx.context, geom, name, Some(collision), &options)?;
+
+            cairo::Result::Ok(())
+        })?;
     }
+
+    Ok(())
 }

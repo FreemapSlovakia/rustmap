@@ -1,5 +1,5 @@
 use crate::ctx::Ctx;
-use cairo::{Matrix, RecordingSurface, SurfacePattern};
+use cairo::{Matrix, RecordingSurface, Result, SurfacePattern};
 use geo::{Coord, LineString};
 
 fn get_perpendicular(dx: f64, dy: f64, length: f64, stroke_width: f64) -> (f64, f64) {
@@ -114,8 +114,8 @@ pub fn draw_line_pattern(
     line_string: &LineString,
     miter_limit: f64,
     sample: &RecordingSurface,
-) {
-    draw_line_pattern_scaled(ctx, line_string, miter_limit, 1.0, sample);
+) -> cairo::Result<()> {
+    draw_line_pattern_scaled(ctx, line_string, miter_limit, 1.0, sample)
 }
 
 pub fn draw_line_pattern_scaled(
@@ -124,7 +124,7 @@ pub fn draw_line_pattern_scaled(
     miter_limit: f64,
     scale: f64,
     sample: &RecordingSurface,
-) {
+) -> Result<()> {
     let mut vertices = line_string.0.clone();
 
     vertices.reverse();
@@ -132,12 +132,12 @@ pub fn draw_line_pattern_scaled(
     let len = vertices.len();
 
     if len < 2 {
-        return;
+        return Ok(());
     }
 
     let pattern = SurfacePattern::create(sample);
 
-    let rect = sample.extents().unwrap();
+    let rect = sample.extents().expect("extents");
 
     let (width, height) = (rect.width(), rect.height());
 
@@ -327,13 +327,13 @@ pub fn draw_line_pattern_scaled(
 
         context.close_path();
 
-        let (x1, y1, x2, y2) = context.path_extents().unwrap();
+        let (x1, y1, x2, y2) = context.path_extents()?;
 
         if !(x2 < 0.0 || x1 > ctx.size.width as f64 || y2 < 0.0 || y1 > ctx.size.width as f64) {
             // context.set_line_width(1.0);
             // context.set_dash(&[], 0.0);
             // context.set_source_rgb(0.0, 0.0, 0.0);
-            // context.stroke_preserve().unwrap();
+            // context.stroke_preserve()?;
 
             let mut matrix = Matrix::identity();
 
@@ -349,15 +349,17 @@ pub fn draw_line_pattern_scaled(
 
             pattern.set_extend(cairo::Extend::Repeat);
 
-            context.set_source(&pattern).unwrap();
+            context.set_source(&pattern)?;
 
-            context.fill().unwrap();
+            context.fill()?;
         }
 
         dist += length;
     }
 
-    context.pop_group_to_source().unwrap();
+    context.pop_group_to_source()?;
 
-    context.paint().unwrap();
+    context.paint()?;
+
+    Ok(())
 }

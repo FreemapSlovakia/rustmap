@@ -5,9 +5,10 @@ use crate::{
     ctx::Ctx,
     draw::path_geom::path_geometry,
     projectable::{TileProjectable, geometry_geometry},
+    layer_render_error::LayerRenderResult,
 };
 
-pub fn render(ctx: &Ctx, client: &mut Client, mask: bool) {
+pub fn render(ctx: &Ctx, client: &mut Client, mask: bool) -> LayerRenderResult {
     let _span = tracy_client::span!("bridge_areas::render");
 
     let query = concat!(
@@ -17,11 +18,11 @@ pub fn render(ctx: &Ctx, client: &mut Client, mask: bool) {
 
     let rows = client
         .query(query, &ctx.bbox_query_params(None).as_params())
-        .expect("db data");
+        ?;
 
     let context = ctx.context;
 
-    context.save().expect("context saved");
+    context.save()?;
 
     if mask {
         context.set_fill_rule(cairo::FillRule::EvenOdd);
@@ -41,14 +42,16 @@ pub fn render(ctx: &Ctx, client: &mut Client, mask: bool) {
         } else {
             path_geometry(context, &geometry);
             context.set_source_color(colors::INDUSTRIAL);
-            context.fill_preserve().unwrap();
+            context.fill_preserve()?;
 
             context.set_line_width(1.0);
             context.set_dash(&[], 0.0);
             context.set_source_color(colors::BUILDING);
-            context.stroke().unwrap();
+            context.stroke()?;
         }
     }
 
-    context.restore().expect("context restored");
+    context.restore()?;
+
+    Ok(())
 }

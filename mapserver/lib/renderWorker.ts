@@ -36,10 +36,7 @@ export type RenderResponse =
   | {
       type: "success";
       id: number;
-      result: {
-        images: Uint8Array[];
-        contentType: string;
-      };
+      images: Uint8Array[];
     };
 
 const pp = parentPort;
@@ -70,16 +67,13 @@ pp.on("message", (message: RenderRequest) => {
       message.extra
     );
 
-    const images = result.images.map((image) => Uint8Array.from(image));
+    const images = result.map((image) => Uint8Array.from(image));
 
     pp.postMessage(
       {
         type: "success",
         id: message.id,
-        result: {
-          images,
-          contentType: result.contentType,
-        },
+        images,
       } satisfies RenderResponse,
       images.map((image) => image.buffer)
     );
