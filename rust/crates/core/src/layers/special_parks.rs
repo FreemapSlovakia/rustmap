@@ -25,8 +25,6 @@ pub fn render(ctx: &Ctx, client: &mut Client) -> LayerRenderResult {
 
     let wb = 14.0 - (150.0 / (ctx.zoom as f64));
 
-    println!("{wb}");
-
     for row in rows {
         let Some(geometry) =
             geometry_geometry(&row).map(|geom| geom.project_to_tile(&ctx.tile_projector))
