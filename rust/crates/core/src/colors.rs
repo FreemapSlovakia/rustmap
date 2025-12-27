@@ -67,6 +67,7 @@ pub const FARMYARD: Color = hsl_to_rgb(50, 44, 85);
 pub const FOREST: Color = hsl_to_rgb(110, 60, 83);
 pub const GLOW: Color = hsl_to_rgb(0, 33, 70);
 pub const GRASSY: Color = hsl_to_rgb(100, 100, 93);
+pub const RECREATION_GROUND: Color = hsl_to_rgb(90, 100, 95);
 pub const HEATH: Color = hsl_to_rgb(85, 60, 85);
 pub const HOSPITAL: Color = hsl_to_rgb(50, 85, 92);
 pub const INDUSTRIAL: Color = hsl_to_rgb(0, 0, 85);

@@ -233,7 +233,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) -> Layer
                 pattern_area("reedbed.svg")?;
             }
             "recreation_ground" => {
-                colour_area(colors::NONE)?;
+                colour_area(colors::RECREATION_GROUND)?;
             }
             "residential" => {
                 colour_area(colors::RESIDENTIAL)?;
