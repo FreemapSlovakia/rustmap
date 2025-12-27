@@ -501,7 +501,7 @@ pub fn render(
             SELECT
                 osm_id,
                 geometry,
-                name AS n,
+                COALESCE(NULLIF(name, ''), tags->'ref', '') AS n,
                 tags->'ele' AS ele,
                 tags->'access' AS access,
                 null AS isolation,
@@ -525,7 +525,7 @@ pub fn render(
             SELECT
                 osm_id,
                 ST_PointOnSurface(geometry) AS geometry,
-                name AS n,
+                COALESCE(NULLIF(name, ''), tags->'ref', '') AS n,
                 tags->'ele' AS ele,
                 tags->'access' AS access,
                 null AS isolation,
