@@ -28,7 +28,7 @@ pub fn render(ctx: &Ctx, features: &Vec<Feature>) -> LayerRenderResult {
     context.set_line_cap(LineCap::Round);
 
     for feature in features {
-        let mut geom: Geometry = Geometry::try_from(feature.clone()).unwrap();
+        let mut geom: Geometry = Geometry::try_from(feature.clone())?;
 
         geom.transform(&proj).unwrap();
 

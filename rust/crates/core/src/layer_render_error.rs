@@ -14,6 +14,9 @@ pub enum LayerRenderError {
 
     #[error("Error getting SVG: {0}")]
     SvgError(#[from] SvgCacheError),
+
+    #[error("Invalid GeoJSON: {0}")]
+    GeoJsonError(#[from] geojson::Error),
 }
 
 pub type LayerRenderResult = Result<(), LayerRenderError>;
