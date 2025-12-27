@@ -391,7 +391,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) -> Layer
 
                 draw_bridges_tunnels(1.0 + 1.0)?;
             }
-            (14.., "highway", "water_slide") => {
+            (14.., "attraction", "water_slide") => {
                 apply_highway_defaults(1.5);
                 context.set_source_color(colors::WATER_SLIDE);
                 draw()?;
