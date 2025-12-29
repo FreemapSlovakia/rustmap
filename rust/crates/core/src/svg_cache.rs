@@ -1,12 +1,12 @@
 use cairo::{Content, RecordingSurface, Rectangle};
 use gio::glib;
 use rsvg::{LoadingError, RenderingError};
-use std::{collections::HashMap, fs::read_to_string, path::PathBuf};
+use std::{collections::HashMap, fs::read_to_string, io, path::PathBuf};
 use sxd_document::{parser, writer::format_document};
 
 pub struct SvgCache {
     base: PathBuf,
-    svg_map: HashMap<SvgKey, RecordingSurface>,
+    svg_map: HashMap<String, RecordingSurface>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -30,6 +30,20 @@ pub enum SvgCacheError {
         name: String,
         #[source]
         source: RenderingError,
+    },
+
+    #[error("I/O error ({name}): {source}")]
+    IoError {
+        name: String,
+        #[source]
+        source: io::Error,
+    },
+
+    #[error("XML parsing error ({name}): {source}")]
+    XmlParsingError {
+        name: String,
+        #[source]
+        source: sxd_document::parser::Error,
     },
 }
 
@@ -63,29 +77,54 @@ impl SvgCache {
         self.svg_map.clear();
     }
 
-    pub fn get(&mut self, key: impl Into<SvgKey>) -> Result<&RecordingSurface, SvgCacheError> {
+    pub fn get(&mut self, key: &str) -> Result<&RecordingSurface, SvgCacheError> {
+        self.get_extra::<fn() -> SvgKey>(key, None)
+    }
+
+    pub fn get_extra<T>(
+        &mut self,
+        key: &str,
+        get_options: Option<T>,
+    ) -> Result<&RecordingSurface, SvgCacheError>
+    where
+        T: FnOnce() -> SvgKey,
+    {
         let svg_map = &mut self.svg_map;
 
-        let key = key.into();
+        if !svg_map.contains_key(key) {
+            let options = get_options
+                .map(|get_options| get_options())
+                .unwrap_or_else(|| SvgKey {
+                    name: key.to_string(),
+                    stylesheet: None,
+                    halo: false,
+                });
 
-        if !svg_map.contains_key(&key) {
             let map_loading_error = |err| SvgCacheError::LoadingError {
-                name: key.name.clone(),
+                name: options.name.clone(),
                 source: err,
             };
 
             let map_cairo_error = |err| SvgCacheError::CairoError {
-                name: key.name.clone(),
+                name: options.name.clone(),
                 source: err,
             };
 
-            let full_path = self.base.join(&key.name);
+            let map_io_error = |err| SvgCacheError::IoError {
+                name: options.name.clone(),
+                source: err,
+            };
 
-            let input = read_to_string(full_path).unwrap();
-            let package = parser::parse(&input).unwrap();
+            let full_path = self.base.join(&options.name);
+
+            let input = read_to_string(full_path).map_err(map_io_error)?;
+            let package = parser::parse(&input).map_err(|err| SvgCacheError::XmlParsingError {
+                name: options.name.clone(),
+                source: err,
+            })?;
             let doc = package.as_document();
 
-            if key.halo
+            if options.halo
                 && doc.root().children().len() == 1
                 && let Some(svg_element) = doc.root().children()[0].element()
                 && svg_element.name().local_part() == "svg"
@@ -126,7 +165,7 @@ impl SvgCache {
             }
 
             let mut svg_bytes = Vec::new();
-            format_document(&doc, &mut svg_bytes).unwrap();
+            format_document(&doc, &mut svg_bytes).map_err(map_io_error)?;
 
             // println!("{}", String::from_utf8(svg_bytes.clone()).unwrap());
 
@@ -142,9 +181,9 @@ impl SvgCache {
                 )
                 .map_err(map_loading_error)?;
 
-            if let Some(ref stylesheet) = key.stylesheet {
+            if let Some(stylesheet) = options.stylesheet {
                 handle
-                    .set_stylesheet(stylesheet)
+                    .set_stylesheet(&stylesheet)
                     .map_err(map_loading_error)?;
             }
 
@@ -157,14 +196,14 @@ impl SvgCache {
 
             renderer.render_document(&context, &rect).map_err(|err| {
                 SvgCacheError::RenderingError {
-                    name: key.name.clone(),
+                    name: key.to_string(),
                     source: err,
                 }
             })?;
 
-            svg_map.insert(key.clone(), surface);
+            svg_map.insert(key.to_string(), surface);
         }
 
-        Ok(svg_map.get(&key).expect("svg from map"))
+        Ok(svg_map.get(key).expect("svg from map"))
     }
 }

@@ -308,11 +308,14 @@ pub fn render_marking(
                 if off > 0 {
                     let offset = ((off as f64 - 1.0) * wf).mul_add(df, zo) + 0.5;
 
-                    let sample = svg_cache.get(SvgKey {
-                        name: "horse.svg".into(),
-                        stylesheet: Some(format!("path {{ fill: #{} }}", color.1)),
-                        halo: false,
-                    })?;
+                    let sample = svg_cache.get_extra(
+                        &format!("horse-{}", color.1),
+                        Some(|| SvgKey {
+                            name: "horse.svg".into(),
+                            stylesheet: Some(format!("path {{ fill: #{} }}", color.1)),
+                            halo: false,
+                        }),
+                    )?;
 
                     walk_geometry_line_strings(&geom, &mut |part| {
                         draw_line_pattern_scaled(
@@ -332,11 +335,14 @@ pub fn render_marking(
                 if off > 0 {
                     let offset = -((off as f64 - 1.0) * wf).mul_add(2.0, zo) - 1.0;
 
-                    let pattern = svg_cache.get(SvgKey {
-                        name: "ski.svg".into(),
-                        stylesheet: Some(format!("path {{ fill: #{} }}", color.1)),
-                        halo: false,
-                    })?;
+                    let pattern = svg_cache.get_extra(
+                        &format!("ski-{}", color.1),
+                        Some(|| SvgKey {
+                            name: "ski.svg".into(),
+                            stylesheet: Some(format!("path {{ fill: #{} }}", color.1)),
+                            halo: false,
+                        }),
+                    )?;
 
                     walk_geometry_line_strings::<_, LayerRenderError>(&geom, &mut |part| {
                         draw_line_pattern_scaled(

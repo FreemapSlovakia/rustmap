@@ -774,11 +774,18 @@ pub fn render(
 
             let point = geometry_point(&row).project_to_tile(&ctx.tile_projector);
 
-            let surface = svg_cache.get(SvgKey {
-                name: format!("{}.svg", def.extra.icon.unwrap_or(typ)),
-                stylesheet: None,
-                halo: typ != "peak" && typ != "saddle",
-            })?;
+            let name = format!("{}.svg", def.extra.icon.unwrap_or(typ));
+
+            let surface = svg_cache.get_extra(
+                &name,
+                Some({
+                    || SvgKey {
+                        name: name.clone(),
+                        stylesheet: None,
+                        halo: typ != "peak" && typ != "saddle",
+                    }
+                }),
+            )?;
 
             let rect = surface.extents().expect("surface extents");
 
