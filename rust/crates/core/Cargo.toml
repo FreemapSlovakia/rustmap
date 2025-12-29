@@ -12,23 +12,28 @@ name = "maprender_core"
 path = "src/lib.rs"
 
 [dependencies]
-bitflags = { workspace = true }
-cairo-rs = { workspace = true }
-cavalier_contours = { workspace = true }
-colorsys = { workspace = true }
+image = { version = "0.25", default-features = false, features = [
+  "jpeg",
+  "png",
+] }
+librsvg = { version = "2.61" }
+bitflags = "2.9"
+cairo-rs = { version = "0.21", features = ["png", "svg", "pdf"] }
+cavalier_contours = { version = "0.6.0" }
+colorsys = "0.7"
 gdal = { workspace = true }
 geo = { workspace = true }
-geo-postgis = { workspace = true }
+geo-postgis = "0.2.2"
 geojson = { workspace = true }
-image = { workspace = true }
-librsvg = { workspace = true }
-pangocairo = { workspace = true }
-postgis = { workspace = true }
+pangocairo = "0.21"
+postgis = "0.9"
 postgres = { workspace = true }
-proj = { workspace = true }
+proj = { version = "0.29", features = ["geo-types"] }
 regex = { workspace = true }
 serde_json = { workspace = true }
 tracy-client = { workspace = true }
 napi = { workspace = true }
 napi-derive = { workspace = true }
 thiserror = { workspace = true }
+sxd-document = "0.3.2"
+gio = "0.21.5"

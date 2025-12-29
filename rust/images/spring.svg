@@ -1,8 +1,9 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg width="11.779812" height="14.68991" version="1.1" id="svg2" sodipodi:docname="spring.svg" inkscape:version="1.4.2 (ebf0e940d0, 2025-05-08)" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
-  <defs id="defs2" />
-  <sodipodi:namedview id="namedview2" pagecolor="#ffffff" bordercolor="#666666" borderopacity="1.0" inkscape:showpageshadow="2" inkscape:pageopacity="0.0" inkscape:pagecheckerboard="true" inkscape:deskcolor="#d1d1d1" showgrid="true" inkscape:zoom="64.875" inkscape:cx="7.5067437" inkscape:cy="7.3371869" inkscape:window-width="2154" inkscape:window-height="1206" inkscape:window-x="0" inkscape:window-y="0" inkscape:window-maximized="1" inkscape:current-layer="svg2">
-    <inkscape:grid id="grid2" units="px" originx="0" originy="0" spacingx="1" spacingy="1" empcolor="#0000ff" empopacity="0.25098039" color="#0000ff" opacity="0.1254902" empspacing="5" enabled="true" visible="true" />
-  </sodipodi:namedview>
-  <path d="M 6.9996754,1.5099991 A 3.3,3.3 0 0 0 3.7296754,4.8399991 A 3.36,3.36 0 0 0 3.9096754,5.9199991 C 2.1996754,7.9699991 3.2096754,8.8399991 3.5896754,10.109999 C 3.9896754,11.389999 2.5896754,12.169999 1.4996754,13.189999 C 4.7396754,12.599999 5.2696754,11.089999 5.1796754,10.269999 C 5.0796754,9.3499991 4.3496754,8.7499991 5.2996754,7.6699991 C 5.8596754,7.8499991 6.3796754,8.1599991 6.9996754,8.1599991 A 3.24,3.24 0 0 0 8.8696754,7.5599991 A 3.33,3.33 0 0 0 10.279675,4.8299991 A 3.3,3.3 0 0 0 6.9996754,1.4999991 Z" fill="#0064ff" id="path2" style="stroke:#ffffff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:0.5;paint-order:stroke fill markers" />
+<svg width="11.779812" height="14.68991" version="1.1"
+  xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
+
+
+  <path
+    d="M 6.9996754,1.5099991 A 3.3,3.3 0 0 0 3.7296754,4.8399991 A 3.36,3.36 0 0 0 3.9096754,5.9199991 C 2.1996754,7.9699991 3.2096754,8.8399991 3.5896754,10.109999 C 3.9896754,11.389999 2.5896754,12.169999 1.4996754,13.189999 C 4.7396754,12.599999 5.2696754,11.089999 5.1796754,10.269999 C 5.0796754,9.3499991 4.3496754,8.7499991 5.2996754,7.6699991 C 5.8596754,7.8499991 6.3796754,8.1599991 6.9996754,8.1599991 A 3.24,3.24 0 0 0 8.8696754,7.5599991 A 3.33,3.33 0 0 0 10.279675,4.8299991 A 3.3,3.3 0 0 0 6.9996754,1.4999991 Z"
+    fill="#0064ff"
+  />
 </svg>

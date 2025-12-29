@@ -1,13 +1,15 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg width="14.639853" height="15.001516" version="1.0" id="svg3" sodipodi:docname="shelter.svg" inkscape:version="1.4.2 (ebf0e940d0, 2025-05-08)" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
-  <sodipodi:namedview id="namedview3" pagecolor="#ffffff" bordercolor="#666666" borderopacity="1.0" inkscape:showpageshadow="2" inkscape:pageopacity="0.0" inkscape:pagecheckerboard="true" inkscape:deskcolor="#d1d1d1" inkscape:zoom="32.5625" inkscape:cx="9.7351248" inkscape:cy="11.884837" inkscape:window-width="2154" inkscape:window-height="1206" inkscape:window-x="0" inkscape:window-y="0" inkscape:window-maximized="1" inkscape:current-layer="svg3" showgrid="true">
-    <inkscape:grid id="grid1" units="px" originx="0" originy="0" spacingx="1" spacingy="1" empcolor="#0000ff" empopacity="0.25098039" color="#0000ff" opacity="0.1254902" empspacing="5" enabled="true" visible="true" />
-  </sodipodi:namedview>
+<svg width="14.639853" height="15.001516" version="1.0"
+  xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
+
+
   <defs id="defs2">
     <linearGradient id="a">
       <stop offset="0" stop-color="#010000" id="stop1" />
       <stop offset="1" stop-color="#010000" stop-opacity="0" id="stop2" />
     </linearGradient>
   </defs>
-  <path d="M 7.3343845,1.501516 C 7.2143845,1.501516 7.1143845,1.501516 7.0143845,1.616516 L 1.8143845,5.501516 C 1.4513845,5.801516 1.3443845,6.501516 1.8143845,6.501516 H 6.8143845 V 12.501516 H 3.8143845 V 13.501516 H 10.814384 V 12.501516 H 7.8143845 V 6.501516 H 12.814384 C 13.314384,6.501516 13.174384,5.801516 12.814384,5.501516 L 7.6643845,1.617516 C 7.5743845,1.501516 7.4543845,1.501516 7.3343845,1.501516 Z" fill="#010000" id="path3" style="stroke:#ffffff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:0.5;paint-order:stroke fill markers" />
+  <path
+    d="M 7.3343845,1.501516 C 7.2143845,1.501516 7.1143845,1.501516 7.0143845,1.616516 L 1.8143845,5.501516 C 1.4513845,5.801516 1.3443845,6.501516 1.8143845,6.501516 H 6.8143845 V 12.501516 H 3.8143845 V 13.501516 H 10.814384 V 12.501516 H 7.8143845 V 6.501516 H 12.814384 C 13.314384,6.501516 13.174384,5.801516 12.814384,5.501516 L 7.6643845,1.617516 C 7.5743845,1.501516 7.4543845,1.501516 7.3343845,1.501516 Z"
+    fill="#010000"
+  />
 </svg>

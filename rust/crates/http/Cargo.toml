@@ -6,7 +6,7 @@ publish = false
 
 [dependencies]
 maprender-core = { path = "../core" }
-oxhttp = { workspace = true }
+oxhttp = { version = "0.3" }
 postgres = { workspace = true }
 r2d2 = { workspace = true }
 r2d2_postgres = { workspace = true }

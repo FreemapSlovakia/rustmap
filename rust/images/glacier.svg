@@ -1,7 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" id="Svg" width="256" height="256">
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256">
   <defs>
     <clipPath id="clipPath">
-
       <rect x="0" y="0" width="256" height="256" />
     </clipPath>
     <g fill="#ffffff" style="" transform="matrix(1,0,0,1,0,0)" id="gSmjoiq5zg1k8">
@@ -719,5 +718,4 @@
     <use xmlns:ns340="http://www.w3.org/1999/xlink" ns340:href="#gSmjoiq5zg1kb"
       x="-4.7326911104548515" y="214.69588031811656" />
   </g>
-  <desc>Created with Snap</desc>
 </svg>

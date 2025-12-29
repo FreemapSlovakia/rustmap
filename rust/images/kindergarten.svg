@@ -1,36 +1,7 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg version="1.0" width="12.848033" height="17"
+  xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
 
-<svg version="1.0" width="12.848033" height="17.000179" id="svg2" sodipodi:version="0.32" inkscape:version="1.4.2 (ebf0e940d0, 2025-05-08)" sodipodi:docname="kindergarten.svg" inkscape:output_extension="org.inkscape.output.svg.inkscape" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/">
-  <defs id="defs22">
-    <inkscape:perspective sodipodi:type="inkscape:persp3d" inkscape:vp_x="0 : -272.99982 : 1" inkscape:vp_y="0 : 1000 : 0" inkscape:vp_z="580 : -272.99982 : 1" inkscape:persp3d-origin="290 : -369.66649 : 1" id="perspective24" />
-    <marker viewBox="0 0 10 10" refY="5" refX="10" orient="auto" markerWidth="4" markerUnits="strokeWidth" markerHeight="3" id="ArrowStart">
-      <path id="path3568" d="M 10,0 L 0,5 L 10,10 Z" />
-    </marker>
-    <marker viewBox="0 0 10 10" refY="5" refX="0" orient="auto" markerWidth="4" markerUnits="strokeWidth" markerHeight="3" id="ArrowEnd">
-      <path id="path3565" d="M 0,0 L 10,5 L 0,10 Z" />
-    </marker>
-    <inkscape:perspective id="perspective2683" inkscape:persp3d-origin="306.082 : -358.60948 : 1" inkscape:vp_z="612.164 : -256.41431 : 1" inkscape:vp_y="0 : 1000 : 0" inkscape:vp_x="0 : -256.41431 : 1" sodipodi:type="inkscape:persp3d" />
-    <marker viewBox="0 0 10 10" refY="5" refX="10" orient="auto" markerWidth="4" markerUnits="strokeWidth" markerHeight="3" id="marker2959">
-      <path id="path2626" d="M 10,0 L 0,5 L 10,10 Z" />
-    </marker>
-    <marker viewBox="0 0 10 10" refY="5" refX="0" orient="auto" markerWidth="4" markerUnits="strokeWidth" markerHeight="3" id="marker2956">
-      <path id="path2623" d="M 0,0 L 10,5 L 0,10 Z" />
-    </marker>
-    <inkscape:perspective id="perspective2953" inkscape:persp3d-origin="306.082 : -358.60948 : 1" inkscape:vp_z="612.164 : -256.41431 : 1" inkscape:vp_y="0 : 1000 : 0" inkscape:vp_x="0 : -256.41431 : 1" sodipodi:type="inkscape:persp3d" />
-  </defs>
-  <metadata id="metadata10">
-    <rdf:RDF>
-      <cc:Work rdf:about="">
-        <dc:format>image/svg+xml</dc:format>
-        <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <cc:license rdf:resource="http://web.resource.org/cc/PublicDomain" />
-        <dc:language>en</dc:language>
-      </cc:Work>
-    </rdf:RDF>
-  </metadata>
-  <sodipodi:namedview inkscape:window-height="1206" inkscape:window-width="2154" inkscape:pageshadow="2" inkscape:pageopacity="0.0" guidetolerance="10.0" gridtolerance="10.0" objecttolerance="10.0" borderopacity="1.0" bordercolor="#666666" pagecolor="#ffffff" id="base" showgrid="true" inkscape:zoom="22.627416" inkscape:cx="-1.2374369" inkscape:cy="19.136078" inkscape:window-x="0" inkscape:window-y="0" inkscape:current-layer="svg2" inkscape:pagecheckerboard="true" inkscape:window-maximized="1" inkscape:showpageshadow="2" inkscape:deskcolor="#d1d1d1">
-    <inkscape:grid id="grid1" units="px" originx="0" originy="0" spacingx="1" spacingy="1" empcolor="#0000ff" empopacity="0.25098039" color="#0000ff" opacity="0.1254902" empspacing="5" enabled="true" visible="true" />
-  </sodipodi:namedview>
-  <path id="path2636" style="fill:#000000;fill-opacity:1;stroke:#ffffff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:0.5;paint-order:stroke fill markers" d="M 6.4237928,1.5 C 5.3316629,1.5 4.4472303,2.3863858 4.4472303,3.4785156 C 4.4472303,4.5706124 5.3316629,5.4550781 6.4237928,5.4550781 C 7.5158896,5.4550781 8.4023084,4.5706124 8.4023084,3.4785156 C 8.4023084,2.3863858 7.5158896,1.5 6.4237928,1.5 Z M 5.2226209,5.7597656 C 4.8497341,5.7597656 4.6150498,5.8962022 4.4003553,6.109375 L 1.7538709,8.7617188 C 1.0304598,9.4852291 2.0101663,10.411673 2.7323866,9.6894531 L 4.3300428,8.0800781 V 9.5878906 H 6.4198866 H 6.4218397 H 8.4980116 V 8.0703125 L 10.138637,9.7148438 C 10.799228,10.410633 11.805862,9.4758188 11.117152,8.7871094 L 8.443324,6.109375 C 8.2223773,5.8920671 7.9705078,5.7597656 7.5976209,5.7597656 H 6.4218397 H 6.4198866 Z M 4.3300428,10.371094 C 4.3300428,10.371094 2.9936077,11.709483 2.9921522,11.710938 C 2.5621017,12.140989 2.6730455,12.897299 3.0741834,13.306641 L 4.943324,15.25 C 5.6646511,15.971327 6.6271611,14.972966 5.9296522,14.275391 L 4.7480116,13.09375 L 5.9023084,11.943359 Z M 8.490199,10.371094 L 6.9179334,11.943359 L 8.0722303,13.09375 L 6.8905897,14.275391 C 6.1930808,14.972966 7.1555908,15.971327 7.8769178,15.25 L 9.7460588,13.306641 C 10.147197,12.897299 10.258141,12.140989 9.8280898,11.710938 C 9.8266348,11.709483 8.490199,10.371094 8.490199,10.371094 Z" />
+
+  <path
+    d="M 6.4237928,1.5 C 5.3316629,1.5 4.4472303,2.3863858 4.4472303,3.4785156 C 4.4472303,4.5706124 5.3316629,5.4550781 6.4237928,5.4550781 C 7.5158896,5.4550781 8.4023084,4.5706124 8.4023084,3.4785156 C 8.4023084,2.3863858 7.5158896,1.5 6.4237928,1.5 Z M 5.2226209,5.7597656 C 4.8497341,5.7597656 4.6150498,5.8962022 4.4003553,6.109375 L 1.7538709,8.7617188 C 1.0304598,9.4852291 2.0101663,10.411673 2.7323866,9.6894531 L 4.3300428,8.0800781 V 9.5878906 H 6.4198866 H 6.4218397 H 8.4980116 V 8.0703125 L 10.138637,9.7148438 C 10.799228,10.410633 11.805862,9.4758188 11.117152,8.7871094 L 8.443324,6.109375 C 8.2223773,5.8920671 7.9705078,5.7597656 7.5976209,5.7597656 H 6.4218397 H 6.4198866 Z M 4.3300428,10.371094 C 4.3300428,10.371094 2.9936077,11.709483 2.9921522,11.710938 C 2.5621017,12.140989 2.6730455,12.897299 3.0741834,13.306641 L 4.943324,15.25 C 5.6646511,15.971327 6.6271611,14.972966 5.9296522,14.275391 L 4.7480116,13.09375 L 5.9023084,11.943359 Z M 8.490199,10.371094 L 6.9179334,11.943359 L 8.0722303,13.09375 L 6.8905897,14.275391 C 6.1930808,14.972966 7.1555908,15.971327 7.8769178,15.25 L 9.7460588,13.306641 C 10.147197,12.897299 10.258141,12.140989 9.8280898,11.710938 C 9.8266348,11.709483 8.490199,10.371094 8.490199,10.371094 Z" />
 </svg>

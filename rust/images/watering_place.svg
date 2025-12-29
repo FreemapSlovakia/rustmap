@@ -1,8 +1,8 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg width="16.457853" height="11.007" version="1.1" id="svg2" sodipodi:docname="watering_place.svg" inkscape:version="1.4.2 (ebf0e940d0, 2025-05-08)" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
-  <defs id="defs2" />
-  <sodipodi:namedview id="namedview2" pagecolor="#ffffff" bordercolor="#666666" borderopacity="1.0" inkscape:showpageshadow="2" inkscape:pageopacity="0.0" inkscape:pagecheckerboard="true" inkscape:deskcolor="#d1d1d1" showgrid="true" inkscape:zoom="74.142857" inkscape:cx="8.1734104" inkscape:cy="5.0038536" inkscape:window-width="2154" inkscape:window-height="1206" inkscape:window-x="0" inkscape:window-y="0" inkscape:window-maximized="1" inkscape:current-layer="svg2">
-    <inkscape:grid id="grid2" units="px" originx="0" originy="0" spacingx="1" spacingy="1" empcolor="#0000ff" empopacity="0.25098039" color="#0000ff" opacity="0.1254902" empspacing="5" enabled="true" visible="true" />
-  </sodipodi:namedview>
-  <path d="M 9.0989448,1.5 L 1.4999448,4.744 L 3.8729448,9.507 L 6.2829448,9.505 L 12.551945,6.367 L 14.957945,1.504 Z M 9.2759448,2.504 H 12.054945 L 8.0549448,4.504 H 4.6079448 Z M 13.054945,3.121 L 11.798945,5.631 L 7.2889448,7.887 L 8.5449448,5.377 Z M 2.9809448,5.504 H 7.3619448 L 5.8619448,8.504 H 4.4819448 Z" color="#000000" fill="#0064ff" fill-rule="evenodd" id="path2" style="stroke:#ffffff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:0.5;paint-order:stroke fill markers" />
+<svg width="16.457853" height="11.007" version="1.1"
+  xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
+
+  <path
+    d="M 9.0989448,1.5 L 1.4999448,4.744 L 3.8729448,9.507 L 6.2829448,9.505 L 12.551945,6.367 L 14.957945,1.504 Z M 9.2759448,2.504 H 12.054945 L 8.0549448,4.504 H 4.6079448 Z M 13.054945,3.121 L 11.798945,5.631 L 7.2889448,7.887 L 8.5449448,5.377 Z M 2.9809448,5.504 H 7.3619448 L 5.8619448,8.504 H 4.4819448 Z"
+    fill="#0064ff"
+  />
 </svg>

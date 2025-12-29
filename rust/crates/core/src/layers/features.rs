@@ -5,6 +5,7 @@ use crate::draw::text::{TextOptions, draw_text, draw_text_with_attrs};
 use crate::layer_render_error::LayerRenderResult;
 use crate::projectable::{TileProjectable, geometry_point};
 use crate::regex_replacer::{Replacement, build_replacements, replace};
+use crate::svg_cache::SvgKey;
 use crate::{collision::Collision, ctx::Ctx};
 use core::f64;
 use geo::{Point, Rect};
@@ -773,7 +774,11 @@ pub fn render(
 
             let point = geometry_point(&row).project_to_tile(&ctx.tile_projector);
 
-            let surface = svg_cache.get(&format!("{}.svg", def.extra.icon.unwrap_or(typ)))?;
+            let surface = svg_cache.get(SvgKey {
+                name: format!("{}.svg", def.extra.icon.unwrap_or(typ)),
+                stylesheet: None,
+                halo: typ != "peak" && typ != "saddle",
+            })?;
 
             let rect = surface.extents().expect("surface extents");
 

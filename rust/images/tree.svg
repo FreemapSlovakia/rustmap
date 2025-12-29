@@ -1,11 +1,5 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- Generator: Adobe Illustrator 13.0.2, SVG Export Plug-In . SVG Version: 6.00 Build 14948)  -->
-
-<svg version="1.1" id="Layer_1" x="0px" y="0px" width="12.07375" height="17" viewBox="-0.258 -0.548 12.07375 17" xml:space="preserve" sodipodi:docname="tree.svg" inkscape:version="1.4.2 (ebf0e940d0, 2025-05-08)" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg"><path id="path2268" style="fill:#107010;fill-opacity:1;fill-rule:evenodd;stroke:#ffffff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:0.5;paint-order:stroke fill markers" d="M 5.7789495,0.952 C 2.8847864,0.9520959 0.65466005,5.6565135 1.4039495,8.452 C 1.7564801,9.767239 3.308764,10.592622 4.7789495,10.85825 V 14.952 H 6.7789495 V 10.85825 C 8.2489448,10.592873 9.8016525,9.7673365 10.153949,8.452 C 10.902774,5.6561899 8.6733048,0.9519042 5.7789495,0.952 Z" /><defs id="defs904">
-	
-	
-	
-	
-</defs><sodipodi:namedview id="namedview902" pagecolor="#ffffff" bordercolor="#666666" borderopacity="1.0" inkscape:pageshadow="2" inkscape:pageopacity="0.0" inkscape:pagecheckerboard="true" showgrid="true" inkscape:zoom="27.100753" inkscape:cx="4.1327265" inkscape:cy="6.3835865" inkscape:window-width="2154" inkscape:window-height="1206" inkscape:window-x="0" inkscape:window-y="0" inkscape:window-maximized="1" inkscape:current-layer="Layer_1" inkscape:showpageshadow="2" inkscape:deskcolor="#d1d1d1"><inkscape:grid type="xygrid" id="grid2233" originx="-0.96305059" originy="1.5" spacingy="1" spacingx="1" units="px" /></sodipodi:namedview>
-
+<svg version="1.1" width="12" height="17" xmlns="http://www.w3.org/2000/svg"
+  xmlns:svg="http://www.w3.org/2000/svg">
+  <path
+    d="M 6.0000653,1.5 C 3.1059022,1.5000959 0.87577588,6.2045135 1.6250653,9 C 1.9775959,10.315239 3.5298798,11.140622 5.0000653,11.40625 V 15.5 H 7.0000653 V 11.40625 C 8.4700606,11.140873 10.022768,10.315337 10.375065,9 C 11.12389,6.2041899 8.8944206,1.4999042 6.0000653,1.5 Z" />
 </svg>

@@ -11,6 +11,7 @@ use crate::{
     },
     layer_render_error::{LayerRenderError, LayerRenderResult},
     projectable::{TileProjectable, geometry_geometry},
+    svg_cache::SvgKey,
 };
 use bitflags::bitflags;
 use colorsys::{Rgb, RgbRatio};
@@ -307,8 +308,11 @@ pub fn render_marking(
                 if off > 0 {
                     let offset = ((off as f64 - 1.0) * wf).mul_add(df, zo) + 0.5;
 
-                    let sample =
-                        svg_cache.get(&format!("horse.svg|path {{ fill: #{} }}", color.1))?;
+                    let sample = svg_cache.get(SvgKey {
+                        name: "horse.svg".into(),
+                        stylesheet: Some(format!("path {{ fill: #{} }}", color.1)),
+                        halo: false,
+                    })?;
 
                     walk_geometry_line_strings(&geom, &mut |part| {
                         draw_line_pattern_scaled(
@@ -319,12 +323,6 @@ pub fn render_marking(
                             sample,
                         )
                     })?;
-
-                    // <LinePatternSymbolizer
-                    //   file={path.resolve(tmpdir(), `horse-${color}.svg`)}
-                    //   offset={offset}
-                    //   transform={`scale(${wf / 2})`}
-                    // />
                 }
             }
 
@@ -334,10 +332,13 @@ pub fn render_marking(
                 if off > 0 {
                     let offset = -((off as f64 - 1.0) * wf).mul_add(2.0, zo) - 1.0;
 
-                    walk_geometry_line_strings::<_, LayerRenderError>(&geom, &mut |part| {
-                        let pattern =
-                            svg_cache.get(&format!("ski.svg|path {{ fill: #{} }}", color.1))?;
+                    let pattern = svg_cache.get(SvgKey {
+                        name: "ski.svg".into(),
+                        stylesheet: Some(format!("path {{ fill: #{} }}", color.1)),
+                        halo: false,
+                    })?;
 
+                    walk_geometry_line_strings::<_, LayerRenderError>(&geom, &mut |part| {
                         draw_line_pattern_scaled(
                             ctx,
                             &offset_line_string(part, offset),
@@ -348,12 +349,6 @@ pub fn render_marking(
 
                         Ok(())
                     })?;
-
-                    // <LinePatternSymbolizer
-                    //   file={path.resolve(tmpdir(), `ski-${color}.svg`)}
-                    //   offset={offset}
-                    //   transform={`scale(${wf / 2})`}
-                    // />
                 }
             }
 
@@ -384,16 +379,6 @@ pub fn render_marking(
                     context.stroke()?;
 
                     context.restore()?;
-
-                    // for part in geom {
-                    //     draw_polyline_outline_scaled(
-                    //         ctx,
-                    //         &offset_line(ctx, part.points.iter(), 10.0)[..],
-                    //         0.5,
-                    //         &format!("ski.svg|path {{ fill: #{} }}", color.1),
-                    //         wf / 2.0
-                    //     );
-                    // }
                 }
             }
 
