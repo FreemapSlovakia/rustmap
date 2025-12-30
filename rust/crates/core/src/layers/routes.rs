@@ -265,7 +265,7 @@ pub fn render_marking(
     ctx: &Ctx,
     client: &mut Client,
     route_types: &RouteTypes,
-    svg_cache: &mut SvgRepo,
+    svg_repo: &mut SvgRepo,
 ) -> LayerRenderResult {
     let _span = tracy_client::span!("routes::render_marking");
 
@@ -308,12 +308,12 @@ pub fn render_marking(
                 if off > 0 {
                     let offset = ((off as f64 - 1.0) * wf).mul_add(df, zo) + 0.5;
 
-                    let sample = svg_cache.get_extra(
+                    let sample = svg_repo.get_extra(
                         &format!("horse-{}", color.1),
                         Some(|| Options {
-                            name: "horse.svg".into(),
+                            names: vec!["horse".into()],
                             stylesheet: Some(format!("path {{ fill: #{} }}", color.1)),
-                            halo: false,
+                            ..Default::default()
                         }),
                     )?;
 
@@ -335,12 +335,12 @@ pub fn render_marking(
                 if off > 0 {
                     let offset = -((off as f64 - 1.0) * wf).mul_add(2.0, zo) - 1.0;
 
-                    let pattern = svg_cache.get_extra(
+                    let pattern = svg_repo.get_extra(
                         &format!("ski-{}", color.1),
                         Some(|| Options {
-                            name: "ski.svg".into(),
+                            names: vec!["ski".into()],
                             stylesheet: Some(format!("path {{ fill: #{} }}", color.1)),
-                            halo: false,
+                            ..Default::default()
                         }),
                     )?;
 

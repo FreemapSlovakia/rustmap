@@ -35,5 +35,5 @@ tracy-client = { workspace = true }
 napi = { workspace = true }
 napi-derive = { workspace = true }
 thiserror = { workspace = true }
-sxd-document = "0.3.2"
 gio = "0.21.5"
+xmltree = "0.11"

@@ -6,7 +6,7 @@ use crate::projectable::{TileProjectable, geometry_line_string};
 use crate::{colors, ctx::Ctx, draw::path_geom::path_line_string};
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerRenderResult {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRenderResult {
     let _span = tracy_client::span!("roads::render");
 
     let context = ctx.context;
@@ -59,7 +59,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerR
     };
 
     // TODO lazy
-    let arrow = svg_cache.get("highway-arrow.svg")?;
+    let arrow = svg_repo.get("highway-arrow")?;
 
     let rect = arrow.extents().expect("surface extents");
 

@@ -16,7 +16,7 @@ use crate::{
 use pangocairo::pango::Style;
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) -> LayerRenderResult {
+pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision) -> LayerRenderResult {
     let _span = tracy_client::span!("protected_area_names::render");
 
     let sql = "SELECT name, ST_Centroid(geometry) AS geometry

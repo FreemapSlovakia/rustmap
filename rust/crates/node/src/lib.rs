@@ -11,7 +11,7 @@ use postgres::NoTls;
 #[napi]
 pub struct Renderer {
     client: postgres::Client,
-    svg_cache: SvgRepo,
+    svg_repo: SvgRepo,
     shading_data: Option<HillshadingDatasets>,
     mask_geometry: Option<Geometry>,
 }
@@ -63,7 +63,7 @@ impl Renderer {
             .transpose()?;
 
         Ok(Self {
-            svg_cache: SvgRepo::new(svg_base),
+            svg_repo: SvgRepo::new(svg_base),
             shading_data: hillshading_base.map(load_hillshading_datasets),
             client,
             mask_geometry,
@@ -114,7 +114,7 @@ impl Renderer {
         let rendered = render(
             &request,
             &mut self.client,
-            &mut self.svg_cache,
+            &mut self.svg_repo,
             &mut self.shading_data,
             self.mask_geometry.as_ref(),
         )

@@ -14,7 +14,7 @@ use postgres::Client;
 pub fn render(
     ctx: &Ctx,
     client: &mut Client,
-    collision: &mut Option<&mut Collision<f64>>,
+    collision: &mut Option<&mut Collision>,
 ) -> LayerRenderResult {
     let _span = tracy_client::span!("place_names::render");
 

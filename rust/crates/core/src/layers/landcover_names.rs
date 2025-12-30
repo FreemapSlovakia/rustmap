@@ -30,7 +30,7 @@ static REPLACEMENTS: LazyLock<Vec<Replacement>> = LazyLock::new(|| {
     ]
 });
 
-pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) -> LayerRenderResult {
+pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision) -> LayerRenderResult {
     let _span = tracy_client::span!("landcover_names::render");
 
     // nested sql is to remove duplicate entries imported by imposm because we use `mappings` in yaml

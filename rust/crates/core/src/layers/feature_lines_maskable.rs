@@ -12,7 +12,7 @@ use postgres::Client;
 pub fn render(
     ctx: &Ctx,
     client: &mut Client,
-    svg_cache: &mut SvgRepo,
+    svg_repo: &mut SvgRepo,
     hillshading_datasets: &mut Option<HillshadingDatasets>,
     shading: bool,
     hillshade_scale: f64,
@@ -40,27 +40,27 @@ pub fn render(
         match row.get("type") {
             "earth_bank" => {
                 if zoom >= 14 {
-                    draw_line_pattern(ctx, &geom, 0.8, svg_cache.get("earth_bank.svg")?)?;
+                    draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("earth_bank")?)?;
                 }
             }
             "dyke" => {
                 if zoom >= 14 {
-                    draw_line_pattern(ctx, &geom, 0.8, svg_cache.get("dyke.svg")?)?;
+                    draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("dyke")?)?;
                 }
             }
             "embankment" => {
                 if zoom >= 14 {
-                    draw_line_pattern(ctx, &geom, 0.8, svg_cache.get("embankment-half.svg")?)?;
+                    draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("embankment-half")?)?;
                 }
             }
             "gully" => {
                 if zoom >= 14 {
-                    draw_line_pattern(ctx, &geom, 0.8, svg_cache.get("gully.svg")?)?;
+                    draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("gully")?)?;
                 }
             }
             "cliff" => {
                 if zoom >= 13 {
-                    draw_line_pattern(ctx, &geom, 0.8, svg_cache.get("cliff.svg")?)?;
+                    draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("cliff")?)?;
 
                     context.set_source_color(colors::AREA_LABEL);
                     context.set_line_width(1.0);

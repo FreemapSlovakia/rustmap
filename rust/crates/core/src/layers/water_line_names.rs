@@ -23,7 +23,7 @@ static REPLACEMENTS: LazyLock<Vec<Replacement>> = LazyLock::new(|| {
     ]
 });
 
-pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) -> LayerRenderResult {
+pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision) -> LayerRenderResult {
     let _span = tracy_client::span!("water_line_names::render");
 
     let sql = format!(

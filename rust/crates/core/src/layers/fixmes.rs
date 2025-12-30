@@ -7,7 +7,7 @@ use crate::{
 use geo::{Coord, Euclidean, Length, LineStringSegmentize};
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerRenderResult {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRenderResult {
     let _span = tracy_client::span!("fixmes::render");
 
     let sql = "
@@ -17,7 +17,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerR
 
     let rows = client.query(sql, &ctx.bbox_query_params(Some(8.0)).as_params())?;
 
-    let surface = svg_cache.get("fixme.svg")?;
+    let surface = svg_repo.get("fixme")?;
 
     let rect = surface.extents().expect("surface extents");
 

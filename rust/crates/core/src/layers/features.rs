@@ -11,6 +11,7 @@ use core::f64;
 use geo::{Point, Rect};
 use pangocairo::pango::{AttrList, AttrSize, SCALE, Style, Weight};
 use postgres::Client;
+use std::borrow::Cow;
 use std::{collections::HashMap, sync::LazyLock};
 
 struct Extra<'a> {
@@ -20,6 +21,8 @@ struct Extra<'a> {
     weight: Weight,
     text_color: Color,
     max_zoom: u32,
+    stylesheet: Option<&'a str>,
+    halo: bool,
 }
 
 impl Default for Extra<'_> {
@@ -31,6 +34,8 @@ impl Default for Extra<'_> {
             weight: Weight::Normal,
             text_color: colors::BLACK,
             max_zoom: u32::MAX,
+            stylesheet: None,
+            halo: true,
         }
     }
 }
@@ -92,10 +97,10 @@ static POIS: LazyLock<HashMap<&'static str, Vec<Def>>> = LazyLock::new(|| {
         // (12, 12, Y, N, "guidepost", Extra { icon: Some("guidepost_x"), weight: Weight::Bold, max_zoom: 12, ..Extra::default() }),
         (13, 13, Y, N, "guidepost", Extra { icon: Some("guidepost_xx"), weight: Weight::Bold, max_zoom: 13, ..Extra::default() }),
         (14, 14, Y, N, "guidepost", Extra { icon: Some("guidepost_xx"), weight: Weight::Bold, ..Extra::default() }),
-        (10, 10, Y, Y, "peak1", Extra { icon: Some("peak"), font_size: 13.0, ..Extra::default() }),
-        (11, 11, Y, Y, "peak2", Extra { icon: Some("peak"), font_size: 13.0, ..Extra::default() }),
-        (12, 12, Y, Y, "peak3", Extra { icon: Some("peak"), font_size: 13.0, ..Extra::default() }),
-        (13, 13, Y, Y, "peak", Extra { font_size: 13.0, ..Extra::default() }),
+        (10, 10, Y, Y, "peak1", Extra { icon: Some("peak"), font_size: 13.0, halo: false, ..Extra::default() }),
+        (11, 11, Y, Y, "peak2", Extra { icon: Some("peak"), font_size: 13.0, halo: false, ..Extra::default() }),
+        (12, 12, Y, Y, "peak3", Extra { icon: Some("peak"), font_size: 13.0, halo: false, ..Extra::default() }),
+        (13, 13, Y, Y, "peak", Extra { font_size: 13.0, halo: false, ..Extra::default() }),
         (14, 14, N, N, "castle", Extra {
             replacements: build_replacements(&[(r"^[Hh]rad\b *", "")]),
             ..Extra::default()
@@ -110,12 +115,6 @@ static POIS: LazyLock<HashMap<&'static str, Vec<Def>>> = LazyLock::new(|| {
             ..Extra::default()
         }),
         (14, 15, Y, Y, "spring", Extra { replacements: spring_replacements.clone(), text_color: colors::WATER_LABEL, ..Extra::default() }),
-        (14, 15, Y, Y, "refitted_spring", Extra { replacements: spring_replacements.clone(), text_color: colors::WATER_LABEL, ..Extra::default() }),
-        (14, 15, Y, Y, "drinking_spring", Extra { replacements: spring_replacements.clone(), text_color: colors::WATER_LABEL, ..Extra::default() }),
-        (14, 15, Y, Y, "not_drinking_spring", Extra { replacements: spring_replacements.clone(), text_color: colors::WATER_LABEL, ..Extra::default() }),
-        (14, 15, Y, Y, "refitted_drinking_spring", Extra { replacements: spring_replacements.clone(), text_color: colors::WATER_LABEL, ..Extra::default() }),
-        (14, 15, Y, Y, "refitted_not_drinking_spring", Extra { replacements: spring_replacements.clone(), text_color: colors::WATER_LABEL, ..Extra::default() }),
-        (14, 15, Y, Y, "hot_spring", Extra { replacements: spring_replacements.clone(), text_color: colors::WATER_LABEL, ..Extra::default() }),
         (14, 15, Y, Y, "waterfall", Extra {
             replacements: build_replacements(&[
                 (r"^[Vv]odopád\b *", ""),
@@ -195,7 +194,7 @@ static POIS: LazyLock<HashMap<&'static str, Vec<Def>>> = LazyLock::new(|| {
         (14, 15, N, N, "golf_course", Extra::default()),
         // TODO (14, 14, N, N, "recycling", Extra { text_color: colors::AREA_LABEL, ..Extra::default() }), // { icon: null } // has no icon yet - render as area name
         (15, NN, Y, N, "guidepost_noname", Extra { icon: Some("guidepost_x"), ..Extra::default() }),
-        (15, 15, Y, Y, "saddle", Extra { font_size: 13.0, ..Extra::default() }),
+        (15, 15, Y, Y, "saddle", Extra { font_size: 13.0, halo: false, ..Extra::default() }),
         (15, 16, N, N, "ruins", Extra::default()),
         (15, 16, N, N, "generator_wind", Extra::default()),
         (15, 16, N, N, "chimney", Extra::default()),
@@ -389,8 +388,8 @@ static OFFSETS: LazyLock<[(f64, f64); 33]> = LazyLock::new(|| {
 pub fn render(
     ctx: &Ctx,
     client: &mut Client,
-    collision: &mut Collision<f64>,
-    svg_cache: &mut SvgRepo,
+    collision: &mut Collision,
+    svg_repo: &mut SvgRepo,
 ) -> LayerRenderResult {
     let _span = tracy_client::span!("features::render");
 
@@ -401,9 +400,7 @@ pub fn render(
             osm_id,
             geometry,
             name AS n,
-            tags->'ele' AS ele,
-            null AS access,
-            isolation,
+            hstore(ARRAY['ele', tags->'ele', 'isolation', tags->'isolation']) AS h,
             CASE WHEN isolation > 4500 THEN 'peak1'
                 WHEN isolation BETWEEN 3000 AND 4500 THEN 'peak2'
                 WHEN isolation BETWEEN 1500 AND 3000 THEN 'peak3'
@@ -427,9 +424,7 @@ pub fn render(
                     osm_id,
                     geometry,
                     name AS n,
-                    ele,
-                    null AS access,
-                    null AS isolation,
+                    hstore('ele', ele) AS h,
                     CASE
                         WHEN type <> 'guidepost' OR name <> '' THEN type
                         ELSE 'guidepost_noname'
@@ -450,9 +445,7 @@ pub fn render(
                     osm_id,
                     geometry,
                     name AS n,
-                    tags->'ele',
-                    null AS access,
-                    null AS isolation,
+                    hstore('ele', tags->'ele') AS h,
                     type
                 FROM
                     osm_features
@@ -465,9 +458,7 @@ pub fn render(
                         osm_id,
                         ST_PointOnSurface(geometry) AS geometry,
                         name AS n,
-                        tags->'ele',
-                        null AS access,
-                        null AS isolation,
+                        hstore('ele', tags->'ele') AS h,
                         type
                     FROM
                         osm_feature_polys
@@ -487,9 +478,7 @@ pub fn render(
                 osm_id,
                 ST_PointOnSurface(geometry) AS geometry,
                 name AS n,
-                null AS ele,
-                tags->'access' AS access,
-                null AS isolation,
+                hstore('access', tags->'access') AS h,
                 type
             FROM
                 osm_sports
@@ -503,9 +492,7 @@ pub fn render(
                 osm_id,
                 geometry,
                 COALESCE(NULLIF(name, ''), tags->'ref', '') AS n,
-                tags->'ele' AS ele,
-                tags->'access' AS access,
-                null AS isolation,
+                hstore(ARRAY['ele', tags->'ele', 'access', tags->'access']) AS h,
                 CASE
                     WHEN type = 'tree' AND tags->'protected' <> 'no' THEN 'tree_protected'
                     WHEN type = 'communications_tower' THEN 'tower_communication'
@@ -527,9 +514,7 @@ pub fn render(
                 osm_id,
                 ST_PointOnSurface(geometry) AS geometry,
                 COALESCE(NULLIF(name, ''), tags->'ref', '') AS n,
-                tags->'ele' AS ele,
-                tags->'access' AS access,
-                null AS isolation,
+                hstore(ARRAY['ele', tags->'ele', 'access', tags->'access']) AS h,
                 CASE
                     WHEN type = 'communications_tower' THEN 'tower_communication'
                     WHEN type = 'shelter' AND tags->'shelter_type' IN ('shopping_cart', 'lean_to', 'public_transport', 'picnic_shelter', 'basic_hut', 'weather_shelter') THEN tags->'shelter_type'
@@ -547,13 +532,14 @@ pub fn render(
                 osm_id,
                 geometry,
                 name AS n,
-                ele,
-                null AS access,
-                null AS isolation,
-                CASE WHEN type = 'hot_spring' THEN 'hot_spring' ELSE
-                    CASE WHEN type = 'spring_box' OR refitted = 'yes' THEN 'refitted_' ELSE '' END ||
-                    CASE WHEN drinking_water = 'yes' OR drinking_water = 'treated' THEN 'drinking_' WHEN drinking_water = 'no' THEN 'not_drinking_' ELSE '' END || 'spring'
-                END AS type
+                hstore(ARRAY[
+                    'ele', ele,
+                    'hot', (type = 'hot_spring')::text,
+                    'drinkable', CASE WHEN drinking_water = 'yes' OR drinking_water = 'treated' THEN 'true' WHEN drinking_water = 'no' THEN 'false' ELSE null END,
+                    'refitted', refitted::text,
+                    'intermittent', COALESCE(intermittent, seasonal)::text
+                ]) AS h,
+                'spring' AS type
             FROM
                 osm_springs
             WHERE
@@ -565,9 +551,7 @@ pub fn render(
                 osm_id,
                 ST_PointOnSurface(geometry) AS geometry,
                 name AS n,
-                null AS ele,
-                null AS access,
-                null AS isolation,
+                hstore('') as h,
                 building AS type
             FROM
                 osm_place_of_worships
@@ -581,9 +565,7 @@ pub fn render(
                 osm_id,
                 ST_PointOnSurface(geometry) AS geometry,
                 name AS n,
-                ele,
-                null AS access,
-                null AS isolation,
+                hstore('ele', ele) AS h,
                 CONCAT(
                     "class",
                     '_',
@@ -610,9 +592,7 @@ pub fn render(
                         osm_id,
                         ST_PointOnSurface(geometry) AS geometry,
                         name AS n,
-                        null AS ele,
-                        null AS access,
-                        null AS isolation,
+                        hstore('') AS h,
                         'generator_wind' AS type
                     FROM
                         osm_power_generators
@@ -626,9 +606,7 @@ pub fn render(
                         osm_id,
                         ST_PointOnSurface(geometry) AS geometry,
                         name AS n,
-                        null AS ele,
-                        null AS access,
-                        null AS isolation,
+                        hstore('') AS h,
                         'ruins' AS type
                     FROM
                         osm_ruins
@@ -641,9 +619,7 @@ pub fn render(
                         osm_id,
                         ST_PointOnSurface(geometry) AS geometry,
                         name AS n,
-                        null AS ele,
-                        null AS access,
-                        null AS isolation,
+                        hstore('') AS h,
                         type
                     FROM
                         osm_shops
@@ -657,9 +633,7 @@ pub fn render(
                         osm_id,
                         geometry,
                         name AS n,
-                        null AS ele,
-                        tags->'access' AS access,
-                        null AS isolation,
+                        hstore('access', tags->'access') AS h,
                         CASE type WHEN 'ruins' THEN 'building_ruins' ELSE 'building' END AS type
                     FROM
                         osm_building_points
@@ -673,9 +647,7 @@ pub fn render(
                         osm_id,
                         ST_LineInterpolatePoint(geometry, 0.5) AS geometry,
                         name AS n,
-                        null AS ele,
-                        null AS access,
-                        null AS isolation,
+                        hstore('') AS h,
                         type
                     FROM
                         osm_feature_lines
@@ -695,9 +667,7 @@ pub fn render(
                         osm_id,
                         geometry,
                         name AS n,
-                        null AS ele,
-                        null AS access,
-                        null AS isolation,
+                        hstore('') AS h,
                         type
                     FROM
                         osm_barrierpoints
@@ -711,9 +681,7 @@ pub fn render(
                         osm_id,
                         ST_Centroid(geometry) AS geometry,
                         '' AS n,
-                        null AS ele,
-                        null AS access,
-                        null AS isolation,
+                        hstore('') AS h,
                         'ford' AS type
                     FROM
                         osm_fords
@@ -726,9 +694,7 @@ pub fn render(
                         osm_id,
                         ST_PointOnSurface(geometry) AS geometry,
                         name AS n,
-                        null AS ele,
-                        null AS access,
-                        null AS isolation,
+                        hstore('') AS h,
                         'building_ruins' AS type
                     FROM
                         osm_buildings
@@ -744,8 +710,14 @@ pub fn render(
             LEFT JOIN z_order_poi USING (type)
             ORDER BY
                 z_order,
-                isolation DESC NULLS LAST,
-                ele DESC NULLS LAST,
+                h->'isolation' DESC NULLS LAST,
+                CASE
+                    WHEN (h->'ele') ~ '^\s*-?\d+(\.\d+)?\s*$' THEN
+                        (h->'ele')::real
+                    ELSE
+                        NULL
+                    END
+                DESC NULLS LAST,
                 osm_id
         "#,
     );
@@ -765,6 +737,8 @@ pub fn render(
         for row in rows {
             let typ: &str = row.get("type");
 
+            let h: HashMap<String, Option<String>> = row.get("h");
+
             let Some(def) = POIS.get(typ).and_then(|defs| {
                 defs.iter()
                     .find(|def| def.min_zoom <= zoom && def.extra.max_zoom >= zoom)
@@ -774,24 +748,72 @@ pub fn render(
 
             let point = geometry_point(&row).project_to_tile(&ctx.tile_projector);
 
-            let name = format!("{}.svg", def.extra.icon.unwrap_or(typ));
+            let key = def.extra.icon.unwrap_or(typ);
 
-            let surface = svg_cache.get_extra(
-                &name,
+            let (key, names, stylesheet) = match key {
+                "spring" => {
+                    let mut stylesheet = String::new();
+                    let mut key = "spring".to_string();
+                    let mut names = vec!["spring".to_string()];
+
+                    if h.get("refitted")
+                        .map_or(false, |r| r.as_deref() == Some("true"))
+                    {
+                        key.push_str("|refitted");
+                        names.push("refitted_spring".into());
+                    }
+
+                    let fill = if h.get("hot").map_or(false, |r| r.as_deref() == Some("true")) {
+                        "#e11919"
+                    } else {
+                        "#0064ff"
+                    };
+
+                    key.push('|');
+                    key.push_str(fill);
+
+                    stylesheet.push_str(&format!("#spring {{ fill: {} }} ", fill));
+
+                    match h.get("drinkable").map_or(None, |r| r.as_deref()) {
+                        Some("true") => {
+                            key.push_str("|drinkable");
+                            names.push("drinkable_spring".into());
+                            stylesheet.push_str(r#"#drinkable { fill: #00ff00 } "#);
+                        }
+                        Some("false") => {
+                            key.push_str("|not_drinkable");
+                            names.push("drinkable_spring".into());
+                            stylesheet.push_str(r#"#drinkable { fill: #ff0000 } "#);
+                        }
+                        _ => {}
+                    }
+
+                    (Cow::Owned(key), names, Some(stylesheet))
+                }
+                _ => (
+                    Cow::Borrowed(key),
+                    vec![key.to_string()],
+                    def.extra.stylesheet.map(str::to_string),
+                ),
+            };
+
+            let surface = svg_repo.get_extra(
+                &key,
                 Some({
                     || Options {
-                        name: name.clone(),
-                        stylesheet: None,
-                        halo: typ != "peak" && typ != "saddle",
+                        names,
+                        stylesheet,
+                        halo: def.extra.halo,
+                        use_extents: false,
                     }
                 }),
             )?;
 
-            let rect = surface.extents().expect("surface extents");
+            let (x, y, w, he) = surface.ink_extents();
 
-            let corner_x = point.x() - rect.width() / 2.0;
+            let corner_x = point.x() - w / 2.0;
 
-            let corner_y = point.y() - rect.height() / 2.0;
+            let corner_y = point.y() - he / 2.0;
 
             'outer: for &(dx, dy) in OFFSETS.iter() {
                 // NOTE 0.5 is for icnos not to be blurred on MDPI
@@ -799,10 +821,7 @@ pub fn render(
                 let corner_x = (corner_x + dx - 0.5).round() + 0.5;
                 let corner_y = (corner_y + dy - 0.5).round() + 0.5;
 
-                let bbox = Rect::new(
-                    (corner_x, corner_y),
-                    (corner_x + rect.width(), corner_y + rect.height()),
-                );
+                let bbox = Rect::new((corner_x, corner_y), (corner_x + w, corner_y + he));
 
                 if collision.collides(&bbox) {
                     continue;
@@ -818,9 +837,9 @@ pub fn render(
 
                         to_label.push((
                             Point::new(point.x() + dx, point.y() + dy),
-                            rect.height() / 2.0,
+                            he / 2.0,
                             name.into_owned(),
-                            row.get("ele"),
+                            h.get("ele").map_or(None, |ele| ele.clone()),
                             bbox_idx,
                             def,
                         ));
@@ -829,12 +848,14 @@ pub fn render(
 
                 let _span = tracy_client::span!("features::paint_svg");
 
-                context.set_source_surface(surface, corner_x, corner_y)?;
-
-                let access: Option<&str> = row.get("access");
+                context.set_source_surface(surface, corner_x - x, corner_y - y)?;
 
                 context.paint_with_alpha(
-                    if typ != "cave_entrance" && (matches!(access, Some("private" | "no"))) {
+                    if typ != "cave_entrance"
+                        && h.get("access").map_or(false, |access| {
+                            matches!(access.as_deref(), Some("private" | "no"))
+                        })
+                    {
                         0.33
                     } else {
                         1.0

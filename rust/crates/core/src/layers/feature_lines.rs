@@ -8,7 +8,7 @@ use crate::{
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerRenderResult {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRenderResult {
     let _span = tracy_client::span!("feature_lines::render");
 
     let sql = "
@@ -53,7 +53,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerR
                     &geom,
                     0.8,
                     (2.0 + (zoom as f64 - 15.0).exp2()) / 4.5,
-                    svg_cache.get("tree2.svg")?,
+                    svg_repo.get("tree2")?,
                 )?;
             }
             _ => panic!("unexpected type"),

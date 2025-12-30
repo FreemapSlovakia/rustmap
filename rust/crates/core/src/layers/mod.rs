@@ -92,7 +92,7 @@ pub fn render(
     client: &mut Client,
     bbox: Rect<f64>,
     size: Size<u32>,
-    svg_cache: &mut SvgRepo,
+    svg_repo: &mut SvgRepo,
     hillshading_datasets: &mut Option<HillshadingDatasets>,
     hillshade_scale: f64,
     mask_geometry: Option<&Geometry>,
@@ -124,13 +124,13 @@ pub fn render(
 
     ctx.context.push_group();
 
-    landuse::render(ctx, client, svg_cache).with_layer("landuse")?;
+    landuse::render(ctx, client, svg_repo).with_layer("landuse")?;
 
     if zoom >= 13 {
         cutlines::render(ctx, client).with_layer("cutlines")?;
     }
 
-    water_lines::render(ctx, client, svg_cache).with_layer("water_lines")?;
+    water_lines::render(ctx, client, svg_repo).with_layer("water_lines")?;
 
     water_areas::render(ctx, client).with_layer("water_areas")?;
 
@@ -139,7 +139,7 @@ pub fn render(
     }
 
     if zoom >= 16 {
-        trees::render(ctx, client, svg_cache).with_layer("trees")?;
+        trees::render(ctx, client, svg_repo).with_layer("trees")?;
     }
 
     if zoom >= 12 {
@@ -147,14 +147,14 @@ pub fn render(
     }
 
     if zoom >= 13 {
-        feature_lines::render(ctx, client, svg_cache).with_layer("feature_lines")?;
+        feature_lines::render(ctx, client, svg_repo).with_layer("feature_lines")?;
     }
 
     if zoom >= 13 {
         feature_lines_maskable::render(
             ctx,
             client,
-            svg_cache,
+            svg_repo,
             hillshading_datasets,
             request.shading,
             hillshade_scale,
@@ -163,15 +163,15 @@ pub fn render(
     }
 
     if zoom >= 16 {
-        embankments::render(ctx, client, svg_cache).with_layer("embankments")?;
+        embankments::render(ctx, client, svg_repo).with_layer("embankments")?;
     }
 
     if zoom >= 8 {
-        roads::render(ctx, client, svg_cache).with_layer("roads")?;
+        roads::render(ctx, client, svg_repo).with_layer("roads")?;
     }
 
     if zoom >= 14 {
-        road_access_restrictions::render(ctx, client, svg_cache)
+        road_access_restrictions::render(ctx, client, svg_repo)
             .with_layer("road_access_restrictions")?;
     }
 
@@ -218,7 +218,7 @@ pub fn render(
     }
 
     if zoom >= 8 {
-        protected_areas::render(ctx, client, svg_cache).with_layer("protected_areas")?;
+        protected_areas::render(ctx, client, svg_repo).with_layer("protected_areas")?;
     }
 
     if zoom >= 13 {
@@ -233,7 +233,7 @@ pub fn render(
         borders::render(ctx, client).with_layer("borders")?;
     }
 
-    routes::render_marking(ctx, client, &request.route_types, svg_cache).with_layer("routes")?;
+    routes::render_marking(ctx, client, &request.route_types, svg_repo).with_layer("routes")?;
 
     if (9..=11).contains(&zoom) {
         geonames::render(ctx, client).with_layer("geonames")?;
@@ -252,7 +252,7 @@ pub fn render(
     }
 
     if zoom >= 10 {
-        features::render(ctx, client, collision, svg_cache).with_layer("features")?;
+        features::render(ctx, client, collision, svg_repo).with_layer("features")?;
     }
 
     if zoom >= 10 {
@@ -296,7 +296,7 @@ pub fn render(
     }
 
     if zoom >= 14 {
-        fixmes::render(ctx, client, svg_cache).with_layer("fixmes")?;
+        fixmes::render(ctx, client, svg_repo).with_layer("fixmes")?;
     }
 
     if zoom >= 13 {

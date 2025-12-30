@@ -30,7 +30,7 @@ pub enum RenderError {
 pub fn render(
     request: &RenderRequest,
     client: &mut postgres::Client,
-    svg_cache: &mut SvgRepo,
+    svg_repo: &mut SvgRepo,
     hillshading_datasets: &mut Option<HillshadingDatasets>,
     mask_geometry: Option<&Geometry>,
 ) -> Result<Vec<Vec<u8>>, RenderError> {
@@ -51,7 +51,7 @@ pub fn render(
             client,
             request.bbox,
             size,
-            svg_cache,
+            svg_repo,
             hillshading_datasets,
             hillshade_scale,
             mask_geometry,

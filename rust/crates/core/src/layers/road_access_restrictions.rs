@@ -9,7 +9,7 @@ use crate::{
     projectable::{TileProjectable, geometry_line_string},
 };
 
-pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerRenderResult {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRenderResult {
     let _span = tracy_client::span!("road_access_restrictions::render");
 
     let sql = "
@@ -31,9 +31,9 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerR
 
     // TODO lazy
 
-    let no_bicycle_icon = &svg_cache.get("no_bicycle.svg")?.clone();
+    let no_bicycle_icon = &svg_repo.get("no_bicycle")?.clone();
 
-    let no_foot_icon = &svg_cache.get("no_foot.svg")?.clone();
+    let no_foot_icon = &svg_repo.get("no_foot")?.clone();
 
     let no_bicycle_rect = no_bicycle_icon.extents().expect("surface extents");
     let no_foot_rect = no_foot_icon.extents().expect("surface extents");

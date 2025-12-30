@@ -12,7 +12,7 @@ use crate::{
 
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision<f64>) -> LayerRenderResult {
+pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision) -> LayerRenderResult {
     let _span = tracy_client::span!("highway_names::render");
 
     let sql = "

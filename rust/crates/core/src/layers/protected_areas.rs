@@ -12,7 +12,7 @@ use crate::{
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerRenderResult {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRenderResult {
     let _span = tracy_client::span!("protected_areas::render");
 
     let zoom = ctx.zoom;
@@ -107,7 +107,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerR
         let protect_class: &str = row.get("protect_class");
 
         if typ == "nature_reserve" || typ == "protected_area" && protect_class != "2" {
-            let sample = svg_cache.get("protected_area.svg")?;
+            let sample = svg_repo.get("protected_area")?;
 
             walk_geometry_line_strings(projected, &mut |line_string| {
                 draw_line_pattern(ctx, line_string, 0.8, sample)

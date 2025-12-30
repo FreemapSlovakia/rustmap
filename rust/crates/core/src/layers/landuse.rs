@@ -10,7 +10,7 @@ use crate::{
 use cairo::{Extend, Matrix, SurfacePattern};
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerRenderResult {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRenderResult {
     let _span = tracy_client::span!("landuse::render");
 
     let context = ctx.context;
@@ -67,7 +67,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerR
         };
 
         let mut pattern_area = |path: &str| -> LayerRenderResult {
-            let tile = svg_cache.get(path)?;
+            let tile = svg_repo.get(path)?;
 
             let pattern = SurfacePattern::create(tile);
 
@@ -98,25 +98,25 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerR
             }
             "cemetery" | "grave_yard" => {
                 colour_area(colors::GRASSY)?;
-                pattern_area("grave.svg")?;
+                pattern_area("grave")?;
             }
             "clearcut" => {
-                pattern_area("clearcut2.svg")?;
+                pattern_area("clearcut2")?;
             }
             "bare_rock" => {
-                pattern_area("bare_rock.svg")?;
+                pattern_area("bare_rock")?;
             }
             "beach" => {
                 colour_area(colors::BEACH)?;
-                pattern_area("sand.svg")?;
+                pattern_area("sand")?;
             }
             "brownfield" => {
                 colour_area(colors::BROWNFIELD)?;
             }
             "bog" => {
                 colour_area(colors::GRASSY)?;
-                pattern_area("wetland.svg")?;
-                pattern_area("bog.svg")?;
+                pattern_area("wetland")?;
+                pattern_area("bog")?;
             }
             "college" => {
                 colour_area(colors::COLLEGE)?;
@@ -138,8 +138,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerR
             }
             "marsh" | "wet_meadow" | "fen" => {
                 colour_area(colors::GRASSY)?;
-                pattern_area("wetland.svg")?;
-                pattern_area("marsh.svg")?;
+                pattern_area("wetland")?;
+                pattern_area("marsh")?;
             }
             "footway" => {
                 colour_area(colors::NONE)?;
@@ -184,15 +184,15 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerR
             }
             "mangrove" => {
                 colour_area(colors::GRASSY)?;
-                pattern_area("wetland.svg")?;
-                pattern_area("mangrove.svg")?;
+                pattern_area("wetland")?;
+                pattern_area("mangrove")?;
             }
             "meadow" => {
                 colour_area(colors::GRASSY)?;
             }
             "orchard" => {
                 colour_area(colors::ORCHARD)?;
-                pattern_area("orchard.svg")?;
+                pattern_area("orchard")?;
             }
             "park" => {
                 colour_area(colors::GRASSY)?;
@@ -218,23 +218,23 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerR
             }
             "plant_nursery" => {
                 colour_area(colors::SCRUB)?;
-                pattern_area("plant_nursery.svg")?;
+                pattern_area("plant_nursery")?;
             }
             "quarry" => {
                 colour_area(colors::QUARRY)?;
-                pattern_area("quarry.svg")?;
+                pattern_area("quarry")?;
             }
             "glacier" => {
                 colour_area(colors::GLACIER)?;
-                pattern_area("glacier.svg")?;
+                pattern_area("glacier")?;
             }
             "railway" => {
                 colour_area(colors::NONE)?;
             }
             "reedbed" => {
                 colour_area(colors::GRASSY)?;
-                pattern_area("wetland.svg")?;
-                pattern_area("reedbed.svg")?;
+                pattern_area("wetland")?;
+                pattern_area("reedbed")?;
             }
             "recreation_ground" => {
                 colour_area(colors::RECREATION_GROUND)?;
@@ -258,16 +258,16 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerR
             }
             "scree" | "blockfield" => {
                 colour_area(colors::SCREE)?;
-                pattern_area("scree.svg")?;
+                pattern_area("scree")?;
             }
             "scrub" => {
                 colour_area(colors::SCRUB)?;
-                pattern_area("scrub.svg")?;
+                pattern_area("scrub")?;
             }
             "swamp" => {
                 colour_area(colors::GRASSY)?;
-                pattern_area("wetland.svg")?;
-                pattern_area("swamp.svg")?;
+                pattern_area("wetland")?;
+                pattern_area("swamp")?;
             }
             "university" => {
                 colour_area(colors::COLLEGE)?;
@@ -277,7 +277,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerR
             }
             "vineyard" => {
                 colour_area(colors::ORCHARD)?;
-                pattern_area("grapes.svg")?;
+                pattern_area("grapes")?;
             }
             "wastewater_plant" => {
                 colour_area(colors::INDUSTRIAL)?;
@@ -286,7 +286,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerR
                 colour_area(colors::DAM)?;
             }
             "wetland" => {
-                pattern_area("wetland.svg")?;
+                pattern_area("wetland")?;
             }
             "wood" => {
                 colour_area(colors::FOREST)?;

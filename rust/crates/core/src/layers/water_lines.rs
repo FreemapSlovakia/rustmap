@@ -8,7 +8,7 @@ use crate::{
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerRenderResult {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRenderResult {
     let _span = tracy_client::span!("water_lines::render");
 
     let zoom = ctx.zoom;
@@ -31,7 +31,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerR
     let rows = &client.query(sql, &ctx.bbox_query_params(Some(8.0)).as_params())?;
 
     // TODO lazy
-    let arrow = svg_cache.get("waterway-arrow.svg")?;
+    let arrow = svg_repo.get("waterway-arrow")?;
 
     let (dx, dy) = {
         let rect = arrow.extents().expect("surface extents");

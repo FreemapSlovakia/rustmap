@@ -41,7 +41,7 @@ impl Default for TextOptions<'_> {
 
 pub fn draw_text(
     context: &Context,
-    collision: Option<&mut Collision<f64>>,
+    collision: Option<&mut Collision>,
     point: &Point,
     text: &str,
     options: &TextOptions,
@@ -51,7 +51,7 @@ pub fn draw_text(
 
 pub fn draw_text_with_attrs(
     context: &Context,
-    collision: Option<&mut Collision<f64>>,
+    collision: Option<&mut Collision>,
     point: &Point,
     text: &str,
     attrs: Option<AttrList>,

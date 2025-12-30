@@ -6,7 +6,7 @@ use crate::{
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerRenderResult {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRenderResult {
     let _span = tracy_client::span!("trees::render");
 
     let sql = "
@@ -30,7 +30,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerR
         let scale =
             (2.0 + (ctx.zoom as f64 - 15.0).exp2()) * (if typ == "shrub" { 0.1 } else { 0.2 });
 
-        let surface = svg_cache.get("tree2.svg")?;
+        let surface = svg_repo.get("tree2")?;
 
         let rect = surface.extents().expect("surface extents");
 

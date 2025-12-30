@@ -115,7 +115,7 @@ impl RenderWorkerPool {
             std::thread::Builder::new()
                 .name(format!("render-worker-{worker_id}"))
                 .spawn(move || {
-                    let mut svg_cache = SvgRepo::new(&*svg_base_path);
+                    let mut svg_repo = SvgRepo::new(&*svg_base_path);
 
                     let mut hillshading_datasets =
                         Some(load_hillshading_datasets(&*hillshading_base_path));
@@ -133,7 +133,7 @@ impl RenderWorkerPool {
                             render(
                                 &request,
                                 &mut client,
-                                &mut svg_cache,
+                                &mut svg_repo,
                                 &mut hillshading_datasets,
                                 mask_geometry.as_ref(),
                             )

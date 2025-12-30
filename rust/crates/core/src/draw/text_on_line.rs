@@ -631,7 +631,7 @@ pub fn draw_text_on_line(
     context: &Context,
     line_string: &LineString,
     text: &str,
-    mut collision: Option<&mut Collision<f64>>,
+    mut collision: Option<&mut Collision>,
     options: &TextOnLineOptions,
 ) -> cairo::Result<bool> {
     let _span = tracy_client::span!("text_on_line::draw_text_on_line");
