@@ -1,5 +1,5 @@
 use crate::{
-    SvgCache,
+    SvgRepo,
     colors::{self, Color, ContextExt},
     ctx::Ctx,
     draw::path_geom::path_geometry,
@@ -10,7 +10,7 @@ use crate::{
 use cairo::{Extend, Matrix, SurfacePattern};
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) -> LayerRenderResult {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerRenderResult {
     let _span = tracy_client::span!("landuse::render");
 
     let context = ctx.context;

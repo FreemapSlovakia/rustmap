@@ -2,14 +2,14 @@ use postgres::Client;
 use std::cell::Cell;
 
 use crate::{
-    SvgCache,
+    SvgRepo,
     ctx::Ctx,
     draw::{markers_on_path::draw_markers_on_path, path_geom::path_line_string},
     layer_render_error::LayerRenderResult,
     projectable::{TileProjectable, geometry_line_string},
 };
 
-pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) -> LayerRenderResult {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerRenderResult {
     let _span = tracy_client::span!("road_access_restrictions::render");
 
     let sql = "

@@ -1,5 +1,5 @@
 use crate::{
-    SvgCache,
+    SvgRepo,
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::{
@@ -12,7 +12,7 @@ use crate::{
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) -> LayerRenderResult {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerRenderResult {
     let _span = tracy_client::span!("protected_areas::render");
 
     let zoom = ctx.zoom;

@@ -1,5 +1,5 @@
 use crate::{
-    SvgCache,
+    SvgRepo,
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::{line_pattern::draw_line_pattern, path_geom::path_line_string},
@@ -12,7 +12,7 @@ use postgres::Client;
 pub fn render(
     ctx: &Ctx,
     client: &mut Client,
-    svg_cache: &mut SvgCache,
+    svg_cache: &mut SvgRepo,
     hillshading_datasets: &mut Option<HillshadingDatasets>,
     shading: bool,
     hillshade_scale: f64,

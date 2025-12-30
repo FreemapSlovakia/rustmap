@@ -1,12 +1,12 @@
 use crate::{
-    SvgCache,
+    SvgRepo,
     ctx::Ctx,
     layer_render_error::LayerRenderResult,
     projectable::{TileProjectable, geometry_point},
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) -> LayerRenderResult {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerRenderResult {
     let _span = tracy_client::span!("trees::render");
 
     let sql = "

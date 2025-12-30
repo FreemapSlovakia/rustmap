@@ -4,13 +4,13 @@ use rsvg::{LoadingError, RenderingError};
 use std::{collections::HashMap, fs::read_to_string, io, path::PathBuf};
 use sxd_document::{parser, writer::format_document};
 
-pub struct SvgCache {
+pub struct SvgRepo {
     base: PathBuf,
     svg_map: HashMap<String, RecordingSurface>,
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum SvgCacheError {
+pub enum SvgRepoError {
     #[error("Error loading SVG ({name}): {source}")]
     LoadingError {
         name: String,
@@ -48,13 +48,13 @@ pub enum SvgCacheError {
 }
 
 #[derive(Hash, PartialEq, Eq, Clone)]
-pub struct SvgKey {
+pub struct Options {
     pub name: String,
     pub stylesheet: Option<String>,
     pub halo: bool,
 }
 
-impl From<&str> for SvgKey {
+impl From<&str> for Options {
     fn from(value: &str) -> Self {
         Self {
             name: value.into(),
@@ -64,7 +64,7 @@ impl From<&str> for SvgKey {
     }
 }
 
-impl SvgCache {
+impl SvgRepo {
     pub fn new(base: impl Into<PathBuf>) -> Self {
         Self {
             base: base.into(),
@@ -77,40 +77,40 @@ impl SvgCache {
         self.svg_map.clear();
     }
 
-    pub fn get(&mut self, key: &str) -> Result<&RecordingSurface, SvgCacheError> {
-        self.get_extra::<fn() -> SvgKey>(key, None)
+    pub fn get(&mut self, key: &str) -> Result<&RecordingSurface, SvgRepoError> {
+        self.get_extra::<fn() -> Options>(key, None)
     }
 
     pub fn get_extra<T>(
         &mut self,
         key: &str,
         get_options: Option<T>,
-    ) -> Result<&RecordingSurface, SvgCacheError>
+    ) -> Result<&RecordingSurface, SvgRepoError>
     where
-        T: FnOnce() -> SvgKey,
+        T: FnOnce() -> Options,
     {
         let svg_map = &mut self.svg_map;
 
         if !svg_map.contains_key(key) {
             let options = get_options
                 .map(|get_options| get_options())
-                .unwrap_or_else(|| SvgKey {
+                .unwrap_or_else(|| Options {
                     name: key.to_string(),
                     stylesheet: None,
                     halo: false,
                 });
 
-            let map_loading_error = |err| SvgCacheError::LoadingError {
+            let map_loading_error = |err| SvgRepoError::LoadingError {
                 name: options.name.clone(),
                 source: err,
             };
 
-            let map_cairo_error = |err| SvgCacheError::CairoError {
+            let map_cairo_error = |err| SvgRepoError::CairoError {
                 name: options.name.clone(),
                 source: err,
             };
 
-            let map_io_error = |err| SvgCacheError::IoError {
+            let map_io_error = |err| SvgRepoError::IoError {
                 name: options.name.clone(),
                 source: err,
             };
@@ -118,7 +118,7 @@ impl SvgCache {
             let full_path = self.base.join(&options.name);
 
             let input = read_to_string(full_path).map_err(map_io_error)?;
-            let package = parser::parse(&input).map_err(|err| SvgCacheError::XmlParsingError {
+            let package = parser::parse(&input).map_err(|err| SvgRepoError::XmlParsingError {
                 name: options.name.clone(),
                 source: err,
             })?;
@@ -195,7 +195,7 @@ impl SvgCache {
             let context = cairo::Context::new(&surface).map_err(map_cairo_error)?;
 
             renderer.render_document(&context, &rect).map_err(|err| {
-                SvgCacheError::RenderingError {
+                SvgRepoError::RenderingError {
                     name: key.to_string(),
                     source: err,
                 }

@@ -1,7 +1,7 @@
 use geo::{Geometry, Rect};
 use geojson::FeatureCollection;
 use maprender_core::{
-    HillshadingDatasets, ImageFormat, RenderRequest, RouteTypes, SvgCache,
+    HillshadingDatasets, ImageFormat, RenderRequest, RouteTypes, SvgRepo,
     load_geometry_from_geojson, load_hillshading_datasets, render,
 };
 use napi::{Error, Result, bindgen_prelude::*};
@@ -11,7 +11,7 @@ use postgres::NoTls;
 #[napi]
 pub struct Renderer {
     client: postgres::Client,
-    svg_cache: SvgCache,
+    svg_cache: SvgRepo,
     shading_data: Option<HillshadingDatasets>,
     mask_geometry: Option<Geometry>,
 }
@@ -63,7 +63,7 @@ impl Renderer {
             .transpose()?;
 
         Ok(Self {
-            svg_cache: SvgCache::new(svg_base),
+            svg_cache: SvgRepo::new(svg_base),
             shading_data: hillshading_base.map(load_hillshading_datasets),
             client,
             mask_geometry,

@@ -1,5 +1,5 @@
 use crate::ImageFormat;
-use crate::SvgCache;
+use crate::SvgRepo;
 use crate::collision::Collision;
 use crate::ctx::Ctx;
 use crate::layer_render_error::LayerRenderError;
@@ -92,7 +92,7 @@ pub fn render(
     client: &mut Client,
     bbox: Rect<f64>,
     size: Size<u32>,
-    svg_cache: &mut SvgCache,
+    svg_cache: &mut SvgRepo,
     hillshading_datasets: &mut Option<HillshadingDatasets>,
     hillshade_scale: f64,
     mask_geometry: Option<&Geometry>,

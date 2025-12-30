@@ -2,7 +2,7 @@ use std::fmt;
 
 use thiserror::Error;
 
-use crate::svg_cache::SvgCacheError;
+use crate::svg_repo::SvgRepoError;
 
 #[derive(Error, Debug)]
 pub enum LayerRenderError {
@@ -13,7 +13,7 @@ pub enum LayerRenderError {
     CairoError(#[from] cairo::Error),
 
     #[error("Error getting SVG: {0}")]
-    SvgError(#[from] SvgCacheError),
+    SvgError(#[from] SvgRepoError),
 
     #[error("Invalid GeoJSON: {0}")]
     GeoJsonError(#[from] geojson::Error),

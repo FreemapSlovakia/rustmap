@@ -1,11 +1,11 @@
-use crate::SvgCache;
+use crate::SvgRepo;
 use crate::colors::{self, Color};
 use crate::draw::create_pango_layout::FontAndLayoutOptions;
 use crate::draw::text::{TextOptions, draw_text, draw_text_with_attrs};
 use crate::layer_render_error::LayerRenderResult;
 use crate::projectable::{TileProjectable, geometry_point};
 use crate::regex_replacer::{Replacement, build_replacements, replace};
-use crate::svg_cache::SvgKey;
+use crate::svg_repo::Options;
 use crate::{collision::Collision, ctx::Ctx};
 use core::f64;
 use geo::{Point, Rect};
@@ -390,7 +390,7 @@ pub fn render(
     ctx: &Ctx,
     client: &mut Client,
     collision: &mut Collision<f64>,
-    svg_cache: &mut SvgCache,
+    svg_cache: &mut SvgRepo,
 ) -> LayerRenderResult {
     let _span = tracy_client::span!("features::render");
 
@@ -779,7 +779,7 @@ pub fn render(
             let surface = svg_cache.get_extra(
                 &name,
                 Some({
-                    || SvgKey {
+                    || Options {
                         name: name.clone(),
                         stylesheet: None,
                         halo: typ != "peak" && typ != "saddle",

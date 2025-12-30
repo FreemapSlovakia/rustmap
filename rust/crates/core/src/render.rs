@@ -2,7 +2,7 @@ use crate::image_format::ImageFormat;
 use crate::layers;
 use crate::layers::hillshading_datasets::HillshadingDatasets;
 use crate::render_request::RenderRequest;
-use crate::svg_cache::SvgCache;
+use crate::svg_repo::SvgRepo;
 use crate::xyz::bbox_size_in_pixels;
 use cairo::{
     Content, Context, Format, ImageSurface, PdfSurface, RecordingSurface, Rectangle, Surface,
@@ -30,7 +30,7 @@ pub enum RenderError {
 pub fn render(
     request: &RenderRequest,
     client: &mut postgres::Client,
-    svg_cache: &mut SvgCache,
+    svg_cache: &mut SvgRepo,
     hillshading_datasets: &mut Option<HillshadingDatasets>,
     mask_geometry: Option<&Geometry>,
 ) -> Result<Vec<Vec<u8>>, RenderError> {

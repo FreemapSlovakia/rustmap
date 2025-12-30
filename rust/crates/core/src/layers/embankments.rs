@@ -1,5 +1,5 @@
 use crate::{
-    SvgCache,
+    SvgRepo,
     ctx::Ctx,
     draw::line_pattern::draw_line_pattern,
     layer_render_error::LayerRenderResult,
@@ -7,7 +7,7 @@ use crate::{
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) -> LayerRenderResult {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerRenderResult {
     let _span = tracy_client::span!("embankments::render");
 
     let sql = "

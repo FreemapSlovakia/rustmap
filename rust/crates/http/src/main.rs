@@ -2,7 +2,7 @@ use clap::Parser;
 use dotenvy::dotenv;
 use geo::Geometry;
 use maprender_core::{
-    ImageFormat, RenderError, RenderRequest, SvgCache, load_geometry_from_geojson,
+    ImageFormat, RenderError, RenderRequest, SvgRepo, load_geometry_from_geojson,
     load_hillshading_datasets, render, tile_bounds_to_epsg3857,
 };
 use oxhttp::{
@@ -115,7 +115,7 @@ impl RenderWorkerPool {
             std::thread::Builder::new()
                 .name(format!("render-worker-{worker_id}"))
                 .spawn(move || {
-                    let mut svg_cache = SvgCache::new(&*svg_base_path);
+                    let mut svg_cache = SvgRepo::new(&*svg_base_path);
 
                     let mut hillshading_datasets =
                         Some(load_hillshading_datasets(&*hillshading_base_path));

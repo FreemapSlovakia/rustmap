@@ -1,4 +1,4 @@
-use crate::SvgCache;
+use crate::SvgRepo;
 use crate::colors::{Color, ContextExt};
 use crate::draw::markers_on_path::draw_markers_on_path;
 use crate::layer_render_error::LayerRenderResult;
@@ -6,7 +6,7 @@ use crate::projectable::{TileProjectable, geometry_line_string};
 use crate::{colors, ctx::Ctx, draw::path_geom::path_line_string};
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) -> LayerRenderResult {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerRenderResult {
     let _span = tracy_client::span!("roads::render");
 
     let context = ctx.context;

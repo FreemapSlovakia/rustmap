@@ -5,7 +5,7 @@ pub use layers::routes::RouteTypes;
 pub use render::RenderError;
 pub use render::render;
 pub use render_request::RenderRequest;
-pub use svg_cache::SvgCache;
+pub use svg_repo::SvgRepo;
 pub use xyz::tile_bounds_to_epsg3857;
 
 mod collision;
@@ -21,5 +21,5 @@ mod regex_replacer;
 mod render;
 mod render_request;
 mod size;
-mod svg_cache;
+mod svg_repo;
 mod xyz;

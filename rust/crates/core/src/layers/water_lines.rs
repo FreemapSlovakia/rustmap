@@ -1,5 +1,5 @@
 use crate::{
-    SvgCache,
+    SvgRepo,
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::{markers_on_path::draw_markers_on_path, smooth_line::path_smooth_bezier_spline},
@@ -8,7 +8,7 @@ use crate::{
 };
 use postgres::Client;
 
-pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgCache) -> LayerRenderResult {
+pub fn render(ctx: &Ctx, client: &mut Client, svg_cache: &mut SvgRepo) -> LayerRenderResult {
     let _span = tracy_client::span!("water_lines::render");
 
     let zoom = ctx.zoom;

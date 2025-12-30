@@ -1,5 +1,5 @@
 use crate::{
-    SvgCache,
+    SvgRepo,
     collision::Collision,
     ctx::Ctx,
     draw::{
@@ -11,7 +11,7 @@ use crate::{
     },
     layer_render_error::{LayerRenderError, LayerRenderResult},
     projectable::{TileProjectable, geometry_geometry},
-    svg_cache::SvgKey,
+    svg_repo::Options,
 };
 use bitflags::bitflags;
 use colorsys::{Rgb, RgbRatio};
@@ -265,7 +265,7 @@ pub fn render_marking(
     ctx: &Ctx,
     client: &mut Client,
     route_types: &RouteTypes,
-    svg_cache: &mut SvgCache,
+    svg_cache: &mut SvgRepo,
 ) -> LayerRenderResult {
     let _span = tracy_client::span!("routes::render_marking");
 
@@ -310,7 +310,7 @@ pub fn render_marking(
 
                     let sample = svg_cache.get_extra(
                         &format!("horse-{}", color.1),
-                        Some(|| SvgKey {
+                        Some(|| Options {
                             name: "horse.svg".into(),
                             stylesheet: Some(format!("path {{ fill: #{} }}", color.1)),
                             halo: false,
@@ -337,7 +337,7 @@ pub fn render_marking(
 
                     let pattern = svg_cache.get_extra(
                         &format!("ski-{}", color.1),
-                        Some(|| SvgKey {
+                        Some(|| Options {
                             name: "ski.svg".into(),
                             stylesheet: Some(format!("path {{ fill: #{} }}", color.1)),
                             halo: false,
