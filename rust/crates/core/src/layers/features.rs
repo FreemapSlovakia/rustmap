@@ -755,7 +755,9 @@ pub fn render(
                 "spring" => {
                     let mut stylesheet = String::new();
 
-                    let is_mineral = h.get("water_characteristic").map_or(false, |v| v.is_some());
+                    let is_mineral = h
+                        .get("water_characteristic")
+                        .map_or(false, |v| v.is_some() && v.as_deref() != Some(""));
 
                     let mut key = (if is_mineral {
                         "mineral-spring"
