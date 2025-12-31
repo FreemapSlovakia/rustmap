@@ -1,6 +1,6 @@
 use crate::colors::ContextExt;
 use cairo::Context;
-use geo::{Coord, Intersects, Rect, coord};
+use geo::{Coord, Intersects, Rect};
 
 const DEBUG: bool = false;
 

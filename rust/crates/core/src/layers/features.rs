@@ -537,7 +537,8 @@ pub fn render(
                     'hot', (type = 'hot_spring')::text,
                     'drinkable', CASE WHEN drinking_water = 'yes' OR drinking_water = 'treated' THEN 'true' WHEN drinking_water = 'no' THEN 'false' ELSE null END,
                     'refitted', refitted::text,
-                    'intermittent', COALESCE(intermittent, seasonal)::text
+                    'intermittent', COALESCE(intermittent, seasonal)::text,
+                    'water_characteristic', water_characteristic
                 ]) AS h,
                 'spring' AS type
             FROM
@@ -753,11 +754,21 @@ pub fn render(
             let (key, names, stylesheet) = match key {
                 "spring" => {
                     let mut stylesheet = String::new();
-                    let mut key = "spring".to_string();
-                    let mut names = vec!["spring".to_string()];
 
-                    if h.get("refitted")
-                        .map_or(false, |r| r.as_deref() == Some("true"))
+                    let is_mineral = h.get("water_characteristic").map_or(false, |v| v.is_some());
+
+                    let mut key = (if is_mineral {
+                        "mineral-spring"
+                    } else {
+                        "spring"
+                    })
+                    .to_string();
+
+                    let mut names = vec![key.clone()];
+
+                    if !is_mineral
+                        && h.get("refitted")
+                            .map_or(false, |r| r.as_deref() == Some("true"))
                     {
                         key.push_str("|refitted");
                         names.push("refitted_spring".into());
