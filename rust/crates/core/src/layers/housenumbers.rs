@@ -15,13 +15,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision) -> Laye
     let _span = tracy_client::span!("housenumbers::render");
 
     let sql = r#"
-        SELECT
-            COALESCE(
-                NULLIF("addr:streetnumber", ''),
-                NULLIF("addr:housenumber", ''),
-                NULLIF("addr:conscriptionnumber", '')
-            ) AS housenumber,
-            ST_PointOnSurface(geometry) AS geometry
+        SELECT housenumber, geometry
         FROM osm_housenumbers
         WHERE geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)"#;
 

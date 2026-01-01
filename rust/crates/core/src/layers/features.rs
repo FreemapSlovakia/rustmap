@@ -605,7 +605,7 @@ pub fn render(
 
                     SELECT
                         osm_id,
-                        ST_PointOnSurface(geometry) AS geometry,
+                        geometry,
                         name AS n,
                         hstore('') AS h,
                         'ruins' AS type
@@ -618,7 +618,7 @@ pub fn render(
 
                     SELECT
                         osm_id,
-                        ST_PointOnSurface(geometry) AS geometry,
+                        geometry,
                         name AS n,
                         hstore('') AS h,
                         type

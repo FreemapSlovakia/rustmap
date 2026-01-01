@@ -1054,34 +1054,6 @@ tables:
         historic:
           - ruins
 
-  towers:
-    columns:
-      - name: osm_id
-        type: id
-      - name: geometry
-        type: geometry
-      - name: name
-        type: string
-        key: name
-      - name: ele
-        type: string
-        key: ele
-      - name: type
-        type: string
-        key: tower:type
-      - name: class
-        type: mapping_value
-    type: geometry
-    type_mappings:
-      points:
-        man_made:
-          - tower
-          - mast
-      polygons:
-        man_made:
-          - tower
-          - mast
-
   place_of_worships:
     columns:
       - name: osm_id

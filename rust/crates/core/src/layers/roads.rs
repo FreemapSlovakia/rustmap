@@ -177,7 +177,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
         };
 
         let draw_bridges_tunnels = |width: f64| -> cairo::Result<()> {
-            if row.get::<_, i16>("bridge") > 0 {
+            if row.get("bridge") {
                 context.save()?;
                 context.set_dash(&[], 0.0);
                 context.set_source_rgb(0.0, 0.0, 0.0);
@@ -201,7 +201,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
                 context.restore()?;
             }
 
-            if row.get::<_, i16>("tunnel") > 0 {
+            if row.get("tunnel") {
                 context.set_dash(&[], 0.0);
                 context.set_line_width(width + 1.0);
 

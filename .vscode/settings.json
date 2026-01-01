@@ -1,4 +1,7 @@
 {
   "editor.inlayHints.enabled": "offUnlessPressed",
-  "deno.enable": false
+  "deno.enable": false,
+  "[lua]": {
+    "editor.defaultFormatter": "sumneko.lua"
+  }
 }
