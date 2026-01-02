@@ -8,9 +8,9 @@ use crate::{
         create_pango_layout::FontAndLayoutOptions,
         text_on_line::{Align, Distribution, Repeat, TextOnLineOptions, draw_text_on_line},
     },
+    layer_render_error::LayerRenderResult,
     projectable::{TileProjectable, geometry_line_string},
     regex_replacer::{Replacement, replace},
-    layer_render_error::LayerRenderResult,
 };
 use geo::ChaikinSmoothing;
 use pangocairo::pango::Style;
@@ -92,7 +92,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) -> LayerRenderResult {
         FROM
             osm_feature_lines
         WHERE
-            type = 'valley' AND name <> '' AND geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
+            type = 'valley' AND name IS NOT NULL AND geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
         ORDER BY
             ST_Length(geometry) {}", if ctx.zoom > 14 {"ASC"} else {"DESC"});
 
@@ -104,7 +104,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) -> LayerRenderResult {
         FROM
             osm_feature_lines
         WHERE
-            type = 'ridge' AND name <> '' AND geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
+            type = 'ridge' AND name IS NOT NULL AND geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
         ORDER BY
             ST_Length(geometry) DESC";
 

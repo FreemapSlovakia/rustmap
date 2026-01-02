@@ -105,7 +105,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
                 draw()?;
             }
             (12.., "highway", "path")
-                if row.get::<_, &str>("bicycle") != "designated"
+                if row.get::<_, Option<&str>>("bicycle") != Some("designated")
                     && (zoom > 12 || row.get("is_in_route")) =>
             {
                 apply_glow_defaults_a(1.0, row.get("trail_visibility"));
@@ -115,8 +115,9 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
                 if typ == "track"
                     && (zoom > 12
                         || row.get("is_in_route")
-                        || row.get::<_, &str>("tracktype") == "grade1")
-                    || typ == "service" && row.get::<_, &str>("service") != "parking_aisle"
+                        || row.get::<_, Option<&str>>("tracktype") == Some("grade1"))
+                    || typ == "service"
+                        && row.get::<_, Option<&str>>("service") != Some("parking_aisle")
                     || ["escape", "corridor", "bus_guideway"].contains(&typ) =>
             {
                 apply_glow_defaults_a(ke() * 1.2, row.get("trail_visibility"));
@@ -166,7 +167,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
 
         let class: &str = row.get("class");
 
-        let service: &str = row.get("service");
+        let service: Option<&str> = row.get("service");
 
         let draw = || -> cairo::Result<()> {
             path_line_string(context, geom);
@@ -177,7 +178,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
         };
 
         let draw_bridges_tunnels = |width: f64| -> cairo::Result<()> {
-            if row.get("bridge") {
+            if row.get::<_, Option<_>>("bridge").unwrap_or_default() {
                 context.save()?;
                 context.set_dash(&[], 0.0);
                 context.set_source_rgb(0.0, 0.0, 0.0);
@@ -201,7 +202,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
                 context.restore()?;
             }
 
-            if row.get("tunnel") {
+            if row.get::<_, Option<_>>("tunnel").unwrap_or_default() {
                 context.set_dash(&[], 0.0);
                 context.set_line_width(width + 1.0);
 
@@ -288,12 +289,12 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
                 context.set_source_color(colors::PIER);
                 draw()?;
             }
-            (12.., "railway", "rail") if ["main", ""].contains(&service) => {
+            (12.., "railway", "rail") if matches!(service, None | Some("main")) => {
                 draw_rail(colors::RAIL, 1.5, 5.0, 9.5, 1.0)?;
             }
             (13.., "railway", _)
                 if ["light_rail", "tram"].contains(&typ)
-                    || typ == "rail" && service != "main" && !service.is_empty() =>
+                    || typ == "rail" && !matches!(service, None | Some("main")) =>
             {
                 draw_rail(colors::TRAM, 1.0, 4.5, 9.5, 1.0)?;
             }
@@ -307,7 +308,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
             (14.., "railway", "construction" | "disused" | "preserved") => {
                 draw_rail(colors::RAILWAY_DISUSED, 1.0, 4.5, 7.5, 1.0)?;
             }
-            (8..=11, "railway", "rail") if ["main", ""].contains(&service) => {
+            (8..=11, "railway", "rail") if matches!(service, None | Some("main")) => {
                 let koef = 0.8 * 1.15f64.powf((zoom - 8) as f64);
 
                 draw_rail(
@@ -399,7 +400,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
 
                 draw_bridges_tunnels(1.5 + 1.0)?;
             }
-            (14.., "highway", "service") if service == "parking_aisle" => {
+            (14.., "highway", "service") if service == Some("parking_aisle") => {
                 apply_highway_defaults(1.0);
                 draw()?;
 
@@ -433,7 +434,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
                 draw()?;
             }
             (12.., "highway", _)
-                if typ == "service" && service != "parking_aisle"
+                if typ == "service" && service != Some("parking_aisle")
                     || ["escape", "corridor", "bus_guideway"].contains(&typ) =>
             {
                 let width = ke() * 1.2;
@@ -444,8 +445,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
                 draw_bridges_tunnels(width + 1.0)?;
             }
             (12.., "highway", "path")
-                if row.get::<_, &str>("bicycle") == "designated"
-                    && row.get::<_, &str>("foot") == "designated"
+                if row.get::<_, Option<&str>>("bicycle") == Some("designated")
+                    && row.get::<_, Option<&str>>("foot") == Some("designated")
                     && (zoom > 12 || row.get("is_in_route")) =>
             {
                 let width = ke();
@@ -460,8 +461,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
             (12.., "highway", _)
                 if (typ == "cycleway"
                     || typ == "path"
-                        && row.get::<_, &str>("bicycle") == "designated"
-                        && row.get::<_, &str>("foot") != "designated")
+                        && row.get::<_, Option<&str>>("bicycle") == Some("designated")
+                        && row.get::<_, Option<&str>>("foot") != Some("designated"))
                     && (zoom > 12 || row.get("is_in_route")) =>
             {
                 let width = ke();
@@ -474,8 +475,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
                 draw_bridges_tunnels(width + 1.0)?;
             }
             (12.., "highway", "path")
-                if (row.get::<_, &str>("bicycle") != "designated"
-                    || row.get::<_, &str>("foot") == "designated")
+                if (row.get::<_, Option<&str>>("bicycle") != Some("designated")
+                    || row.get::<_, Option<&str>>("foot") == Some("designated"))
                     && (zoom > 12 || row.get("is_in_route")) =>
             {
                 let width = ke();
@@ -509,19 +510,19 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
             (12.., "highway", "track")
                 if (zoom > 12
                     || row.get("is_in_route")
-                    || row.get::<_, &str>("tracktype") == "grade1") =>
+                    || row.get::<_, Option<&str>>("tracktype") == Some("grade1")) =>
             {
                 let width = ke() * 1.2;
 
                 apply_highway_defaults(width);
 
                 context.set_dash(
-                    match row.get::<_, &str>("tracktype") {
-                        "grade1" => &[],
-                        "grade2" => &[8.0, 2.0],
-                        "grade3" => &[6.0, 4.0],
-                        "grade4" => &[4.0, 6.0],
-                        "grade5" => &[2.0, 8.0],
+                    match row.get::<_, Option<&str>>("tracktype") {
+                        Some("grade1") => &[],
+                        Some("grade2") => &[8.0, 2.0],
+                        Some("grade3") => &[6.0, 4.0],
+                        Some("grade4") => &[4.0, 6.0],
+                        Some("grade5") => &[2.0, 8.0],
                         _ => &[3.0, 7.0, 7.0, 3.0],
                     },
                     0.0,
@@ -537,7 +538,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
             _ => (),
         };
 
-        let oneway = row.get::<_, i16>("oneway");
+        let oneway = row.get::<_, Option<i16>>("oneway").unwrap_or_default();
 
         if zoom >= 14 && oneway != 0 {
             path_line_string(context, geom);

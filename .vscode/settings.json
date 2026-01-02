@@ -1,6 +1,12 @@
 {
   "editor.inlayHints.enabled": "offUnlessPressed",
   "deno.enable": false,
+  "Lua.workspace.library": [
+    "${workspaceFolder}/types"
+  ],
+  "Lua.diagnostics.globals": [
+    "osm2pgsql"
+  ],
   "[lua]": {
     "editor.defaultFormatter": "sumneko.lua"
   }

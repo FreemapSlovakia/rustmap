@@ -19,7 +19,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision) -> Laye
         SELECT name, ST_PointOnSurface(geometry) AS geometry
         FROM osm_feature_polys
         WHERE
-            name <> '' AND
+            name IS NOT NULL AND
             (type = 'zoo' OR type = 'theme_park') AND
             geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
         ORDER BY osm_id";

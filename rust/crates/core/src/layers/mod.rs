@@ -230,7 +230,7 @@ pub fn render(
     }
 
     if zoom >= 8 {
-        borders::render(ctx, client).with_layer("borders")?;
+        //borders::render(ctx, client).with_layer("borders")?;
     }
 
     routes::render_marking(ctx, client, &request.route_types, svg_repo).with_layer("routes")?;

@@ -44,9 +44,9 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
 
         for (projected, unprojected, row) in &geometries {
             let typ: &str = row.get("type");
-            let protect_class: &str = row.get("protect_class");
+            let protect_class: Option<&str> = row.get("protect_class");
 
-            if typ == "national_park" || typ == "protected_area" && protect_class == "2" {
+            if typ == "national_park" || typ == "protected_area" && protect_class == Some("2") {
                 context.push_group();
 
                 path_geometry(context, projected);
@@ -104,9 +104,9 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
     // border
     for (projected, _, row) in &geometries {
         let typ: &str = row.get("type");
-        let protect_class: &str = row.get("protect_class");
+        let protect_class: Option<&str> = row.get("protect_class");
 
-        if typ == "nature_reserve" || typ == "protected_area" && protect_class != "2" {
+        if typ == "nature_reserve" || typ == "protected_area" && protect_class != Some("2") {
             let sample = svg_repo.get("protected_area")?;
 
             walk_geometry_line_strings(projected, &mut |line_string| {
@@ -119,9 +119,9 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
 
     for (projected, _, row) in &geometries {
         let typ: &str = row.get("type");
-        let protect_class: &str = row.get("protect_class");
+        let protect_class: Option<&str> = row.get("protect_class");
 
-        if typ == "national_park" || typ == "protected_area" && protect_class == "2" {
+        if typ == "national_park" || typ == "protected_area" && protect_class == Some("2") {
             let wb = if zoom > 10 {
                 0.5f64.mul_add(zoom as f64 - 10.0, 2.0)
             } else {

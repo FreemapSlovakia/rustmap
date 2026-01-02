@@ -46,7 +46,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
             SELECT geometry, fixme FROM osm_roads
         ) foo
         WHERE
-            fixme <> '' AND
+            fixme IS NOT NULL AND
             geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)";
 
     let rows = client.query(sql, &ctx.bbox_query_params(Some(8.0)).as_params())?;

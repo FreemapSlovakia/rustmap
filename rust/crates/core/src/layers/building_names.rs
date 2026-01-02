@@ -22,6 +22,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision) -> Laye
             LEFT JOIN osm_towers USING (osm_id)
             LEFT JOIN osm_shops USING (osm_id)
         WHERE
+            osm_buildings.name IS NOT NULL AND
             osm_buildings.geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) AND
             osm_buildings.type <> 'no' AND
             osm_landusages.osm_id IS NULL AND

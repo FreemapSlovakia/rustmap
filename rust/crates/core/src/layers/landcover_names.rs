@@ -37,7 +37,9 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision) -> Laye
     let sql = "
         WITH lcn AS (
             SELECT DISTINCT ON (osm_landusages.osm_id)
-                osm_landusages.geometry, osm_landusages.name, osm_landusages.area,
+                osm_landusages.geometry,
+                osm_landusages.name,
+                osm_landusages.area,
                 osm_landusages.type IN ('forest', 'wood', 'scrub', 'heath', 'grassland', 'scree', 'blockfield', 'meadow', 'fell', 'wetland') AS natural,
                 z_order,
                 osm_landusages.osm_id AS osm_id
@@ -51,6 +53,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision) -> Laye
                 -- NOTE filtering some POIs (hacky because it affects also lower zooms)
                 osm_sports ON osm_landusages.osm_id = osm_sports.osm_id AND osm_sports.type IN ('soccer', 'tennis', 'basketball', 'shooting')
             WHERE
+                osm_landusages.name IS NOT NULL AND
                 osm_feature_polys.osm_id IS NULL AND
                 osm_sports.osm_id IS NULL AND
                 osm_landusages.geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)

@@ -1,8 +1,19 @@
 -- osm2pgsql flex configuration generated from imposm3 mapping.yaml
 -- Tables keep the existing schema used by the renderer under rust/crates/core
 
-local projection = osm2pgsql.projection(3857)
+local projection = 3857;
 
+---@param t table
+local function shallow_copy(t)
+    local t2 = {}
+    for k, v in pairs(t) do
+        t2[k] = v
+    end
+    return t2
+end
+
+---@param list table<number, string>
+---@return table<string, true>
 local function set(list)
     local t = {}
     for _, v in ipairs(list) do
@@ -11,6 +22,8 @@ local function set(list)
     return t
 end
 
+---@param tags table<string, string>
+---@return boolean
 local function is_area(tags, is_closed)
     if not is_closed or tags.area == "no" then
         return false
@@ -72,25 +85,22 @@ local function enum_from_tags(tags, key, allowed)
     return nil
 end
 
+---@param tags table<string, unknown>
+---@param keys string[]
 local function take_tags(tags, keys)
     local result = {}
-    local found = false
 
     for _, k in ipairs(keys) do
         local v = tags[k]
         if v and v ~= "" then
             result[k] = v
-            found = true
         end
-    end
-
-    if not found then
-        return nil
     end
 
     return result
 end
 
+---@param tags table<string, unknown>
 local function z_order_for_way(tags)
     local layer = tonumber(tags.layer) or 0
 
@@ -143,31 +153,19 @@ end
 local tables = {}
 
 -- Shared column definitions reused by generalized tables
-local admin_member_columns = {
-    { column = "member",   type = "bigint" },
-    { column = "geometry", type = "geometry", projection = projection },
-    { column = "role",     type = "text" },
-    { column = "type",     type = "int" },
-}
 
-local route_member_columns = {
-    { column = "member",   type = "bigint" },
-    { column = "geometry", type = "geometry", projection = projection },
-    { column = "role",     type = "text" },
-    { column = "type",     type = "int" },
-}
 
+---@type OsmColumnDef[]
 local landusage_columns = {
-    { column = "osm_id",   type = "bigint",   not_null = true },
     { column = "geometry", type = "geometry", projection = projection, not_null = true },
     { column = "name",     type = "text" },
     { column = "type",     type = "text" },
-    { column = "area",     type = "real" },
-    { column = "tags",     type = "hstore" },
+    { column = "area",     type = "real",     not_null = true },
+    { column = "tags",     type = "hstore",   not_null = true },
 }
 
+---@type OsmColumnDef[]
 local waterway_columns = {
-    { column = "osm_id",       type = "bigint",     not_null = true },
     { column = "geometry",     type = "linestring", projection = projection, not_null = true },
     { column = "name",         type = "text" },
     { column = "intermittent", type = "bool" },
@@ -176,8 +174,8 @@ local waterway_columns = {
     { column = "type",         type = "text" },
 }
 
+---@type OsmColumnDef[]
 local road_columns = {
-    { column = "osm_id",           type = "bigint",     not_null = true },
     { column = "geometry",         type = "linestring", projection = projection, not_null = true },
     { column = "type",             type = "text" },
     { column = "name",             type = "text" },
@@ -200,51 +198,42 @@ local road_columns = {
     { column = "fixme",            type = "text" },
 }
 
+---@type OsmColumnDef[]
 local waterarea_columns = {
-    { column = "osm_id",       type = "bigint",   not_null = true },
     { column = "geometry",     type = "geometry", projection = projection, not_null = true },
     { column = "name",         type = "text" },
     { column = "type",         type = "text" },
-    { column = "area",         type = "real" },
+    { column = "area",         type = "real",     not_null = true },
     { column = "intermittent", type = "bool" },
     { column = "seasonal",     type = "bool" },
     { column = "water",        type = "text" },
 }
 
-tables.admin_relations = osm2pgsql.define_relation_table("osm_admin_relations", {
-    { column = "osm_id",      type = "bigint", not_null = true },
-    { column = "admin_level", type = "int" },
-    { column = "iso3166_1",   type = "text" },
+local node_pk = { type = "node", id_column = "osm_id", create_index = "primary_key" }
+local way_pk = { type = "way", id_column = "osm_id", create_index = "primary_key" }
+local relation_pk = { type = "relation", id_column = "osm_id", create_index = "primary_key" }
+local area_pk = { type = "area", id_column = "osm_id", create_index = "primary_key" }
+
+tables.routes = osm2pgsql.define_table({
+    name = "osm_routes",
+    ids = relation_pk,
+    columns = {
+        { column = "name",        type = "text" },
+        { column = "ref",         type = "text" },
+        { column = "colour",      type = "text" },
+        { column = "state",       type = "text" },
+        { column = "osmc:symbol", type = "text" },
+        { column = "network",     type = "text" },
+        { column = "type",        type = "text" },
+    }
 })
 
-tables.admin_members = osm2pgsql.define_table({
-    name = "osm_admin_members",
-    ids = { type = "any", id_column = "osm_id" },
-    columns = admin_member_columns,
-})
-
-tables.admin_members_gen1 = osm2pgsql.define_table({
-    name = "osm_admin_members_gen1",
-    ids = { type = "any", id_column = "osm_id" },
-    columns = admin_member_columns,
-})
-
-tables.admin_members_gen0 = osm2pgsql.define_table({
-    name = "osm_admin_members_gen0",
-    ids = { type = "any", id_column = "osm_id" },
-    columns = admin_member_columns,
-})
-
-tables.routes = osm2pgsql.define_relation_table("osm_routes", {
-    { column = "osm_id",      type = "bigint", not_null = true },
-    { column = "name",        type = "text" },
-    { column = "ref",         type = "text" },
-    { column = "colour",      type = "text" },
-    { column = "state",       type = "text" },
-    { column = "osmc:symbol", type = "text" },
-    { column = "network",     type = "text" },
-    { column = "type",        type = "text" },
-})
+local route_member_columns = {
+    { column = "member",   type = "bigint" },
+    { column = "geometry", type = "geometry", projection = projection },
+    { column = "role",     type = "text" },
+    { column = "type",     type = "int" },
+}
 
 tables.route_members = osm2pgsql.define_table({
     name = "osm_route_members",
@@ -264,17 +253,34 @@ tables.route_members_gen0 = osm2pgsql.define_table({
     columns = route_member_columns,
 })
 
-tables.landusages = osm2pgsql.define_area_table("osm_landusages", landusage_columns)
+tables.landusages = osm2pgsql.define_table({
+    name = "osm_landusages",
+    ids = area_pk,
+    columns = landusage_columns
+})
 
-tables.landusages_gen1 = osm2pgsql.define_area_table("osm_landusages_gen1", landusage_columns)
+tables.landusages_gen1 = osm2pgsql.define_table({
+    name = "osm_landusages_gen1",
+    ids = area_pk,
+    columns =
+        landusage_columns
+})
 
-tables.landusages_gen0 = osm2pgsql.define_area_table("osm_landusages_gen0", landusage_columns)
+tables.landusages_gen0 = osm2pgsql.define_table({
+    name = "osm_landusages_gen0",
+    ids = area_pk,
+    columns =
+        landusage_columns
+})
 
-tables.buildings = osm2pgsql.define_area_table("osm_buildings", {
-    { column = "osm_id",   type = "bigint",   not_null = true },
-    { column = "geometry", type = "geometry", projection = projection, not_null = true },
-    { column = "name",     type = "text" },
-    { column = "type",     type = "text" },
+tables.buildings = osm2pgsql.define_table({
+    name = "osm_buildings",
+    ids = area_pk,
+    columns = {
+        { column = "geometry", type = "geometry", projection = projection, not_null = true },
+        { column = "name",     type = "text" },
+        { column = "type",     type = "text" },
+    },
 })
 
 tables.shops = osm2pgsql.define_table({
@@ -287,66 +293,87 @@ tables.shops = osm2pgsql.define_table({
     },
 })
 
-tables.places = osm2pgsql.define_node_table("osm_places", {
-    { column = "osm_id",     type = "bigint", not_null = true },
-    { column = "geometry",   type = "point",  projection = projection, not_null = true },
-    { column = "name",       type = "text" },
-    { column = "type",       type = "text" },
-    { column = "z_order",    type = "int" },
-    { column = "population", type = "int" },
+tables.places = osm2pgsql.define_table({
+    name = "osm_places",
+    ids = node_pk,
+    columns = {
+        { column = "geometry",   type = "point", projection = projection, not_null = true },
+        { column = "name",       type = "text",  not_null = true },
+        { column = "type",       type = "text",  not_null = true },
+        { column = "z_order",    type = "int" },
+        { column = "population", type = "int" },
+    },
 })
 
-tables.aeroways = osm2pgsql.define_way_table("osm_aeroways", {
-    { column = "osm_id",   type = "bigint",     not_null = true },
-    { column = "geometry", type = "linestring", projection = projection, not_null = true },
-    { column = "name",     type = "text" },
-    { column = "type",     type = "text" },
+tables.aeroways = osm2pgsql.define_table({
+    name = "osm_aeroways",
+    ids = way_pk,
+    columns = {
+        { column = "geometry", type = "linestring", projection = projection, not_null = true },
+        { column = "name",     type = "text" },
+        { column = "type",     type = "text",       not_null = true },
+    },
 })
 
-tables.waterways = osm2pgsql.define_way_table("osm_waterways", waterway_columns)
+tables.waterways = osm2pgsql.define_table({ name = "osm_waterways", ids = way_pk, columns = waterway_columns })
 
-tables.waterways_gen1 = osm2pgsql.define_way_table("osm_waterways_gen1", waterway_columns)
+tables.waterways_gen1 = osm2pgsql.define_table({ name = "osm_waterways_gen1", ids = way_pk, columns = waterway_columns })
 
-tables.waterways_gen0 = osm2pgsql.define_way_table("osm_waterways_gen0", waterway_columns)
+tables.waterways_gen0 = osm2pgsql.define_table({ name = "osm_waterways_gen0", ids = way_pk, columns = waterway_columns })
 
-tables.barrierways = osm2pgsql.define_way_table("osm_barrierways", {
-    { column = "osm_id",   type = "bigint",     not_null = true },
-    { column = "geometry", type = "linestring", projection = projection, not_null = true },
-    { column = "name",     type = "text" },
-    { column = "type",     type = "text" },
+tables.barrierways = osm2pgsql.define_table({
+    name = "osm_barrierways",
+    ids = way_pk,
+    columns = {
+        { column = "geometry", type = "linestring", projection = projection, not_null = true },
+        { column = "name",     type = "text" },
+        { column = "type",     type = "text",       not_null = true },
+    },
 })
 
-tables.barrierpoints = osm2pgsql.define_node_table("osm_barrierpoints", {
-    { column = "osm_id",   type = "bigint", not_null = true },
-    { column = "geometry", type = "point",  projection = projection, not_null = true },
-    { column = "name",     type = "text" },
-    { column = "type",     type = "text" },
-    { column = "access",   type = "text" },
+tables.barrierpoints = osm2pgsql.define_table({
+    name = "osm_barrierpoints",
+    ids = node_pk,
+    columns = {
+        { column = "geometry", type = "point", projection = projection, not_null = true },
+        { column = "name",     type = "text" },
+        { column = "type",     type = "text",  not_null = true },
+        { column = "access",   type = "text" },
+    },
 })
 
-tables.feature_lines = osm2pgsql.define_way_table("osm_feature_lines", {
-    { column = "osm_id",   type = "bigint",     not_null = true },
-    { column = "geometry", type = "linestring", projection = projection, not_null = true },
-    { column = "name",     type = "text" },
-    { column = "type",     type = "text" },
-    { column = "fixme",    type = "text" },
+tables.feature_lines = osm2pgsql.define_table({
+    name = "osm_feature_lines",
+    ids = way_pk,
+    columns = {
+        { column = "geometry", type = "linestring", projection = projection, not_null = true },
+        { column = "name",     type = "text" },
+        { column = "type",     type = "text",       not_null = true },
+        { column = "fixme",    type = "text" },
+    },
 })
 
-tables.pipelines = osm2pgsql.define_way_table("osm_pipelines", {
-    { column = "osm_id",    type = "bigint",     not_null = true },
-    { column = "geometry",  type = "linestring", projection = projection, not_null = true },
-    { column = "name",      type = "text" },
-    { column = "location",  type = "text" },
-    { column = "substance", type = "text" },
+tables.pipelines = osm2pgsql.define_table({
+    name = "osm_pipelines",
+    ids = way_pk,
+    columns = {
+        { column = "geometry",  type = "linestring", projection = projection, not_null = true },
+        { column = "name",      type = "text" },
+        { column = "location",  type = "text" },
+        { column = "substance", type = "text" },
+    },
 })
 
-tables.protected_areas = osm2pgsql.define_area_table("osm_protected_areas", {
-    { column = "osm_id",        type = "bigint",   not_null = true },
-    { column = "geometry",      type = "geometry", projection = projection, not_null = true },
-    { column = "name",          type = "text" },
-    { column = "type",          type = "text" },
-    { column = "protect_class", type = "text" },
-    { column = "area",          type = "real" },
+tables.protected_areas = osm2pgsql.define_table({
+    name = "osm_protected_areas",
+    ids = area_pk,
+    columns = {
+        { column = "geometry",      type = "geometry", projection = projection, not_null = true },
+        { column = "name",          type = "text" },
+        { column = "type",          type = "text" },
+        { column = "protect_class", type = "text" },
+        { column = "area",          type = "real",     not_null = true },
+    },
 })
 
 tables.fords = osm2pgsql.define_table({
@@ -358,19 +385,22 @@ tables.fords = osm2pgsql.define_table({
     },
 })
 
-tables.features = osm2pgsql.define_node_table("osm_features", {
-    { column = "osm_id",   type = "bigint", not_null = true },
-    { column = "geometry", type = "point",  projection = projection, not_null = true },
-    { column = "name",     type = "text" },
-    { column = "type",     type = "text" },
-    { column = "tags",     type = "hstore" },
+tables.features = osm2pgsql.define_table({
+    name = "osm_features",
+    ids = node_pk,
+    columns = {
+        { column = "geometry", type = "point",  projection = projection, not_null = true },
+        { column = "name",     type = "text" },
+        { column = "type",     type = "text",   not_null = true },
+        { column = "tags",     type = "hstore", not_null = true },
+    },
 })
 
 tables.towers = osm2pgsql.define_table({
     name = "osm_towers",
     ids = { type = "any", id_column = "osm_id" },
     columns = {
-        { column = "geometry", type = "geometry", projection = projection, not_null = true },
+        { column = "geometry", type = "point", projection = projection, not_null = true },
         { column = "name",     type = "text" },
         { column = "class",    type = "text" },
         { column = "type",     type = "text" },
@@ -378,41 +408,53 @@ tables.towers = osm2pgsql.define_table({
     },
 })
 
-tables.feature_polys = osm2pgsql.define_area_table("osm_feature_polys", {
-    { column = "osm_id",   type = "bigint",   not_null = true },
-    { column = "geometry", type = "geometry", projection = projection, not_null = true },
-    { column = "name",     type = "text" },
-    { column = "type",     type = "text" },
-    { column = "tags",     type = "hstore" },
+tables.feature_polys = osm2pgsql.define_table({
+    name = "osm_feature_polys",
+    ids = area_pk,
+    columns = {
+        { column = "geometry", type = "geometry", projection = projection, not_null = true },
+        { column = "name",     type = "text" },
+        { column = "type",     type = "text" },
+        { column = "tags",     type = "hstore",   not_null = true },
+    },
 })
 
-tables.pois = osm2pgsql.define_table("osm_pois", {
+tables.pois = osm2pgsql.define_table({
+    name = "osm_pois",
     ids = { type = "any", type_column = "osm_type", id_column = "osm_id" },
-    { column = "geometry", type = "point", projection = projection, not_null = true },
-    { column = "name",     type = "text" },
-    { column = "type",     type = "text" },
-    { column = "tags",     type = "jsonb" },
+    columns = {
+        { column = "geometry", type = "point", projection = projection, not_null = true },
+        { column = "name",     type = "text" },
+        { column = "type",     type = "text" },
+        { column = "tags",     type = "jsonb", not_null = true },
+    }
 })
 
-tables.springs = osm2pgsql.define_node_table("osm_springs", {
-    { column = "osm_id",               type = "bigint", not_null = true },
-    { column = "geometry",             type = "point",  projection = projection, not_null = true },
-    { column = "name",                 type = "text" },
-    { column = "type",                 type = "text" },
-    { column = "ele",                  type = "text" },
-    { column = "refitted",             type = "bool" },
-    { column = "seasonal",             type = "bool" },
-    { column = "intermittent",         type = "bool" },
-    { column = "drinking_water",       type = "text" },
-    { column = "water_characteristic", type = "text" },
+tables.springs = osm2pgsql.define_table({
+    name = "osm_springs",
+    ids = node_pk,
+    columns = {
+        { column = "geometry",             type = "point", projection = projection, not_null = true },
+        { column = "name",                 type = "text" },
+        { column = "type",                 type = "text" },
+        { column = "ele",                  type = "text" },
+        { column = "refitted",             type = "bool" },
+        { column = "seasonal",             type = "bool" },
+        { column = "intermittent",         type = "bool" },
+        { column = "drinking_water",       type = "text" },
+        { column = "water_characteristic", type = "text" },
+    },
 })
 
-tables.building_points = osm2pgsql.define_node_table("osm_building_points", {
-    { column = "osm_id",   type = "bigint", not_null = true },
-    { column = "geometry", type = "point",  projection = projection, not_null = true },
-    { column = "name",     type = "text" },
-    { column = "type",     type = "text" },
-    { column = "tags",     type = "hstore" },
+tables.building_points = osm2pgsql.define_table({
+    name = "osm_building_points",
+    ids = node_pk,
+    columns = {
+        { column = "geometry", type = "point",  projection = projection, not_null = true },
+        { column = "name",     type = "text" },
+        { column = "type",     type = "text" },
+        { column = "tags",     type = "hstore", not_null = true },
+    },
 })
 
 tables.sports = osm2pgsql.define_table({
@@ -422,7 +464,7 @@ tables.sports = osm2pgsql.define_table({
         { column = "geometry", type = "geometry", projection = projection, not_null = true },
         { column = "name",     type = "text" },
         { column = "type",     type = "text" },
-        { column = "tags",     type = "hstore" },
+        { column = "tags",     type = "hstore",   not_null = true },
     },
 })
 
@@ -458,31 +500,37 @@ tables.place_of_worships = osm2pgsql.define_table({
     },
 })
 
-tables.infopoints = osm2pgsql.define_node_table("osm_infopoints", {
-    { column = "osm_id",   type = "bigint", not_null = true },
-    { column = "geometry", type = "point",  projection = projection, not_null = true },
-    { column = "name",     type = "text" },
-    { column = "ele",      type = "text" },
-    { column = "foot",     type = "bool" },
-    { column = "bicycle",  type = "bool" },
-    { column = "ski",      type = "bool" },
-    { column = "horse",    type = "bool" },
-    { column = "type",     type = "text" },
+tables.infopoints = osm2pgsql.define_table({
+    name = "osm_infopoints",
+    ids = node_pk,
+    columns = {
+        { column = "geometry", type = "point", projection = projection, not_null = true },
+        { column = "name",     type = "text" },
+        { column = "ele",      type = "text" },
+        { column = "foot",     type = "bool" },
+        { column = "bicycle",  type = "bool" },
+        { column = "ski",      type = "bool" },
+        { column = "horse",    type = "bool" },
+        { column = "type",     type = "text" },
+    },
 })
 
-tables.aerialways = osm2pgsql.define_way_table("osm_aerialways", {
-    { column = "osm_id",   type = "bigint",     not_null = true },
-    { column = "geometry", type = "linestring", projection = projection, not_null = true },
-    { column = "type",     type = "text" },
-    { column = "name",     type = "text" },
-    { column = "ref",      type = "text" },
+tables.aerialways = osm2pgsql.define_table({
+    name = "osm_aerialways",
+    ids = way_pk,
+    columns = {
+        { column = "geometry", type = "linestring", projection = projection, not_null = true },
+        { column = "type",     type = "text" },
+        { column = "name",     type = "text" },
+        { column = "ref",      type = "text" },
+    },
 })
 
-tables.roads = osm2pgsql.define_way_table("osm_roads", road_columns)
+tables.roads = osm2pgsql.define_table({ name = "osm_roads", ids = way_pk, columns = road_columns })
 
-tables.roads_gen1 = osm2pgsql.define_way_table("osm_roads_gen1", road_columns)
+tables.roads_gen1 = osm2pgsql.define_table({ name = "osm_roads_gen1", ids = way_pk, columns = road_columns })
 
-tables.roads_gen0 = osm2pgsql.define_way_table("osm_roads_gen0", road_columns)
+tables.roads_gen0 = osm2pgsql.define_table({ name = "osm_roads_gen0", ids = way_pk, columns = road_columns })
 
 tables.housenumbers = osm2pgsql.define_table({
     name = "osm_housenumbers",
@@ -495,19 +543,35 @@ tables.housenumbers = osm2pgsql.define_table({
     },
 })
 
-tables.waterareas = osm2pgsql.define_area_table("osm_waterareas", waterarea_columns)
+tables.waterareas = osm2pgsql.define_table({ name = "osm_waterareas", ids = area_pk, columns = waterarea_columns })
 
-tables.waterareas_gen1 = osm2pgsql.define_area_table("osm_waterareas_gen1", waterarea_columns)
+tables.waterareas_gen1 = osm2pgsql.define_table({
+    name = "osm_waterareas_gen1",
+    ids = area_pk,
+    columns =
+        waterarea_columns
+})
 
-tables.waterareas_gen0 = osm2pgsql.define_area_table("osm_waterareas_gen0", waterarea_columns)
+tables.waterareas_gen0 = osm2pgsql.define_table({
+    name = "osm_waterareas_gen0",
+    ids = area_pk,
+    columns =
+        waterarea_columns
+})
 
-tables.fixmes = osm2pgsql.define_node_table("osm_fixmes", {
-    { column = "osm_id",   type = "bigint", not_null = true },
-    { column = "geometry", type = "point",  projection = projection, not_null = true },
-    { column = "type",     type = "text" },
+tables.fixmes = osm2pgsql.define_table({
+    name = "osm_fixmes",
+    ids = node_pk,
+    columns = {
+        { column = "geometry", type = "point", projection = projection, not_null = true },
+        { column = "type",     type = "text" },
+    },
 })
 
 -- Helper to insert generalized rows for geometries that need simplification and area filtering.
+---@param base_row table<string, unknown>
+---@param geom OsmGeometry
+---@param area number
 local function insert_generalized_landuse(base_row, geom, area)
     if area > 50000 then
         local g1 = geom:simplify(50)
@@ -522,6 +586,9 @@ local function insert_generalized_landuse(base_row, geom, area)
     end
 end
 
+---@param base_row table<string, unknown>
+---@param geom OsmGeometry
+---@param area number
 local function insert_generalized_waterarea(base_row, geom, area)
     if area > 50000 then
         local g1 = geom:simplify(50)
@@ -536,6 +603,8 @@ local function insert_generalized_waterarea(base_row, geom, area)
     end
 end
 
+---@param base_row table<string, unknown>
+---@param geom OsmGeometry
 local function insert_generalized_waterway(base_row, geom)
     local g1 = geom:simplify(50)
     base_row.geometry = g1
@@ -554,51 +623,23 @@ local function insert_generalized_route_member(base_row, geom)
     tables.route_members_gen0:insert(base_row)
 end
 
-local function insert_generalized_admin_member(base_row, geom)
-    base_row.geometry = geom:simplify(50)
-    tables.admin_members_gen1:insert(base_row)
-
-    base_row.geometry = geom:simplify(200)
-    tables.admin_members_gen0:insert(base_row)
-end
-
+---@param geom OsmGeometry
 local function to_surface_point(geom)
-    if not geom then
-        return nil
+    local type = geom:geometry_type();
+
+    if type == 'POINT' or type == 'NULL' then
+        return geom
     end
 
-    local function valid(pt)
-        if not pt then
-            return false
-        end
-        local ok_empty, empty = pcall(function()
-            return pt:is_empty()
-        end)
-        return not (ok_empty and empty)
+    local g = geom:pole_of_inaccessibility({ stretch = 1.0 })
+
+    type = geom:geometry_type();
+
+    if type == 'POINT' or type == 'NULL' then
+        return geom
     end
 
-    local function try_polylabel()
-        local ok, pt = pcall(function()
-            return geom:pole_of_inaccessibility({ tolerance = 1.0 })
-        end)
-        return ok and valid(pt) and pt or nil
-    end
-
-    local function try_point_on_surface()
-        local ok, pt = pcall(function()
-            return geom:point_on_surface()
-        end)
-        return ok and valid(pt) and pt or nil
-    end
-
-    local function try_centroid()
-        local ok, pt = pcall(function()
-            return geom:centroid()
-        end)
-        return ok and valid(pt) and pt or nil
-    end
-
-    return try_polylabel() or try_point_on_surface() or try_centroid()
+    return geom:centroid();
 end
 
 local landuse_values = {
@@ -970,6 +1011,8 @@ local function matches_any(tags, lookup)
     return nil, nil
 end
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_landuse(obj, geom)
     local tags = obj.tags
     local key, val = matches_any(tags, landuse_values)
@@ -977,7 +1020,7 @@ local function process_landuse(obj, geom)
         return
     end
 
-    local area = geom:area()
+    local area = geom:spherical_area()
     local row = {
         osm_id = obj.id,
         geometry = geom,
@@ -991,6 +1034,8 @@ local function process_landuse(obj, geom)
     insert_generalized_landuse(row, geom, area)
 end
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_building(obj, geom)
     local val = obj.tags.building
     if not val then
@@ -998,13 +1043,14 @@ local function process_building(obj, geom)
     end
 
     tables.buildings:insert({
-        osm_id = obj.id,
         geometry = geom,
         name = obj.tags.name,
         type = val,
     })
 end
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_waterarea(obj, geom)
     local tags = obj.tags
     local key, val = matches_any(tags, {
@@ -1019,10 +1065,9 @@ local function process_waterarea(obj, geom)
         return
     end
 
-    local area = geom:area()
+    local area = geom:spherical_area()
 
     local row = {
-        osm_id = obj.id,
         geometry = geom,
         name = tags.name,
         type = val,
@@ -1036,6 +1081,8 @@ local function process_waterarea(obj, geom)
     insert_generalized_waterarea(row, geom, area)
 end
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_waterway(obj, geom)
     local tags = obj.tags
     local val = tags.waterway
@@ -1049,7 +1096,6 @@ local function process_waterway(obj, geom)
     end
 
     local row = {
-        osm_id = obj.id,
         geometry = geom,
         name = tags.name,
         intermittent = tags.intermittent,
@@ -1065,6 +1111,8 @@ local function process_waterway(obj, geom)
     end
 end
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_barrier_way(obj, geom)
     local val = obj.tags.barrier
     if not val then
@@ -1072,13 +1120,14 @@ local function process_barrier_way(obj, geom)
     end
 
     tables.barrierways:insert({
-        osm_id = obj.id,
         geometry = geom,
         name = obj.tags.name,
         type = val,
     })
 end
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_barrier_point(obj, geom)
     local val = obj.tags.barrier
     if not val then
@@ -1086,7 +1135,6 @@ local function process_barrier_point(obj, geom)
     end
 
     tables.barrierpoints:insert({
-        osm_id = obj.id,
         geometry = geom,
         name = obj.tags.name,
         type = val,
@@ -1094,6 +1142,8 @@ local function process_barrier_point(obj, geom)
     })
 end
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_feature_line(obj, geom)
     local key, val = matches_any(obj.tags, feature_line_values)
     if not key then
@@ -1101,7 +1151,6 @@ local function process_feature_line(obj, geom)
     end
 
     tables.feature_lines:insert({
-        osm_id = obj.id,
         geometry = geom,
         name = obj.tags.name,
         type = val,
@@ -1109,13 +1158,14 @@ local function process_feature_line(obj, geom)
     })
 end
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_pipeline(obj, geom)
     if obj.tags.man_made ~= "pipeline" then
         return
     end
 
     tables.pipelines:insert({
-        osm_id = obj.id,
         geometry = geom,
         name = obj.tags.name,
         location = obj.tags.location,
@@ -1123,6 +1173,8 @@ local function process_pipeline(obj, geom)
     })
 end
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_protected_area(obj, geom)
     local tags = obj.tags
     local key, val = matches_any(tags, {
@@ -1134,10 +1186,9 @@ local function process_protected_area(obj, geom)
         return
     end
 
-    local area = geom:area()
+    local area = geom:spherical_area()
 
     tables.protected_areas:insert({
-        osm_id = obj.id,
         geometry = geom,
         name = tags.name,
         type = val,
@@ -1146,6 +1197,8 @@ local function process_protected_area(obj, geom)
     })
 end
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_ford(obj, geom)
     local val = obj.tags.ford
     if not val then
@@ -1153,12 +1206,13 @@ local function process_ford(obj, geom)
     end
 
     tables.fords:insert({
-        osm_id = obj.id,
         geometry = geom,
         type = val,
     })
 end
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_feature_point(obj, geom)
     local key, val = matches_any(obj.tags, feature_point_values)
     if not key then
@@ -1166,7 +1220,6 @@ local function process_feature_point(obj, geom)
     end
 
     tables.features:insert({
-        osm_id = obj.id,
         geometry = geom,
         name = obj.tags.name,
         type = val,
@@ -1184,6 +1237,8 @@ local function process_feature_point(obj, geom)
     })
 end
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_feature_poly(obj, geom)
     local key, val = matches_any(obj.tags, feature_poly_values)
     if not key then
@@ -1191,7 +1246,6 @@ local function process_feature_poly(obj, geom)
     end
 
     tables.feature_polys:insert({
-        osm_id = obj.id,
         geometry = geom,
         name = obj.tags.name,
         type = val,
@@ -1200,6 +1254,8 @@ local function process_feature_poly(obj, geom)
 end
 
 -- as poi
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_tower(obj, geom)
     local man_made = obj.tags.man_made
     if man_made ~= "tower" and man_made ~= "mast" and man_made ~= "water_tower" then
@@ -1207,8 +1263,7 @@ local function process_tower(obj, geom)
     end
 
     tables.towers:insert({
-        osm_id = obj.id,
-        geometry = geom,
+        geometry = to_surface_point(geom),
         name = obj.tags.name,
         class = man_made == "water_tower" and "tower" or man_made,
         type = obj.tags["tower:type"],
@@ -1216,9 +1271,12 @@ local function process_tower(obj, geom)
     })
 end
 
-local natural_pois = set({ "spring", "hot_spring", "geyser" });
+local spring_pois = set({ "spring", "hot_spring", "geyser" });
+local natural_pois = shallow_copy(spring_pois);
 local man_made_pois = set({ "spring_box", "tower", "mast", "water_tower" });
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_poi(obj, geom)
     local tags = obj.tags
 
@@ -1233,10 +1291,19 @@ local function process_poi(obj, geom)
 
     if val == "tower" then
         extra["tower:type"] = tags["tower:type"]
+    elseif val == "spring" then
+        extra = {
+            ele = tags.ele,
+            refitted = tags.refitted,
+            seasonal = tags.seasonal,
+            intermittent = tags.intermittent,
+            drinking_water = tags.drinking_water,
+            water_characteristic = tags.water_characteristic,
+            tags["tower:type"]
+        }
     end
 
     tables.pois:insert({
-        osm_id = obj.id,
         geometry = geom,
         name = tags.name,
         type = val,
@@ -1244,6 +1311,8 @@ local function process_poi(obj, geom)
 end
 
 -- as poi
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_spring(obj, geom)
     local tags = obj.tags
     local val = tags.natural == "spring" and "spring"
@@ -1256,7 +1325,6 @@ local function process_spring(obj, geom)
     end
 
     tables.springs:insert({
-        osm_id = obj.id,
         geometry = geom,
         name = tags.name,
         type = val,
@@ -1269,6 +1337,8 @@ local function process_spring(obj, geom)
     })
 end
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_building_point(obj, geom)
     local val = obj.tags.building
     if not val then
@@ -1276,7 +1346,6 @@ local function process_building_point(obj, geom)
     end
 
     tables.building_points:insert({
-        osm_id = obj.id,
         geometry = geom,
         name = obj.tags.name,
         type = val,
@@ -1284,6 +1353,8 @@ local function process_building_point(obj, geom)
     })
 end
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_sport(obj, geom)
     local val = obj.tags.sport
     if not val then
@@ -1291,7 +1362,6 @@ local function process_sport(obj, geom)
     end
 
     tables.sports:insert({
-        osm_id = obj.id,
         geometry = geom,
         name = obj.tags.name,
         type = val,
@@ -1299,13 +1369,14 @@ local function process_sport(obj, geom)
     })
 end
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_power_generator(obj, geom)
     if obj.tags.power ~= "generator" then
         return
     end
 
     tables.power_generators:insert({
-        osm_id = obj.id,
         geometry = geom,
         name = obj.tags.name,
         source = obj.tags["generator:source"],
@@ -1313,31 +1384,28 @@ local function process_power_generator(obj, geom)
     })
 end
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_ruins(obj, geom)
     if obj.tags.historic ~= "ruins" then
         return
     end
 
-    local pt = to_surface_point(geom)
-    if not pt then
-        return
-    end
-
     tables.ruins:insert({
-        osm_id = obj.id,
-        geometry = geom,
+        geometry = to_surface_point(geom),
         name = obj.tags.name,
         type = obj.tags.ruins,
     })
 end
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_place_of_worship(obj, geom)
     if obj.tags.amenity ~= "place_of_worship" then
         return
     end
 
     tables.place_of_worships:insert({
-        osm_id = obj.id,
         geometry = geom,
         name = obj.tags.name,
         building = obj.tags.building,
@@ -1353,13 +1421,14 @@ local infopoint_values = set({
     "route_marker",
 })
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_infopoint(obj, geom)
     if infopoint_values[obj.tags.information] == nil then
         return
     end
 
     tables.infopoints:insert({
-        osm_id = obj.id,
         geometry = geom,
         name = obj.tags.name,
         ele = obj.tags.ele,
@@ -1371,6 +1440,8 @@ local function process_infopoint(obj, geom)
     })
 end
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_aerialway(obj, geom)
     local val = obj.tags.aerialway
     if not val then
@@ -1378,7 +1449,6 @@ local function process_aerialway(obj, geom)
     end
 
     tables.aerialways:insert({
-        osm_id = obj.id,
         geometry = geom,
         type = val,
         name = obj.tags.name,
@@ -1437,6 +1507,8 @@ local sac_scale_enum = {
     difficult_alpine_hiking = 6,
 }
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_road(obj, geom)
     local tags = obj.tags
     local class = nil
@@ -1474,7 +1546,6 @@ local function process_road(obj, geom)
     end
 
     local row = {
-        osm_id = obj.id,
         geometry = geom,
         type = val,
         name = tags.name,
@@ -1482,7 +1553,8 @@ local function process_road(obj, geom)
         embankment = tags.embankment,
         bridge = tags.bridge,
         oneway = tags.oneway,
-        cutting = enum_from_tags(tags, "cutting", { "yes", "left", "right" }),
+        cutting = enum_from_tags(tags, "cutting",
+            { "yes", "left", "right" }),
         ref = tags.ref,
         z_order = z_order_for_way(tags),
         access = tags.access,
@@ -1524,6 +1596,8 @@ local function process_road(obj, geom)
     end
 end
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_housenumber(obj, geom)
     local tags = obj.tags
     local hn = tags["addr:housenumber"] or tags["addr:streetnumber"] or tags["addr:conscriptionnumber"]
@@ -1531,32 +1605,22 @@ local function process_housenumber(obj, geom)
         return
     end
 
-    local pt = to_surface_point(geom)
-    if not pt then
-        return
-    end
-
     tables.housenumbers:insert({
-        osm_id = obj.id,
-        geometry = pt,
+        geometry = to_surface_point(geom),
         housenumber = hn,
     })
 end
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_shop(obj, geom)
     local val = obj.tags.shop
     if not val then
         return
     end
 
-    local pt = to_surface_point(geom)
-    if not pt then
-        return
-    end
-
     tables.shops:insert({
-        osm_id = obj.id,
-        geometry = geom,
+        geometry = to_surface_point(geom),
         name = obj.tags.name,
         type = val,
     })
@@ -1584,6 +1648,8 @@ local place_order = {
     country = 19,
 }
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_place(obj, geom)
     local val = obj.tags.place
     if not val then
@@ -1591,7 +1657,6 @@ local function process_place(obj, geom)
     end
 
     tables.places:insert({
-        osm_id = obj.id,
         geometry = geom,
         name = obj.tags.name,
         type = val,
@@ -1600,6 +1665,8 @@ local function process_place(obj, geom)
     })
 end
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_aeroway(obj, geom)
     local val = obj.tags.aeroway
     if val ~= "runway" and val ~= "taxiway" then
@@ -1607,27 +1674,28 @@ local function process_aeroway(obj, geom)
     end
 
     tables.aeroways:insert({
-        osm_id = obj.id,
         geometry = geom,
         name = obj.tags.name,
         type = val,
     })
 end
 
+---@param obj OsmObject
+---@param geom OsmGeometry
 local function process_feature_point_fixme(obj, geom)
     if not obj.tags.fixme then
         return
     end
 
     tables.fixmes:insert({
-        osm_id = obj.id,
         geometry = geom,
         type = obj.tags.fixme,
     })
 end
 
 function osm2pgsql.process_node(object)
-    local geom = object:as_point(projection)
+    local geom = object:as_point()
+
     process_place(object, geom)
     process_barrier_point(object, geom)
     process_feature_point(object, geom)
@@ -1652,7 +1720,7 @@ function osm2pgsql.process_way(object)
     local as_area = is_area(tags, closed)
 
     if as_area then
-        local polygon = object:as_polygon(projection)
+        local polygon = object:as_polygon()
         if not polygon then
             return
         end
@@ -1671,7 +1739,7 @@ function osm2pgsql.process_way(object)
         process_place_of_worship(object, polygon)
         process_ford(object, polygon)
     else
-        local line = object:as_linestring(projection)
+        local line = object:as_linestring()
         if not line then
             return
         end
@@ -1686,7 +1754,7 @@ function osm2pgsql.process_way(object)
         process_ford(object, line)
 
         if object.is_closed then
-            local poly = object:as_polygon(projection)
+            local poly = object:as_polygon()
             if poly then
                 process_tower(object, poly)
             end
@@ -1698,7 +1766,7 @@ function osm2pgsql.process_relation(object)
     local tags = object.tags
 
     if tags.type == "multipolygon" or tags.type == "boundary" then
-        local multi = object:as_multipolygon(projection)
+        local multi = object:as_multipolygon()
         if multi then
             process_landuse(object, multi)
             process_building(object, multi)
@@ -1716,30 +1784,6 @@ function osm2pgsql.process_relation(object)
         end
     end
 
-    if tags.boundary == "administrative" and tags.admin_level == "2" then
-        tables.admin_relations:insert({
-            osm_id = object.id,
-            admin_level = tonumber(tags.admin_level),
-            iso3166_1 = tags["ISO3166-1"],
-        })
-
-        local rel_geom = object:as_multilinestring(projection)
-        if rel_geom then
-            for _, member in ipairs(object.members or {}) do
-                local row = {
-                    osm_id = object.id,
-                    member = member.ref,
-                    geometry = rel_geom,
-                    role = member.role,
-                    type = nil,
-                }
-
-                tables.admin_members:insert(row)
-                insert_generalized_admin_member(row, rel_geom)
-            end
-        end
-    end
-
     if
         tags.route
         and (
@@ -1754,7 +1798,6 @@ function osm2pgsql.process_relation(object)
         )
     then
         tables.routes:insert({
-            osm_id = object.id,
             name = tags.name,
             ref = tags.ref,
             colour = tags.colour,
@@ -1764,21 +1807,21 @@ function osm2pgsql.process_relation(object)
             type = tags.route,
         })
 
-        local rel_geom = object:as_multilinestring(projection)
-        if rel_geom then
-            for _, member in ipairs(object.members or {}) do
-                if member.type == "w" or member.type == "r" or member.type == "n" then
-                    local row = {
-                        osm_id = object.id,
-                        member = member.ref,
-                        geometry = rel_geom,
-                        role = member.role,
-                        type = nil,
-                    }
+        local rel_geom = object:as_multilinestring()
 
-                    tables.route_members:insert(row)
-                    insert_generalized_route_member(row, rel_geom)
-                end
+        for _, member in ipairs(object.members) do
+            if member.type == "w" or member.type == "r" or member.type == "n" then
+                local row = {
+                    osm_id = object.id,
+                    member = member.ref,
+                    geometry = rel_geom,
+                    role = member.role,
+                    type = nil,
+                }
+
+                tables.route_members:insert(row)
+
+                insert_generalized_route_member(row, rel_geom)
             end
         end
     end

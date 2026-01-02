@@ -412,7 +412,7 @@ pub fn render(
             isolations
         WHERE
             geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) AND
-            type = 'peak' AND name <> ''"#
+            type = 'peak' AND name IS NOT NULL"#
         .to_string();
 
     if zoom >= 13 {
@@ -426,7 +426,7 @@ pub fn render(
                     name AS n,
                     hstore('ele', ele) AS h,
                     CASE
-                        WHEN type <> 'guidepost' OR name <> '' THEN type
+                        WHEN type <> 'guidepost' OR name IS NOT NULL THEN type
                         ELSE 'guidepost_noname'
                     END AS type
                 FROM
@@ -491,7 +491,7 @@ pub fn render(
             SELECT
                 osm_id,
                 geometry,
-                COALESCE(NULLIF(name, ''), tags->'ref', '') AS n,
+                COALESCE(name, tags->'ref') AS n,
                 hstore(ARRAY['ele', tags->'ele', 'access', tags->'access']) AS h,
                 CASE
                     WHEN type = 'tree' AND tags->'protected' <> 'no' THEN 'tree_protected'
@@ -506,14 +506,14 @@ pub fn render(
                 geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) AND
                 type <> 'peak' AND
                 (type <> 'tree' OR tags->'protected' NOT IN ('', 'no') OR tags->'denotation' = 'natural_monument') AND
-                (type <> 'saddle' OR name <> '')
+                (type <> 'saddle' OR name IS NOT NULL)
 
             UNION ALL
 
             SELECT
                 osm_id,
                 ST_PointOnSurface(geometry) AS geometry,
-                COALESCE(NULLIF(name, ''), tags->'ref', '') AS n,
+                COALESCE(name, tags->'ref') AS n,
                 hstore(ARRAY['ele', tags->'ele', 'access', tags->'access']) AS h,
                 CASE
                     WHEN type = 'communications_tower' THEN 'tower_communication'
@@ -843,9 +843,9 @@ pub fn render(
                 let bbox_idx = collision.add(bbox);
 
                 if def.min_text_zoom <= zoom {
-                    let name: &str = row.get("n");
+                    let name: Option<&str> = row.get("n");
 
-                    if !name.is_empty() {
+                    if let Some(name) = name {
                         let name = replace(name, &def.extra.replacements);
 
                         to_label.push((

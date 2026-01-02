@@ -32,13 +32,16 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision) -> Laye
                 ST_LineMerge(ST_Collect(ST_Segmentize(ST_Simplify(geometry, 24), 200))) AS geometry,
                 name, type, MIN(osm_id) AS osm_id
             FROM osm_waterways
-            WHERE name <> '' {}AND geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
+            WHERE
+            name IS NOT NULL AND
+            {}
+            geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
             GROUP BY name, type
         )
         SELECT name, type, geometry
         FROM merged ORDER BY type <> 'river', osm_id",
         if ctx.zoom < 14 {
-            "AND type = 'river' "
+            "type = 'river' AND"
         } else {
             ""
         }

@@ -51,7 +51,14 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
 
             let typ: &str = row.get("type");
 
-            context.set_dash(if row.get("tmp") { &[6.0, 3.0] } else { &[] }, 0.0);
+            context.set_dash(
+                if row.get::<_, Option<_>>("tmp").unwrap_or_default() {
+                    &[6.0, 3.0]
+                } else {
+                    &[]
+                },
+                0.0,
+            );
 
             let (width, smooth) = match (typ, zoom) {
                 ("river", ..=8) => (1.5f64.powf(zoom as f64 - 8.0), 0.0),
@@ -62,16 +69,13 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
                 _ => (0.0, 0.0), // TODO panic?
             };
 
+            let is_tunnel = || row.get::<_, Option<bool>>("tunnel").unwrap_or_default();
+
             if glow {
                 if zoom >= 12 {
                     context.set_source_color(colors::WATER);
 
-                    context.set_source_rgba(
-                        1.0,
-                        1.0,
-                        1.0,
-                        if row.get("tunnel") { 0.8 } else { 0.5 },
-                    );
+                    context.set_source_rgba(1.0, 1.0, 1.0, if is_tunnel() { 0.8 } else { 0.5 });
 
                     context.set_line_width(if typ == "river" {
                         3.4
@@ -86,8 +90,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
                     context.stroke()?;
                 }
             } else {
-                context
-                    .set_source_color_a(colors::WATER, if row.get("tunnel") { 0.33 } else { 1.0 });
+                context.set_source_color_a(colors::WATER, if is_tunnel() { 0.33 } else { 1.0 });
 
                 context.set_line_width(width);
 

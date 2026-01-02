@@ -191,9 +191,9 @@ fn get_routes_query(
                       osm_routes.type IN ({lefts_in})
                     THEN
                       CASE
-                        WHEN name <> '' AND ref <> ''
+                        WHEN name IS NOT NULL AND ref IS NOT NULL
                         THEN name || ' (' || ref || ')'
-                        ELSE COALESCE(NULLIF(name, ''), NULLIF(ref, '')) END
+                        ELSE COALESCE(name, ref) END
                     ELSE
                       null
                     END
@@ -211,9 +211,9 @@ fn get_routes_query(
                       osm_routes.type IN ({rights_in})
                     THEN
                       CASE
-                        WHEN name <> '' AND ref <> ''
+                        WHEN name IS NOT NULL AND ref IS NOT NULL
                         THEN name || ' (' || ref || ')'
-                        ELSE COALESCE(NULLIF(name, ''), NULLIF(ref, '')) END
+                        ELSE COALESCE(name, ref) END
                     ELSE
                       null
                     END
@@ -248,7 +248,7 @@ fn get_routes_query(
                 1000
               END
           ))) AS arr2
-        FROM osm_route_members{gen_suffix} JOIN osm_routes ON (osm_route_members{gen_suffix}.osm_id = osm_routes.osm_id AND state <> 'proposed')
+        FROM osm_route_members{gen_suffix} JOIN osm_routes ON (osm_route_members{gen_suffix}.osm_id = osm_routes.osm_id AND (state IS NULL OR state <> 'proposed'))
         WHERE {cond}geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
         GROUP BY member
       ) AS aaa

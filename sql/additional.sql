@@ -308,7 +308,7 @@ CREATE INDEX CONCURRENTLY osm_features_peak_named_geom_gist
 ON osm_features
 USING GIST (geometry)
 WHERE type = 'peak'
-  AND name <> '';
+  AND name IS NOT NULL;
 
 INSERT INTO
   z_order_landuse (type)
