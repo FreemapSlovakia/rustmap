@@ -1,7 +1,12 @@
 ---@meta
 
 ---@class Osm2pgsqlTable
----@field insert fun(self: Osm2pgsqlTable, row: table<string, unknown>): inserted: boolean, message: string, column: string, object: OsmObject Add data to a previously defined table
+local osm_table = {};
+
+---Add data to a previously defined table
+---@param row table<string, unknown>
+---@return boolean, string, string, OsmObject
+function osm_table:insert(row) end
 
 ---@class OsmGeometry
 local osm_geometry = {}
