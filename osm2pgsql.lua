@@ -1053,6 +1053,7 @@ end
 ---@param geom OsmGeometry
 local function process_waterarea(obj, geom)
     local tags = obj.tags
+
     local key, val = matches_any(tags, {
         landuse = { basin = true, reservoir = true },
         amenity = { swimming_pool = true, fountain = true },
@@ -1081,17 +1082,16 @@ local function process_waterarea(obj, geom)
     insert_generalized_waterarea(row, geom, area)
 end
 
+local accepted_waterways = set({ "river", "canal", "stream", "drain", "ditch" })
+
 ---@param obj OsmObject
 ---@param geom OsmGeometry
 local function process_waterway(obj, geom)
     local tags = obj.tags
-    local val = tags.waterway
-    if not val then
-        return
-    end
 
-    local accepted = set({ "river", "canal", "stream", "drain", "ditch" })
-    if not accepted[val] then
+    local val = tags.waterway
+
+    if not accepted_waterways[val] then
         return
     end
 

@@ -125,7 +125,7 @@ function osm_geometry:transform(target_srid) end
 ---@class OsmObject
 ---@field id integer
 ---@field type 'node' | 'way' | 'relation'
----@field tags table<string, string>
+---@field tags table<string, string | nil>
 ---@field version? integer
 ---@field timestamp? number
 ---@field changeset? integer
@@ -218,6 +218,7 @@ function osm2pgsql.has_prefix(string, prefix) end
 ---@return boolean | nil
 function osm2pgsql.has_suffix(string, suffix) end
 
+---Return a function that will check its only argument against the list of VALUES. If it is in that list, it will be returned, otherwise the DEFAULT (or nil) will be returned.
 ---@param values string[]
 ---@param default? string
 ---@return fun(string: string | nil): string | nil
