@@ -1,13 +1,10 @@
 {
   "editor.inlayHints.enabled": "offUnlessPressed",
   "deno.enable": false,
-  "Lua.workspace.library": [
-    "${workspaceFolder}/types"
-  ],
-  "Lua.diagnostics.globals": [
-    "osm2pgsql"
-  ],
   "[lua]": {
     "editor.defaultFormatter": "sumneko.lua"
-  }
+  },
+  "Lua.workspace.library": ["${addons}/osm2pgsql/module/library"],
+  "Lua.diagnostics.globals": ["osm2pgsql"],
+  "Lua.workspace.checkThirdParty": false
 }

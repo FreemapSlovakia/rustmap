@@ -216,6 +216,7 @@ local area_pk = { type = "area", id_column = "osm_id", create_index = "primary_k
 
 tables.routes = osm2pgsql.define_table({
     name = "osm_routes",
+    cluster = "no",
     ids = relation_pk,
     columns = {
         { column = "name",        type = "text" },
@@ -237,44 +238,52 @@ local route_member_columns = {
 
 tables.route_members = osm2pgsql.define_table({
     name = "osm_route_members",
-    ids = { type = "any", id_column = "osm_id" },
+    cluster = "no",
+    ids = { type = "relation", id_column = "osm_id" },
+    indexes = { { column = "osm_id", method = "hash" } },
     columns = route_member_columns,
 })
 
 tables.route_members_gen1 = osm2pgsql.define_table({
     name = "osm_route_members_gen1",
-    ids = { type = "any", id_column = "osm_id" },
+    cluster = "no",
+    ids = { type = "relation", id_column = "osm_id" },
+    indexes = { { column = "osm_id", method = "hash" } },
     columns = route_member_columns,
 })
 
 tables.route_members_gen0 = osm2pgsql.define_table({
     name = "osm_route_members_gen0",
-    ids = { type = "any", id_column = "osm_id" },
+    cluster = "no",
+    ids = { type = "relation", id_column = "osm_id" },
+    indexes = { { column = "osm_id", method = "hash" } },
     columns = route_member_columns,
 })
 
 tables.landusages = osm2pgsql.define_table({
     name = "osm_landusages",
+    cluster = "no",
     ids = area_pk,
     columns = landusage_columns
 })
 
 tables.landusages_gen1 = osm2pgsql.define_table({
     name = "osm_landusages_gen1",
-    ids = area_pk,
-    columns =
-        landusage_columns
+    cluster = "no",
+    ids = { type = "tile" },
+    columns = landusage_columns
 })
 
 tables.landusages_gen0 = osm2pgsql.define_table({
     name = "osm_landusages_gen0",
-    ids = area_pk,
-    columns =
-        landusage_columns
+    cluster = "no",
+    ids = { type = "tile" },
+    columns = landusage_columns
 })
 
 tables.buildings = osm2pgsql.define_table({
     name = "osm_buildings",
+    cluster = "no",
     ids = area_pk,
     columns = {
         { column = "geometry", type = "geometry", projection = projection, not_null = true },
@@ -285,6 +294,7 @@ tables.buildings = osm2pgsql.define_table({
 
 tables.shops = osm2pgsql.define_table({
     name = "osm_shops",
+    cluster = "no",
     ids = { type = "any", id_column = "osm_id" },
     columns = {
         { column = "geometry", type = "point", projection = projection, not_null = true },
@@ -295,6 +305,7 @@ tables.shops = osm2pgsql.define_table({
 
 tables.places = osm2pgsql.define_table({
     name = "osm_places",
+    cluster = "no",
     ids = node_pk,
     columns = {
         { column = "geometry",   type = "point", projection = projection, not_null = true },
@@ -307,6 +318,7 @@ tables.places = osm2pgsql.define_table({
 
 tables.aeroways = osm2pgsql.define_table({
     name = "osm_aeroways",
+    cluster = "no",
     ids = way_pk,
     columns = {
         { column = "geometry", type = "linestring", projection = projection, not_null = true },
@@ -315,14 +327,30 @@ tables.aeroways = osm2pgsql.define_table({
     },
 })
 
-tables.waterways = osm2pgsql.define_table({ name = "osm_waterways", ids = way_pk, columns = waterway_columns })
+tables.waterways = osm2pgsql.define_table({
+    name = "osm_waterways",
+    cluster = "no",
+    ids = way_pk,
+    columns = waterway_columns
+})
 
-tables.waterways_gen1 = osm2pgsql.define_table({ name = "osm_waterways_gen1", ids = way_pk, columns = waterway_columns })
 
-tables.waterways_gen0 = osm2pgsql.define_table({ name = "osm_waterways_gen0", ids = way_pk, columns = waterway_columns })
+tables.waterways_gen1 = osm2pgsql.define_table({
+    name = "osm_waterways_gen1",
+    cluster = "no",
+    ids = way_pk,
+    columns =
+        waterway_columns
+})
+
+
+tables.waterways_gen0 = osm2pgsql.define_table({
+    name = "osm_waterways_gen0", cluster = "no", ids = way_pk, columns = waterway_columns })
+
 
 tables.barrierways = osm2pgsql.define_table({
     name = "osm_barrierways",
+    cluster = "no",
     ids = way_pk,
     columns = {
         { column = "geometry", type = "linestring", projection = projection, not_null = true },
@@ -333,6 +361,7 @@ tables.barrierways = osm2pgsql.define_table({
 
 tables.barrierpoints = osm2pgsql.define_table({
     name = "osm_barrierpoints",
+    cluster = "no",
     ids = node_pk,
     columns = {
         { column = "geometry", type = "point", projection = projection, not_null = true },
@@ -344,6 +373,7 @@ tables.barrierpoints = osm2pgsql.define_table({
 
 tables.feature_lines = osm2pgsql.define_table({
     name = "osm_feature_lines",
+    cluster = "no",
     ids = way_pk,
     columns = {
         { column = "geometry", type = "linestring", projection = projection, not_null = true },
@@ -355,6 +385,7 @@ tables.feature_lines = osm2pgsql.define_table({
 
 tables.pipelines = osm2pgsql.define_table({
     name = "osm_pipelines",
+    cluster = "no",
     ids = way_pk,
     columns = {
         { column = "geometry",  type = "linestring", projection = projection, not_null = true },
@@ -366,6 +397,7 @@ tables.pipelines = osm2pgsql.define_table({
 
 tables.protected_areas = osm2pgsql.define_table({
     name = "osm_protected_areas",
+    cluster = "no",
     ids = area_pk,
     columns = {
         { column = "geometry",      type = "geometry", projection = projection, not_null = true },
@@ -378,6 +410,7 @@ tables.protected_areas = osm2pgsql.define_table({
 
 tables.fords = osm2pgsql.define_table({
     name = "osm_fords",
+    cluster = "no",
     ids = { type = "any", id_column = "osm_id" },
     columns = {
         { column = "geometry", type = "geometry", projection = projection, not_null = true },
@@ -387,6 +420,7 @@ tables.fords = osm2pgsql.define_table({
 
 tables.features = osm2pgsql.define_table({
     name = "osm_features",
+    cluster = "no",
     ids = node_pk,
     columns = {
         { column = "geometry", type = "point",  projection = projection, not_null = true },
@@ -398,6 +432,7 @@ tables.features = osm2pgsql.define_table({
 
 tables.towers = osm2pgsql.define_table({
     name = "osm_towers",
+    cluster = "no",
     ids = { type = "any", id_column = "osm_id" },
     columns = {
         { column = "geometry", type = "point", projection = projection, not_null = true },
@@ -410,6 +445,7 @@ tables.towers = osm2pgsql.define_table({
 
 tables.feature_polys = osm2pgsql.define_table({
     name = "osm_feature_polys",
+    cluster = "no",
     ids = area_pk,
     columns = {
         { column = "geometry", type = "geometry", projection = projection, not_null = true },
@@ -421,6 +457,7 @@ tables.feature_polys = osm2pgsql.define_table({
 
 tables.pois = osm2pgsql.define_table({
     name = "osm_pois",
+    cluster = "no",
     ids = { type = "any", type_column = "osm_type", id_column = "osm_id" },
     columns = {
         { column = "geometry", type = "point", projection = projection, not_null = true },
@@ -432,6 +469,7 @@ tables.pois = osm2pgsql.define_table({
 
 tables.springs = osm2pgsql.define_table({
     name = "osm_springs",
+    cluster = "no",
     ids = node_pk,
     columns = {
         { column = "geometry",             type = "point", projection = projection, not_null = true },
@@ -448,6 +486,7 @@ tables.springs = osm2pgsql.define_table({
 
 tables.building_points = osm2pgsql.define_table({
     name = "osm_building_points",
+    cluster = "no",
     ids = node_pk,
     columns = {
         { column = "geometry", type = "point",  projection = projection, not_null = true },
@@ -459,6 +498,7 @@ tables.building_points = osm2pgsql.define_table({
 
 tables.sports = osm2pgsql.define_table({
     name = "osm_sports",
+    cluster = "no",
     ids = { type = "any", id_column = "osm_id" },
     columns = {
         { column = "geometry", type = "geometry", projection = projection, not_null = true },
@@ -470,6 +510,7 @@ tables.sports = osm2pgsql.define_table({
 
 tables.power_generators = osm2pgsql.define_table({
     name = "osm_power_generators",
+    cluster = "no",
     ids = { type = "any", id_column = "osm_id" },
     columns = {
         { column = "geometry", type = "geometry", projection = projection, not_null = true },
@@ -481,6 +522,7 @@ tables.power_generators = osm2pgsql.define_table({
 
 tables.ruins = osm2pgsql.define_table({
     name = "osm_ruins",
+    cluster = "no",
     ids = { type = "any", id_column = "osm_id" },
     columns = {
         { column = "geometry", type = "point", projection = projection, not_null = true },
@@ -491,6 +533,7 @@ tables.ruins = osm2pgsql.define_table({
 
 tables.place_of_worships = osm2pgsql.define_table({
     name = "osm_place_of_worships",
+    cluster = "no",
     ids = { type = "any", id_column = "osm_id" },
     columns = {
         { column = "geometry", type = "geometry", projection = projection, not_null = true },
@@ -502,6 +545,7 @@ tables.place_of_worships = osm2pgsql.define_table({
 
 tables.infopoints = osm2pgsql.define_table({
     name = "osm_infopoints",
+    cluster = "no",
     ids = node_pk,
     columns = {
         { column = "geometry", type = "point", projection = projection, not_null = true },
@@ -517,6 +561,7 @@ tables.infopoints = osm2pgsql.define_table({
 
 tables.aerialways = osm2pgsql.define_table({
     name = "osm_aerialways",
+    cluster = "no",
     ids = way_pk,
     columns = {
         { column = "geometry", type = "linestring", projection = projection, not_null = true },
@@ -526,14 +571,28 @@ tables.aerialways = osm2pgsql.define_table({
     },
 })
 
-tables.roads = osm2pgsql.define_table({ name = "osm_roads", ids = way_pk, columns = road_columns })
+tables.roads = osm2pgsql.define_table({ name = "osm_roads", cluster = "no", ids = way_pk, columns = road_columns })
 
-tables.roads_gen1 = osm2pgsql.define_table({ name = "osm_roads_gen1", ids = way_pk, columns = road_columns })
 
-tables.roads_gen0 = osm2pgsql.define_table({ name = "osm_roads_gen0", ids = way_pk, columns = road_columns })
+tables.roads_gen1 = osm2pgsql.define_table({
+    name = "osm_roads_gen1",
+    cluster = "no",
+    ids = way_pk,
+    columns = road_columns
+})
+
+
+tables.roads_gen0 = osm2pgsql.define_table({
+    name = "osm_roads_gen0",
+    cluster = "no",
+    ids = way_pk,
+    columns = road_columns
+})
+
 
 tables.housenumbers = osm2pgsql.define_table({
     name = "osm_housenumbers",
+    cluster = "no",
     ids = { type = "any", id_column = "osm_id" },
     columns = {
         { column = "geometry",    type = "point", projection = projection, not_null = true },
@@ -543,48 +602,37 @@ tables.housenumbers = osm2pgsql.define_table({
     },
 })
 
-tables.waterareas = osm2pgsql.define_table({ name = "osm_waterareas", ids = area_pk, columns = waterarea_columns })
+tables.waterareas = osm2pgsql.define_table({
+    name = "osm_waterareas",
+    cluster = "no",
+    ids = area_pk,
+    columns = waterarea_columns
+})
+
 
 tables.waterareas_gen1 = osm2pgsql.define_table({
     name = "osm_waterareas_gen1",
+    cluster = "no",
     ids = area_pk,
-    columns =
-        waterarea_columns
+    columns = waterarea_columns
 })
 
 tables.waterareas_gen0 = osm2pgsql.define_table({
     name = "osm_waterareas_gen0",
+    cluster = "no",
     ids = area_pk,
-    columns =
-        waterarea_columns
+    columns = waterarea_columns
 })
 
 tables.fixmes = osm2pgsql.define_table({
     name = "osm_fixmes",
+    cluster = "no",
     ids = node_pk,
     columns = {
         { column = "geometry", type = "point", projection = projection, not_null = true },
         { column = "type",     type = "text" },
     },
 })
-
--- Helper to insert generalized rows for geometries that need simplification and area filtering.
----@param base_row table<string, unknown>
----@param geom OsmGeometry
----@param area number
-local function insert_generalized_landuse(base_row, geom, area)
-    if area > 50000 then
-        local g1 = geom:simplify(50)
-        base_row.geometry = g1
-        tables.landusages_gen1:insert(base_row)
-    end
-
-    if area > 500000 then
-        local g0 = geom:simplify(200)
-        base_row.geometry = g0
-        tables.landusages_gen0:insert(base_row)
-    end
-end
 
 ---@param base_row table<string, unknown>
 ---@param geom OsmGeometry
@@ -1021,6 +1069,7 @@ local function process_landuse(obj, geom)
     end
 
     local area = geom:spherical_area()
+
     local row = {
         osm_id = obj.id,
         geometry = geom,
@@ -1031,7 +1080,6 @@ local function process_landuse(obj, geom)
     }
 
     tables.landusages:insert(row)
-    insert_generalized_landuse(row, geom, area)
 end
 
 ---@param obj OsmObject
@@ -1825,4 +1873,30 @@ function osm2pgsql.process_relation(object)
             end
         end
     end
+end
+
+function osm2pgsql.process_gen()
+    osm2pgsql.run_gen(
+        'raster-union',
+        {
+            name = "osm_landusages_gen0",
+            cluster = "no",
+            src_table = "osm_landusages",
+            dest_table = "osm_landusages_gen0",
+            geom_column = "geometry",
+            zoom = 9
+        }
+    );
+
+    osm2pgsql.run_gen(
+        'raster-union',
+        {
+            name = "osm_landusages_gen1",
+            cluster = "no",
+            src_table = "osm_landusages",
+            dest_table = "osm_landusages_gen1",
+            geom_column = "geometry",
+            zoom = 11
+        }
+    );
 end

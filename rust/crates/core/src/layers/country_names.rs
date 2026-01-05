@@ -3,9 +3,9 @@ use crate::ctx::Ctx;
 use crate::draw::create_pango_layout::FontAndLayoutOptions;
 use crate::draw::offset_line::offset_line_string;
 use crate::draw::text_on_line::{Distribution, TextOnLineOptions, draw_text_on_line};
+use crate::layer_render_error::LayerRenderResult;
 use crate::layers::borders;
 use crate::projectable::{TileProjectable, geometry_line_string};
-use crate::layer_render_error::LayerRenderResult;
 use postgres::Client;
 use std::f64;
 
@@ -22,7 +22,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) -> LayerRenderResult {
     context.fill()?;
     context.restore()?;
 
-    borders::render(ctx, client)?;
+    // borders::render(ctx, client)?;
 
     let sr = 1.5f64.powf(ctx.zoom as f64 - 6.0).max(0.66);
 
