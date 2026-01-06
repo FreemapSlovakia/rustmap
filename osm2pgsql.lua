@@ -22,34 +22,6 @@ local function set(list)
     return t
 end
 
----@param tags table<string, string>
----@return boolean
-local function is_area(tags, is_closed)
-    if not is_closed or tags.area == "no" then
-        return false
-    end
-
-    if tags.area == "yes" then
-        return true
-    end
-
-    if tags["highway"] or tags["barrier"] then
-        return false
-    end
-
-    if
-        tags["building"] ~= nil
-        or tags["landuse"] ~= nil
-        or tags["leisure"] ~= nil
-        or tags["waterway"] ~= nil
-        or tags["aeroway"] ~= nil
-    then
-        return true
-    end
-
-    return false
-end
-
 -- Normalize common OSM boolean values.
 -- Returns: true | false | nil (or default if provided)
 local function osm_bool(v, default)
@@ -229,36 +201,36 @@ tables.routes = osm2pgsql.define_table({
     }
 })
 
-local route_member_columns = {
-    { column = "member",   type = "bigint" },
-    { column = "geometry", type = "geometry", projection = projection },
-    { column = "role",     type = "text" },
-    { column = "type",     type = "int" },
-}
+-- local route_member_columns = {
+--     { column = "member",   type = "bigint" },
+--     { column = "geometry", type = "geometry", projection = projection },
+--     { column = "role",     type = "text" },
+--     { column = "type",     type = "int" },
+-- }
 
-tables.route_members = osm2pgsql.define_table({
-    name = "osm_route_members",
-    cluster = "no",
-    ids = { type = "relation", id_column = "osm_id" },
-    indexes = { { column = "osm_id", method = "hash" } },
-    columns = route_member_columns,
-})
+-- tables.route_members = osm2pgsql.define_table({
+--     name = "osm_route_members",
+--     cluster = "no",
+--     ids = { type = "relation", id_column = "osm_id" },
+--     indexes = { { column = "osm_id", method = "hash" } },
+--     columns = route_member_columns,
+-- })
 
-tables.route_members_gen1 = osm2pgsql.define_table({
-    name = "osm_route_members_gen1",
-    cluster = "no",
-    ids = { type = "relation", id_column = "osm_id" },
-    indexes = { { column = "osm_id", method = "hash" } },
-    columns = route_member_columns,
-})
+-- tables.route_members_gen1 = osm2pgsql.define_table({
+--     name = "osm_route_members_gen1",
+--     cluster = "no",
+--     ids = { type = "relation", id_column = "osm_id" },
+--     indexes = { { column = "osm_id", method = "hash" } },
+--     columns = route_member_columns,
+-- })
 
-tables.route_members_gen0 = osm2pgsql.define_table({
-    name = "osm_route_members_gen0",
-    cluster = "no",
-    ids = { type = "relation", id_column = "osm_id" },
-    indexes = { { column = "osm_id", method = "hash" } },
-    columns = route_member_columns,
-})
+-- tables.route_members_gen0 = osm2pgsql.define_table({
+--     name = "osm_route_members_gen0",
+--     cluster = "no",
+--     ids = { type = "relation", id_column = "osm_id" },
+--     indexes = { { column = "osm_id", method = "hash" } },
+--     columns = route_member_columns,
+-- })
 
 tables.landusages = osm2pgsql.define_table({
     name = "osm_landusages",
@@ -751,7 +723,6 @@ local landuse_values = {
         "farmland",
         "orchard",
         "vineyard",
-        "wood",
         "meadow",
         "village_green",
         "recreation_ground",
@@ -1048,6 +1019,9 @@ local feature_poly_values = {
     waterway = set({ "weir", "dam" }),
 }
 
+---@param tags table<string, string>
+---@param lookup table<string, string[]>
+---@return string | nil, string | nil
 local function matches_any(tags, lookup)
     for key, values in pairs(lookup) do
         local v = tags[key]
@@ -1761,13 +1735,40 @@ function osm2pgsql.process_node(object)
     process_ford(object, geom)
 end
 
+---@type table<integer, integer[]>>
+local w2r = {}
+
+tables.route_way = osm2pgsql.define_table({
+    name = "osm_route_way",
+    ids = {
+        id_column = "osm_id", type = 'way', create_index = 'primary_key'
+    },
+    columns = {
+        { column = "geometry", type = "linestring", not_null = true, projection = projection }
+    },
+})
+
+tables.route_to_way = osm2pgsql.define_table({
+    name = "osm_route_to_way",
+    ids = {
+        id_column = "way_id", type = 'way', create_index = 'always'
+    },
+    columns = {
+        { column = "rel_id", type = 'bigint', not_null = true },
+    },
+    indexes = {
+        { column = { "rel_id", "way_id" }, method = "btree" },
+        { column = "rel_id",               method = "btree" },
+    }
+})
+
 function osm2pgsql.process_way(object)
     local tags = object.tags
 
-    local closed = object.is_closed
-    local as_area = is_area(tags, closed)
+    local can_be_polygon = object.is_closed and object.tags.area ~= "no";
+    local can_be_linestring = not object.is_closed and object.tags.area ~= "yes";
 
-    if as_area then
+    if can_be_polygon then
         local polygon = object:as_polygon()
         if not polygon then
             return
@@ -1786,7 +1787,7 @@ function osm2pgsql.process_way(object)
         process_ruins(object, polygon)
         process_place_of_worship(object, polygon)
         process_ford(object, polygon)
-    else
+    elseif can_be_linestring then
         local line = object:as_linestring()
         if not line then
             return
@@ -1801,14 +1802,33 @@ function osm2pgsql.process_way(object)
         process_road(object, line)
         process_ford(object, line)
 
-        if object.is_closed then
-            local poly = object:as_polygon()
-            if poly then
-                process_tower(object, poly)
+        local rel_ids = w2r[object.id]
+
+        if rel_ids then
+            tables.route_way:insert({
+                geometry = object:as_linestring()
+            })
+
+            for _, rel_id in ipairs(rel_ids) do
+                tables.route_to_way:insert({
+                    rel_id = rel_id,
+                    way_id = object.id,
+                })
             end
         end
     end
 end
+
+local outdoor_routes = set {
+    "hiking",
+    "bicycle",
+    "ski",
+    "horse",
+    "piste",
+    "foot",
+    "mtb",
+    "running"
+}
 
 function osm2pgsql.process_relation(object)
     local tags = object.tags
@@ -1832,19 +1852,7 @@ function osm2pgsql.process_relation(object)
         end
     end
 
-    if
-        tags.route
-        and (
-            tags.route == "hiking"
-            or tags.route == "bicycle"
-            or tags.route == "ski"
-            or tags.route == "horse"
-            or tags.route == "piste"
-            or tags.route == "foot"
-            or tags.route == "mtb"
-            or tags.route == "running"
-        )
-    then
+    if tags.type == "route" and outdoor_routes[tags.route] then
         tables.routes:insert({
             name = tags.name,
             ref = tags.ref,
@@ -1855,23 +1863,33 @@ function osm2pgsql.process_relation(object)
             type = tags.route,
         })
 
-        local rel_geom = object:as_multilinestring()
-
         for _, member in ipairs(object.members) do
-            if member.type == "w" or member.type == "r" or member.type == "n" then
-                local row = {
-                    osm_id = object.id,
-                    member = member.ref,
-                    geometry = rel_geom,
-                    role = member.role,
-                    type = nil,
-                }
+            if member.type == "w" then
+                if not w2r[member.ref] then
+                    w2r[member.ref] = {}
+                end
 
-                tables.route_members:insert(row)
+                w2r[member.ref][#w2r[member.ref] + 1] = object.id;
 
-                insert_generalized_route_member(row, rel_geom)
+                -- local row = {
+                --     osm_id = object.id,
+                --     member = member.ref,
+                --     geometry = rel_geom,
+                --     role = member.role,
+                --     type = nil,
+                -- }
+
+                -- tables.route_members:insert(row)
+
+                -- insert_generalized_route_member(row, rel_geom)
             end
         end
+    end
+end
+
+function osm2pgsql.select_relation_members(relation)
+    if relation.tags.type == 'route' and outdoor_routes[relation.tags.route] then
+        return { ways = osm2pgsql.way_member_ids(relation) }
     end
 end
 

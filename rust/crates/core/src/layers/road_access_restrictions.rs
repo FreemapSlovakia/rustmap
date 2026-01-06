@@ -14,15 +14,17 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
 
     let sql = "
         SELECT
-            CASE
-            WHEN bicycle NOT IN ('', 'yes', 'designated', 'official', 'permissive')
-            OR bicycle = '' AND vehicle NOT IN ('', 'yes', 'designated', 'official', 'permissive')
-            OR bicycle = '' AND vehicle = '' AND access NOT IN ('', 'yes', 'designated', 'official', 'permissive')
-            THEN 1 ELSE 0 END AS no_bicycle,
-            CASE
-            WHEN foot NOT IN ('', 'yes', 'designated', 'official', 'permissive')
-            OR foot = '' AND access NOT IN ('', 'yes', 'designated', 'official', 'permissive')
-            THEN 1 ELSE 0 END AS no_foot,
+            bicycle IS NOT NULL AND bicycle NOT IN ('yes', 'designated', 'official', 'permissive')
+            OR bicycle IS NULL AND
+            (   vehicle IS NOT NULL AND vehicle NOT IN ('yes', 'designated', 'official', 'permissive') OR
+                vehicle IS NULL AND access IS NOT NULL AND access NOT IN ('yes', 'designated', 'official', 'permissive')
+            )
+            AS no_bicycle,
+
+            foot IS NOT NULL AND foot NOT IN ('yes', 'designated', 'official', 'permissive')
+            OR foot IS NULL AND access IS NOT NULL AND access NOT IN ('yes', 'designated', 'official', 'permissive')
+            AS no_foot,
+
             geometry
         FROM osm_roads
         WHERE
@@ -52,8 +54,8 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
 
         context.new_path();
 
-        let no_bicycle = row.get::<_, i32>("no_bicycle") > 0;
-        let no_foot = row.get::<_, i32>("no_foot") > 0;
+        let no_bicycle: bool = row.get("no_bicycle");
+        let no_foot: bool = row.get("no_foot");
 
         if !no_bicycle && !no_foot {
             continue;

@@ -248,9 +248,13 @@ fn get_routes_query(
                 1000
               END
           ))) AS arr2
-        FROM osm_route_members{gen_suffix} JOIN osm_routes ON (osm_route_members{gen_suffix}.osm_id = osm_routes.osm_id AND (state IS NULL OR state <> 'proposed'))
+        FROM osm_routes
+            JOIN osm_route_to_way
+                ON osm_routes.osm_id = osm_route_to_way.rel_id AND (state IS NULL OR state <> 'proposed')
+            JOIN osm_route_way
+                ON osm_route_way.osm_id = osm_route_to_way.way_id
         WHERE {cond}geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
-        GROUP BY member
+        GROUP BY osm_route_way.osm_id
       ) AS aaa
       GROUP BY
         h_red, h_blue, h_green, h_yellow, h_black, h_white, h_orange, h_purple, h_none,
