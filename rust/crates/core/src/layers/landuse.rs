@@ -27,19 +27,73 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
     };
 
     let query = &format!(
-        "SELECT
+        "
+            SELECT
                 CASE
                     WHEN type = 'wetland' AND tags->'wetland' IN ('bog', 'reedbed', 'marsh', 'swamp', 'wet_meadow', 'mangrove', 'fen')
                     THEN tags->'wetland'
                     ELSE type
                 END AS type,
                 ST_Intersection(ST_MakeValid(geometry), ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), 100)) AS geometry,
-                position(type || ',' IN 'pedestrian,footway,pitch,library,baracks,parking,cemetery,grave_yard,place_of_worship,dam,weir,clearcut,wetland,scrub,orchard,vineyard,railway,landfill,scree,blockfield,quarry,park,garden,allotments,village_green,grass,recreation_ground,fell,bare_rock,heath,meadow,wood,forest,golf_course,grassland,farm,zoo,farmyard,hospital,kindergarten,school,college,university,retail,commercial,industrial,residential,farmland,glacier,') AS z_order
+                array_position(
+                    ARRAY[
+                        'pedestrian',
+                        'footway',
+                        'pitch',
+                        'library',
+                        'barracks',
+                        'parking',
+                        'cemetery',
+                        'grave_yard',
+                        'place_of_worship',
+                        'dam',
+                        'weir',
+                        'clearcut',
+                        'wetland',
+                        'scrub',
+                        'orchard',
+                        'vineyard',
+                        'railway',
+                        'landfill',
+                        'scree',
+                        'blockfield',
+                        'quarry',
+                        'park',
+                        'garden',
+                        'allotments',
+                        'village_green',
+                        'grass',
+                        'recreation_ground',
+                        'fell',
+                        'bare_rock',
+                        'heath',
+                        'meadow',
+                        'wood',
+                        'forest',
+                        'golf_course',
+                        'grassland',
+                        'farm',
+                        'zoo',
+                        'farmyard',
+                        'hospital',
+                        'kindergarten',
+                        'school',
+                        'college',
+                        'university',
+                        'retail',
+                        'commercial',
+                        'industrial',
+                        'farmland',
+                        'residential',
+                        'glacier'
+                    ],
+                    type
+                ) AS z_order
             FROM osm_landusages{}
             WHERE
                 {excl_types}
                 geometry && ST_MakeEnvelope($1, $2, $3, $4, 3857)
-            ORDER BY z_order DESC, osm_id",
+            ORDER BY z_order DESC NULLS LAST, osm_id",
         match ctx.zoom {
             ..=9 => "_gen0",
             10..=11 => "_gen1",
