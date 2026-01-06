@@ -1,10 +1,11 @@
 use crate::{
     SvgRepo,
     ctx::Ctx,
+    draw::{markers_on_path::draw_markers_on_path, path_geom::path_line_string},
     layer_render_error::LayerRenderResult,
     projectable::{TileProjectable, geometry_line_string, geometry_point},
 };
-use geo::{Coord, Euclidean, Length, LineStringSegmentize};
+use geo::Coord;
 use postgres::Client;
 
 pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRenderResult {
@@ -51,20 +52,16 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
 
     let rows = client.query(sql, &ctx.bbox_query_params(Some(8.0)).as_params())?;
 
-    for row in rows.into_iter().skip(1) {
+    for row in rows.into_iter() {
         let line_string = geometry_line_string(&row).project_to_tile(&ctx.tile_projector);
 
-        let Some(ml) = line_string
-            .line_segmentize((Euclidean.length(&line_string) as f64 / 150.0).ceil() as usize)
-        else {
-            continue;
-        };
+        path_line_string(context, &line_string);
 
-        for line_string in ml {
-            if let Some(c) = line_string.0.first() {
-                paint(c)?;
-            }
-        }
+        let path = context.copy_path_flat()?;
+
+        context.new_path();
+
+        draw_markers_on_path(&path, 75.0, 150.0, &|x, y, _angle| paint(&Coord { x, y }))?;
     }
 
     Ok(())
