@@ -246,6 +246,8 @@ static POIS: LazyLock<HashMap<&'static str, Vec<Def>>> = LazyLock::new(|| {
             ..Extra::default()
         }),
         (15, 16, N, N, "convenience", Extra::default()),
+        (15, 16, N, N, "greengrocer", Extra::default()),
+        (15, 16, N, N, "farm", Extra { icon: Some("greengrocer"), ..Extra::default()}),
         (15, 16, N, N, "supermarket", Extra::default()),
         (15, 16, N, N, "fast_food", Extra::default()),
         (15, 16, N, N, "confectionery", Extra::default()),
@@ -256,14 +258,7 @@ static POIS: LazyLock<HashMap<&'static str, Vec<Def>>> = LazyLock::new(|| {
         (15, NN, N, N, "mast_other", Extra::default()),
         (15, NN, N, N, "tower_other", Extra::default()),
         (15, NN, N, N, "tower_communication", Extra::default()),
-        (
-            15,
-            NN,
-            N,
-            N,
-            "mast_communication",
-            Extra { icon: Some("tower_communication"), ..Extra::default() },
-        ),
+        (15, NN, N, N, "mast_communication", Extra { icon: Some("tower_communication"), ..Extra::default() }),
         (15, 16, N, N, "tower_bell_tower", Extra::default()),
         (15, 16, N, N, "water_tower", Extra::default()),
         (15, 16, N, N, "bus_stop", Extra::default()),
@@ -626,7 +621,7 @@ pub fn render(
                         osm_shops
                     WHERE
                         geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) AND
-                        type IN ('convenience', 'fuel', 'confectionery', 'pastry', 'bicycle', 'supermarket')
+                        type IN ('convenience', 'fuel', 'confectionery', 'pastry', 'bicycle', 'supermarket', 'greengrocer', 'farm')
 
                     UNION ALL
 
