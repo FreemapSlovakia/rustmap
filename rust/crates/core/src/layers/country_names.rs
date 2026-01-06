@@ -22,7 +22,7 @@ pub fn render(ctx: &Ctx, client: &mut Client) -> LayerRenderResult {
     context.fill()?;
     context.restore()?;
 
-    // borders::render(ctx, client)?;
+    borders::render(ctx, client)?;
 
     let sr = 1.5f64.powf(ctx.zoom as f64 - 6.0).max(0.66);
 

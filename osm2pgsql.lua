@@ -126,16 +126,6 @@ local tables = {}
 
 -- Shared column definitions reused by generalized tables
 
-
----@type OsmColumnDef[]
-local landusage_columns = {
-    { column = "geometry", type = "geometry", projection = projection, not_null = true },
-    { column = "name",     type = "text" },
-    { column = "type",     type = "text" },
-    { column = "area",     type = "real",     not_null = true },
-    { column = "tags",     type = "hstore",   not_null = true },
-}
-
 ---@type OsmColumnDef[]
 local waterway_columns = {
     { column = "geometry",     type = "linestring", projection = projection, not_null = true },
@@ -168,17 +158,6 @@ local road_columns = {
     { column = "trail_visibility", type = "int" },
     { column = "sac_scale",        type = "text" },
     { column = "fixme",            type = "text" },
-}
-
----@type OsmColumnDef[]
-local waterarea_columns = {
-    { column = "geometry",     type = "geometry", projection = projection, not_null = true },
-    { column = "name",         type = "text" },
-    { column = "type",         type = "text" },
-    { column = "area",         type = "real",     not_null = true },
-    { column = "intermittent", type = "bool" },
-    { column = "seasonal",     type = "bool" },
-    { column = "water",        type = "text" },
 }
 
 local node_pk = { type = "node", id_column = "osm_id", create_index = "primary_key" }
@@ -236,21 +215,33 @@ tables.landusages = osm2pgsql.define_table({
     name = "osm_landusages",
     cluster = "no",
     ids = area_pk,
-    columns = landusage_columns
+    columns = {
+        { column = "geometry", type = "geometry", projection = projection, not_null = true },
+        { column = "name",     type = "text" },
+        { column = "type",     type = "text",     not_null = true },
+        { column = "area",     type = "real",     not_null = true },
+        { column = "tags",     type = "hstore",   not_null = true },
+    }
 })
 
 tables.landusages_gen1 = osm2pgsql.define_table({
     name = "osm_landusages_gen1",
     cluster = "no",
     ids = { type = "tile" },
-    columns = landusage_columns
+    columns = {
+        { column = "geometry", type = "geometry", projection = projection, not_null = true },
+        { column = "type",     type = "text",     not_null = true },
+    }
 })
 
 tables.landusages_gen0 = osm2pgsql.define_table({
     name = "osm_landusages_gen0",
     cluster = "no",
     ids = { type = "tile" },
-    columns = landusage_columns
+    columns = {
+        { column = "geometry", type = "geometry", projection = projection, not_null = true },
+        { column = "type",     type = "text",     not_null = true },
+    }
 })
 
 tables.buildings = osm2pgsql.define_table({
@@ -578,22 +569,36 @@ tables.waterareas = osm2pgsql.define_table({
     name = "osm_waterareas",
     cluster = "no",
     ids = area_pk,
-    columns = waterarea_columns
+    columns = {
+        { column = "geometry",     type = "geometry", projection = projection, not_null = true },
+        { column = "name",         type = "text" },
+        { column = "type",         type = "text",     not_null = true },
+        { column = "area",         type = "real",     not_null = true },
+        { column = "intermittent", type = "bool" },
+        { column = "seasonal",     type = "bool" },
+        { column = "water",        type = "text" },
+    }
 })
 
 
 tables.waterareas_gen1 = osm2pgsql.define_table({
     name = "osm_waterareas_gen1",
     cluster = "no",
-    ids = area_pk,
-    columns = waterarea_columns
+    ids = { type = "tile" },
+    columns = {
+        { column = "geometry", type = "geometry", projection = projection, not_null = true },
+        { column = "type",     type = "text",     not_null = true },
+    }
 })
 
 tables.waterareas_gen0 = osm2pgsql.define_table({
     name = "osm_waterareas_gen0",
     cluster = "no",
-    ids = area_pk,
-    columns = waterarea_columns
+    ids = { type = "tile" },
+    columns = {
+        { column = "geometry", type = "geometry", projection = projection, not_null = true },
+        { column = "type",     type = "text",     not_null = true },
+    }
 })
 
 tables.fixmes = osm2pgsql.define_table({
@@ -605,23 +610,6 @@ tables.fixmes = osm2pgsql.define_table({
         { column = "type",     type = "text" },
     },
 })
-
----@param base_row table<string, unknown>
----@param geom OsmGeometry
----@param area number
-local function insert_generalized_waterarea(base_row, geom, area)
-    if area > 50000 then
-        local g1 = geom:simplify(50)
-        base_row.geometry = g1
-        tables.waterareas_gen1:insert(base_row)
-    end
-
-    if area > 500000 then
-        local g0 = geom:simplify(200)
-        base_row.geometry = g0
-        tables.waterareas_gen0:insert(base_row)
-    end
-end
 
 ---@param base_row table<string, unknown>
 ---@param geom OsmGeometry
@@ -653,10 +641,8 @@ local function to_surface_point(geom)
 
     local g = geom:pole_of_inaccessibility({ stretch = 1.0 })
 
-    type = geom:geometry_type();
-
-    if type == 'POINT' or type == 'NULL' then
-        return geom
+    if g:geometry_type() == 'POINT' then
+        return g
     end
 
     return geom:centroid();
@@ -1038,7 +1024,7 @@ end
 local function process_landuse(obj, geom)
     local tags = obj.tags
     local key, val = matches_any(tags, landuse_values)
-    if not key then
+    if not key or key == "highway" and tags.area ~= "yes" then
         return
     end
 
@@ -1101,7 +1087,6 @@ local function process_waterarea(obj, geom)
     }
 
     tables.waterareas:insert(row)
-    insert_generalized_waterarea(row, geom, area)
 end
 
 local accepted_waterways = set({ "river", "canal", "stream", "drain", "ditch" })
@@ -1763,10 +1748,8 @@ tables.route_to_way = osm2pgsql.define_table({
 })
 
 function osm2pgsql.process_way(object)
-    local tags = object.tags
-
     local can_be_polygon = object.is_closed and object.tags.area ~= "no";
-    local can_be_linestring = not object.is_closed and object.tags.area ~= "yes";
+    local can_be_linestring = object.tags.area ~= "yes";
 
     if can_be_polygon then
         local polygon = object:as_polygon()
@@ -1787,7 +1770,9 @@ function osm2pgsql.process_way(object)
         process_ruins(object, polygon)
         process_place_of_worship(object, polygon)
         process_ford(object, polygon)
-    elseif can_be_linestring then
+    end
+
+    if can_be_linestring then
         local line = object:as_linestring()
         if not line then
             return
@@ -1806,7 +1791,7 @@ function osm2pgsql.process_way(object)
 
         if rel_ids then
             tables.route_way:insert({
-                geometry = object:as_linestring()
+                geometry = line
             })
 
             for _, rel_id in ipairs(rel_ids) do
@@ -1902,7 +1887,8 @@ function osm2pgsql.process_gen()
             src_table = "osm_landusages",
             dest_table = "osm_landusages_gen0",
             geom_column = "geometry",
-            zoom = 9
+            zoom = 9,
+            group_by_column = "type"
         }
     );
 
@@ -1914,7 +1900,34 @@ function osm2pgsql.process_gen()
             src_table = "osm_landusages",
             dest_table = "osm_landusages_gen1",
             geom_column = "geometry",
-            zoom = 11
+            zoom = 11,
+            group_by_column = "type"
+        }
+    );
+
+    osm2pgsql.run_gen(
+        'raster-union',
+        {
+            name = "osm_waterareas_gen0",
+            cluster = "no",
+            src_table = "osm_waterareas",
+            dest_table = "osm_waterareas_gen0",
+            geom_column = "geometry",
+            zoom = 9,
+            group_by_column = "type"
+        }
+    );
+
+    osm2pgsql.run_gen(
+        'raster-union',
+        {
+            name = "osm_waterareas_gen1",
+            cluster = "no",
+            src_table = "osm_waterareas",
+            dest_table = "osm_waterareas_gen1",
+            geom_column = "geometry",
+            zoom = 11,
+            group_by_column = "type"
         }
     );
 end

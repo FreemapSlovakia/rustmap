@@ -69,6 +69,10 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
                 _ => (0.0, 0.0), // TODO panic?
             };
 
+            let t = row.get::<_, Option<bool>>("tunnel");
+
+            println!("{:?}", t);
+
             let is_tunnel = || row.get::<_, Option<bool>>("tunnel").unwrap_or_default();
 
             if glow {
