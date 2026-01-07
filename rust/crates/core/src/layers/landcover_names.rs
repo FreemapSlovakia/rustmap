@@ -51,6 +51,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision) -> Laye
                 -- NOTE filtering some POIs (hacky because it affects also lower zooms)
                 osm_sports ON osm_landusages.osm_id = osm_sports.osm_id AND osm_sports.type IN ('soccer', 'tennis', 'basketball', 'shooting')
             WHERE
+                osm_landusages.name <> '' AND
                 osm_feature_polys.osm_id IS NULL AND
                 osm_sports.osm_id IS NULL AND
                 osm_landusages.geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)

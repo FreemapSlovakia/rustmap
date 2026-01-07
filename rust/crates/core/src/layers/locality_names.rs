@@ -16,7 +16,7 @@ pub fn render(ctx: &Ctx, client: &mut Client, collision: &mut Collision) -> Laye
 
     let sql = "SELECT name, geometry
         FROM osm_places
-        WHERE type IN ('locality', 'city_block', 'plot') AND geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
+        WHERE name <> '' AND type IN ('locality', 'city_block', 'plot') AND geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
         ORDER BY z_order DESC, population DESC, osm_id";
 
     let text_options = TextOptions {
