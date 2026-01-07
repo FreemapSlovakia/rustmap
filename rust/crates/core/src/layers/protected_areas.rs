@@ -53,11 +53,12 @@ pub fn render(ctx: &Ctx, client: &mut Client, svg_repo: &mut SvgRepo) -> LayerRe
 
                 context.clip();
 
-                hatch_geometry(ctx, unprojected, 3.0, -45.0)?;
-
                 context.set_source_color_a(colors::PROTECTED, if zoom < 11 { 0.5 } else { 0.4 });
                 context.set_dash(&[], 0.0);
                 context.set_line_width(0.7);
+
+                hatch_geometry(ctx, unprojected, 3.0, -45.0)?;
+
                 context.stroke()?;
 
                 context.pop_group_to_source()?;

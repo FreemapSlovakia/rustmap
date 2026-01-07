@@ -4,8 +4,8 @@ use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::{hatch::hatch_geometry, path_geom::path_geometry},
-    projectable::{TileProjectable, geometry_geometry},
     layer_render_error::LayerRenderResult,
+    projectable::{TileProjectable, geometry_geometry},
 };
 
 pub fn render(ctx: &Ctx, client: &mut Client) -> LayerRenderResult {
@@ -42,12 +42,13 @@ pub fn render(ctx: &Ctx, client: &mut Client) -> LayerRenderResult {
         context.set_source_color(colors::SOLAR_BG);
         context.paint()?;
 
-        hatch_geometry(ctx, &geom, d, 0.0)?;
-        hatch_geometry(ctx, &geom, d, 90.0)?;
-
         context.set_source_color(colors::SOLAR_FG);
         context.set_dash(&[], 0.0);
         context.set_line_width(1.0);
+
+        hatch_geometry(ctx, &geom, d, 0.0)?;
+        hatch_geometry(ctx, &geom, d, 90.0)?;
+
         context.stroke()?;
 
         context.restore()?;

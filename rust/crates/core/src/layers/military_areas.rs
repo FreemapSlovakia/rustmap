@@ -2,8 +2,8 @@ use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
     draw::{hatch::hatch_geometry, path_geom::path_geometry},
-    projectable::{TileProjectable, geometry_geometry},
     layer_render_error::LayerRenderResult,
+    projectable::{TileProjectable, geometry_geometry},
 };
 use postgres::Client;
 
@@ -43,11 +43,12 @@ pub fn render(ctx: &Ctx, client: &mut Client) -> LayerRenderResult {
 
         context.clip();
 
-        hatch_geometry(ctx, unprojected, 10.0, -45.0)?;
-
         ctx.context.set_source_color(colors::MILITARY);
         ctx.context.set_dash(&[], 0.0);
         ctx.context.set_line_width(1.5);
+
+        hatch_geometry(ctx, unprojected, 10.0, -45.0)?;
+
         ctx.context.stroke()?;
 
         context.pop_group_to_source()?;

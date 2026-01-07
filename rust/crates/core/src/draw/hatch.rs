@@ -27,9 +27,11 @@ fn hatch(ctx: &Ctx, line_string: &LineString, spacing: f64, angle: f64) -> cairo
 
     let len = bounds.width().hypot(bounds.height()) / 2.0 + 1.0;
 
-    let d = perpendicular_distance((0.0, 0.0), (x, y), angle) % spacing + 0.5;
-
     let context = ctx.context;
+
+    let w = context.line_width();
+
+    let d = perpendicular_distance((0.0, 0.0), (x, y), angle) % spacing + (w / 2.0);
 
     context.save()?;
 
