@@ -3,7 +3,7 @@
   <clipPath id="clipSpring" clipPathUnits="userSpaceOnUse">
     <use href="#spring" />
   </clipPath>
-  <g clip-path="url(#clipSpring)" id="intermittent" opacity="50%">
+  <g clip-path="url(#clipSpring)" id="intermittent" opacity="75%">
     <path id="stripes"
       fill="white"
       d="M 0.5,2.5
