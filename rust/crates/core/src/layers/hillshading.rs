@@ -261,7 +261,6 @@ pub fn render(
 
     context.save()?;
 
-    context.identity_matrix();
     if raster_scale != 1.0 {
         context.scale(1.0 / raster_scale, 1.0 / raster_scale);
     }
