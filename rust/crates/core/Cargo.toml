@@ -19,7 +19,7 @@ image = { version = "0.25", default-features = false, features = [
 librsvg = { version = "2.61" }
 bitflags = "2.9"
 cairo-rs = { version = "0.21", features = ["png", "svg", "pdf"] }
-cavalier_contours = { version = "0.6.0" }
+cavalier_contours = { version = "0.7.0" }
 colorsys = "0.7"
 gdal = { workspace = true }
 geo = { workspace = true }
@@ -36,4 +36,4 @@ napi = { workspace = true }
 napi-derive = { workspace = true }
 thiserror = { workspace = true }
 gio = "0.21.5"
-xmltree = "0.11"
+xmltree = "0.12.0"

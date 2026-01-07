@@ -15,11 +15,11 @@
     "chokidar": "5.0.0",
     "fs-ext": "2.1.1",
     "generic-pool": "3.9.0",
+    "json5": "^2.2.3",
     "koa": "3.1.1",
     "koa-body": "7.0.1",
     "koa-send": "5.0.1",
-    "maprender-node": "../rust/crates/node",
-    "json5": "^2.2.3",
+    "maprender-node": "link:../rust/crates/node",
     "valibot": "^1.2.0"
   },
   "devDependencies": {
