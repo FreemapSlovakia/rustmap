@@ -1,10 +1,7 @@
 use crate::{
     colors::{self, ContextExt},
     ctx::Ctx,
-    draw::{
-        hatch::{self, hatch_geometry},
-        path_geom::path_geometry,
-    },
+    draw::{hatch::hatch_geometry, path_geom::path_geometry},
     layer_render_error::LayerRenderResult,
     projectable::{TileProjectable, geometry_geometry},
 };
