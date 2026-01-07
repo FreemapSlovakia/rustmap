@@ -1,13 +1,5 @@
 <svg version="1.0" width="64" height="64"
   xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
-
-  <defs id="defs4">
-    <style type="text/css" id="style6" />
-  </defs>
-  <path id="rect134" opacity=".5" fill="#9e9e9e" fill-opacity="0" fill-rule="nonzero" stroke="none"
-    stroke-width=".319" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"
-    stroke-dasharray="none" stroke-dashoffset="0" stroke-opacity="1" d="M0 0h64v64H0z"
-    style="stroke:#e7e7e7;stroke-opacity:1" />
   <path
     d="M17.886 13.098c-.832.205-1.971-.198-2.576.568-.204.912.76 1.896 1.683 1.608.954.03 2.084.38 2.9-.283-.119-.879-1.047-1.346-1.69-1.83a.656.656 0 00-.317-.063z"
     fill="none" stroke="#d6cfcf" stroke-width=".959" stroke-linecap="round"
