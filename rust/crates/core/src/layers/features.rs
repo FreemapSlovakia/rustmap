@@ -772,15 +772,21 @@ pub fn render(
                     }
 
                     let fill = if h.get("hot").map_or(false, |r| r.as_deref() == Some("true")) {
+                        key.push_str("|hot");
+
                         "#e11919"
                     } else {
                         "#0064ff"
                     };
 
-                    key.push('|');
-                    key.push_str(fill);
+                    if h.get("intermittent")
+                        .map_or(false, |r| r.as_deref() == Some("true"))
+                    {
+                        key.push_str("|tmp");
+                        names.push("intermittent".into());
+                    }
 
-                    stylesheet.push_str(&format!("#spring {{ fill: {} }} ", fill));
+                    stylesheet.push_str(&format!("#spring {{ fill: {fill} }}"));
 
                     match h.get("drinkable").map_or(None, |r| r.as_deref()) {
                         Some("true") => {
