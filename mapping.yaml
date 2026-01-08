@@ -194,7 +194,7 @@ tables:
             - silo
             - storage_tank
             - wastewater_plant
-            - bridge # TODO
+            - bridge
       amenity:
         mapping:
           amenity:
@@ -942,10 +942,10 @@ tables:
       - name: refitted
         type: bool
         key: refitted
-      - name: seasonal # TODO
+      - name: seasonal
         type: bool
         key: seasonal
-      - name: intermittent # TODO
+      - name: intermittent
         type: bool
         key: intermittent
       - name: drinking_water
