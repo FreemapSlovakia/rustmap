@@ -30,7 +30,9 @@ export type WorkerRenderer = {
   terminate: () => Promise<void>;
 };
 
-function createWorkerRenderer(worker: Worker): WorkerRenderer {
+function createWorkerRenderer(createWorker: () => Worker): WorkerRenderer {
+  let worker = createWorker();
+
   const pending = new Map<
     number,
     {
@@ -42,11 +44,16 @@ function createWorkerRenderer(worker: Worker): WorkerRenderer {
   let nextId = 1;
   let readyResolve: (() => void) | undefined;
   let readyReject: ((err: Error) => void) | undefined;
+  let readyPromise: Promise<void>;
 
-  const readyPromise = new Promise<void>((resolve, reject) => {
-    readyResolve = resolve;
-    readyReject = reject;
-  });
+  const resetReadyPromise = () => {
+    readyPromise = new Promise<void>((resolve, reject) => {
+      readyResolve = resolve;
+      readyReject = reject;
+    });
+  };
+
+  resetReadyPromise();
 
   const handleFailure = (err: Error) => {
     for (const pendingItem of pending.values()) {
@@ -62,45 +69,66 @@ function createWorkerRenderer(worker: Worker): WorkerRenderer {
     }
   };
 
-  worker.on("message", (message: RenderResponse) => {
-    if (message.type === "ready") {
-      if (readyResolve) {
-        readyResolve();
+  const attachWorkerHandlers = () => {
+    worker.on("message", (message: RenderResponse) => {
+      if (message.type === "ready") {
+        if (readyResolve) {
+          readyResolve();
+        }
+
+        readyResolve = undefined;
+        readyReject = undefined;
+        return;
       }
 
-      readyResolve = undefined;
-      readyReject = undefined;
-      return;
-    }
+      const pendingItem = pending.get(message.id);
 
-    const pendingItem = pending.get(message.id);
+      if (!pendingItem) {
+        throw new Error("no such pending request: " + message.id);
+      }
 
-    if (!pendingItem) {
-      throw new Error("no such pending request: " + message.id);
-    }
+      if (message.type === "error") {
+        const err = new Error(message.error.message);
+        err.name = message.error.name || err.name;
+        err.stack = message.error.stack || err.stack;
 
-    pending.delete(message.id);
+        if (err.message.includes("Cairo error: Invalid String")) {
+          handleFailure(err);
+          void restartWorker();
+          return;
+        }
 
-    if (message.type === "error") {
-      const err = new Error(message.error.message);
-      err.name = message.error.name || err.name;
-      err.stack = message.error.stack || err.stack;
-      pendingItem.reject(err);
-      return;
-    }
+        pending.delete(message.id);
+        pendingItem.reject(err);
+        return;
+      }
 
-    pendingItem.resolve(message.images.map((image) => Buffer.from(image)));
-  });
+      pending.delete(message.id);
+      pendingItem.resolve(message.images.map((image) => Buffer.from(image)));
+    });
 
-  worker.on("error", (err) => {
-    handleFailure(err);
-  });
+    worker.on("error", (err) => {
+      handleFailure(err);
+    });
 
-  worker.once("exit", (code) => {
-    if (code !== 0) {
-      handleFailure(new Error(`Render worker exited with code ${code}`));
-    }
-  });
+    worker.once("exit", (code) => {
+      if (code !== 0) {
+        handleFailure(new Error(`Render worker exited with code ${code}`));
+      }
+    });
+  };
+
+  const restartWorker = async () => {
+    const oldWorker = worker;
+    oldWorker.removeAllListeners();
+    await oldWorker.terminate();
+
+    worker = createWorker();
+    resetReadyPromise();
+    attachWorkerHandlers();
+  };
+
+  attachWorkerHandlers();
 
   const waitReady = () => readyPromise;
 
@@ -137,11 +165,12 @@ function createWorkerRenderer(worker: Worker): WorkerRenderer {
 
 const factory: Factory<WorkerRenderer> = {
   async create() {
-    const worker = new Worker(import.meta.dirname + "/renderWorker.js", {
-      workerData: rendererConfig,
-    });
+    const createWorker = () =>
+      new Worker(import.meta.dirname + "/renderWorker.js", {
+        workerData: rendererConfig,
+      });
 
-    const renderer = createWorkerRenderer(worker);
+    const renderer = createWorkerRenderer(createWorker);
 
     await renderer.waitReady();
 
