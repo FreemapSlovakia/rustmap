@@ -28,77 +28,103 @@ pub fn render(
 
     let rows = client.query(sql, &ctx.bbox_query_params(Some(8.0)).as_params())?;
 
-    let context = ctx.context;
-
-    context.push_group();
-
-    for row in rows {
-        let geom = geometry_line_string(&row).project_to_tile(&ctx.tile_projector);
-
-        let zoom = ctx.zoom;
-
-        match row.get("type") {
-            "earth_bank" => {
-                if zoom >= 14 {
-                    draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("earth_bank")?)?;
-                }
-            }
-            "dyke" => {
-                if zoom >= 14 {
-                    draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("dyke")?)?;
-                }
-            }
-            "embankment" => {
-                if zoom >= 14 {
-                    draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("embankment-half")?)?;
-                }
-            }
-            "gully" => {
-                if zoom >= 14 {
-                    draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("gully")?)?;
-                }
-            }
-            "cliff" => {
-                if zoom >= 13 {
-                    draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("cliff")?)?;
-
-                    context.set_source_color(colors::AREA_LABEL);
-                    context.set_line_width(1.0);
-                    path_line_string(context, &geom);
-                    context.stroke()?;
-                }
-            }
-            _ => {
-                //
-            }
-        }
+    if rows.is_empty() {
+        return Ok(());
     }
 
-    context.push_group();
+    let mut mask_surfaces = Vec::new();
 
     if shading && let Some(hillshading_datasets) = hillshading_datasets {
         for cc in [
             "pl", "sk", "cz", "at", /*"ch", "it" (CH, IT are not so detailed) */
         ] {
-            hillshading::render(
+            let mask_surface = hillshading::load_surface(
                 ctx,
-                &format!("{cc}-mask"),
-                1.0,
+                cc,
                 hillshading_datasets,
                 hillshade_scale,
+                hillshading::Mode::Mask,
             )?;
+
+            if let Some(mask_surface) = mask_surface {
+                mask_surfaces.push(mask_surface);
+            }
         }
     }
 
-    context.pop_group_to_source()?;
+    if hillshading::mask_covers_tile(&mut mask_surfaces)? {
+        return Ok(());
+    }
 
-    context.set_operator(cairo::Operator::DestOut);
+    let context = ctx.context;
 
-    context.paint()?;
+    let mut draw = || -> LayerRenderResult {
+        for row in &rows {
+            let geom = geometry_line_string(row).project_to_tile(&ctx.tile_projector);
 
-    context.pop_group_to_source()?;
+            let zoom = ctx.zoom;
 
-    context.paint()?;
+            match row.get("type") {
+                "earth_bank" => {
+                    if zoom >= 14 {
+                        draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("earth_bank")?)?;
+                    }
+                }
+                "dyke" => {
+                    if zoom >= 14 {
+                        draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("dyke")?)?;
+                    }
+                }
+                "embankment" => {
+                    if zoom >= 14 {
+                        draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("embankment-half")?)?;
+                    }
+                }
+                "gully" => {
+                    if zoom >= 14 {
+                        draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("gully")?)?;
+                    }
+                }
+                "cliff" => {
+                    if zoom >= 13 {
+                        draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("cliff")?)?;
+
+                        context.set_source_color(colors::AREA_LABEL);
+                        context.set_line_width(1.0);
+                        path_line_string(context, &geom);
+                        context.stroke()?;
+                    }
+                }
+                _ => {
+                    //
+                }
+            }
+        }
+
+        Ok(())
+    };
+
+    if mask_surfaces.is_empty() {
+        draw()?;
+    } else {
+        context.push_group();
+
+        draw()?;
+
+        context.push_group();
+
+        for mask_surface in &mask_surfaces {
+            hillshading::paint_surface(ctx, mask_surface, hillshade_scale, 1.0)?;
+        }
+
+        context.pop_group_to_source()?;
+
+        context.set_operator(cairo::Operator::DestOut);
+        context.paint()?;
+
+        context.pop_group_to_source()?;
+        context.paint()?;
+    }
 
     Ok(())
 }

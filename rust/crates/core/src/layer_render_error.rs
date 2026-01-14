@@ -17,6 +17,12 @@ pub enum LayerRenderError {
 
     #[error("Invalid GeoJSON: {0}")]
     GeoJsonError(#[from] geojson::Error),
+
+    #[error("GDAL error: {0}")]
+    GdalError(#[from] gdal::errors::GdalError),
+
+    #[error("Cairo borrow error: {0}")]
+    CairoBorrowError(#[from] cairo::BorrowError),
 }
 
 pub type LayerRenderResult = Result<(), LayerRenderError>;
