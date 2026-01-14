@@ -102,9 +102,9 @@ fn create_pango_layout_with_attrs_on_font_map(
     let mut font_description = FontDescription::new();
 
     font_description.set_family(if *narrow {
-        "PT Sans Narrow,Fira Sans Extra Condensed,Noto Sans"
+        "MapRender Sans Narrow"
     } else {
-        "PT Sans,Fira Sans Condensed,Noto Sans"
+        "MapRender Sans"
     });
 
     let mut fo = cairo::FontOptions::new().unwrap();
