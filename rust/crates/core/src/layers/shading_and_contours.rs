@@ -40,6 +40,7 @@ pub fn render(
         ("pl", vec!["sk"]),
         ("sk", vec![]),
         ("fr", vec![]),
+        ("no", vec![]),
     ];
 
     for (country, better_countries) in config {
@@ -105,7 +106,7 @@ pub fn render(
     if FALLBACK {
         let mut mask_surfaces = Vec::new();
 
-        for country in ["it", "at", "ch", "si", "pl", "sk", "cz", "fr"] {
+        for country in ["it", "at", "ch", "si", "pl", "sk", "cz", "fr", "no"] {
             let mask_surface = hillshading::load_surface(
                 ctx,
                 country,

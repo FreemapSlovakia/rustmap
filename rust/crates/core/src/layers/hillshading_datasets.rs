@@ -5,7 +5,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-const DATASET_PATHS: [(&str, &str); 9] = [
+const DATASET_PATHS: [(&str, &str); 10] = [
     ("sk", "sk/final.tif"),
     ("cz", "cz/final.tif"),
     ("at", "at/final.tif"),
@@ -14,6 +14,7 @@ const DATASET_PATHS: [(&str, &str); 9] = [
     ("ch", "ch/final.tif"),
     ("si", "si/final.tif"),
     ("fr", "fr/final.tif"),
+    ("no", "no/final.tif"),
     ("_", "final.tif"),
 ];
 

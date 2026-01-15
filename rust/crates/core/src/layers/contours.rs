@@ -8,8 +8,8 @@ use crate::{
             Align, Distribution, Repeat, TextOnLineOptions, Upright, draw_text_on_line,
         },
     },
-    projectable::{TileProjectable, geometry_line_string},
     layer_render_error::LayerRenderResult,
+    projectable::{TileProjectable, geometry_line_string},
 };
 use postgres::Client;
 
