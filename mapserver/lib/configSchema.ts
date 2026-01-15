@@ -63,7 +63,7 @@ export const configSchema = strictObject({
       workers: nullish(number()),
       minZoom: number(),
       maxZoom: number(),
-      polygon: string(),
+      polygon: nullish(string()),
       zoomPrio: nullish(array(number())),
       cleanOnly: nullish(boolean()),
     })
