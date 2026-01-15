@@ -77,7 +77,7 @@ export const configSchema = strictObject({
   minExpiredBatchSize: nullish(number()), // null = delete without batching
   expiresZoom: number(),
   prerenderMaxZoom: number(),
-  prerenderDelayWhenExpiring: number(),
+  prerenderDelayWhenExpiring: nullish(number()),
   maskPolygon: nullish(pipe(string(), nonEmpty())),
 });
 

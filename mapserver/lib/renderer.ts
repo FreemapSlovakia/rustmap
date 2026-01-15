@@ -13,7 +13,7 @@ import { pool } from "./renderedPool.js";
 import { Tile } from "./types.js";
 import { ImageFormat } from "maprender-node";
 import { prerenderer } from "./prerenderer.js";
-import { config } from "./config.js";
+import { config, prerenderPolygon } from "./config.js";
 
 const flockAsync = promisify(
   flock as (
@@ -299,11 +299,11 @@ async function shouldRender(
   // return prerenderPolygon && isOld && !tileOverlapsLimits(prerenderPolygon, tile)
   //   || prerender && (isOld || dirtyTiles.has(tile2key(tile)));
 
-  if (prerenderer?.prerenderPolygon) {
+  if (prerenderPolygon) {
     if (
       rerenderOlderThanMs != null &&
       s.mtimeMs < rerenderOlderThanMs &&
-      !tileOverlapsLimits(prerenderer.prerenderPolygon, tile)
+      !tileOverlapsLimits(prerenderPolygon, tile)
     ) {
       reasons.push("shouldRender");
     }

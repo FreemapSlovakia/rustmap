@@ -2,7 +2,7 @@ import path from "path";
 import { stat } from "fs/promises";
 import { dirtyTiles } from "./dirtyTilesRegister.js";
 import { tile2key, tileRangeGenerator } from "./tileCalc.js";
-import { config } from "./config.js";
+import { config, prerenderPolygon } from "./config.js";
 import { prerenderer } from "./prerenderer.js";
 
 const extension = config.format.extension;
@@ -14,14 +14,14 @@ export async function fillDirtyTilesRegister() {
     throw new Error("missing prerenderConfig");
   }
 
-  if (!prerenderer?.prerenderPolygon) {
+  if (!prerenderPolygon) {
     throw new Error("missing prerenderPolygon");
   }
 
   const { minZoom, maxZoom } = config.prerender;
 
   for (const { zoom, x, y } of tileRangeGenerator(
-    prerenderer.prerenderPolygon,
+    prerenderPolygon,
     minZoom,
     maxZoom
   )) {

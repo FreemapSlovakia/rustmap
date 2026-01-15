@@ -1,4 +1,4 @@
-import fs from "fs";
+import fs, { readFileSync } from "fs";
 import path from "path";
 import { Polygon } from "geojson";
 import { deepmerge } from "@fastify/deepmerge";
@@ -100,3 +100,9 @@ function parseConfigFile(text: string): Record<string, unknown> {
 
   return parsed;
 }
+
+const prerenderPolygonFile = config.prerender?.polygon;
+
+export const prerenderPolygon: Polygon | undefined =
+  prerenderPolygonFile &&
+  JSON.parse(readFileSync(prerenderPolygonFile, "utf-8"));

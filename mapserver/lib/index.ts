@@ -61,13 +61,13 @@ if (config.limits.cleanup) {
   });
 }
 
-if (prerenderer) {
+listenHttp();
+
+if (config.prerender) {
   processNewDirties();
 
   try {
     await fillDirtyTilesRegister();
-
-    listenHttp();
 
     if (config.dirs.expires) {
       watcher = chokidar.watch(config.dirs.expires);
@@ -75,12 +75,10 @@ if (prerenderer) {
       watcher.on("add", processNewDirties);
     }
 
-    await prerenderer.prerender();
+    await prerenderer?.prerender();
   } catch (err) {
     console.error("Error filling dirty tiles register", err);
 
     process.exit(1);
   }
-} else {
-  listenHttp();
 }

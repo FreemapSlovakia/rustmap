@@ -16,7 +16,7 @@ import {
   tileOverlapsLimits,
 } from "./tileCalc.js";
 import { dirtyTiles } from "./dirtyTilesRegister.js";
-import { config } from "./config.js";
+import { config, prerenderPolygon } from "./config.js";
 import { flock } from "fs-ext";
 import { promisify } from "util";
 import { Tile } from "./types.js";
@@ -76,8 +76,7 @@ export async function processExpireFiles() {
       .map(([zoom, x, y]) => ({ x, y, zoom }))
       .filter(
         (tile) =>
-          !prerenderer?.prerenderPolygon ||
-          tileOverlapsLimits(prerenderer.prerenderPolygon, tile)
+          !prerenderPolygon || tileOverlapsLimits(prerenderPolygon, tile)
       )
       .forEach((tile) => {
         tiles.add(tile);
@@ -99,13 +98,13 @@ export async function processExpireFiles() {
     outzoomExpiredTiles.add(`${zoom}/${x}/${y}`);
   };
 
-  if (prerenderer) {
+  if (config.prerender) {
     for (const tile of tiles) {
       computeZoomedTiles(
         collect,
         tile,
         config.limits.minZoom,
-        prerenderer.maxZoom
+        config.prerender.maxZoom
       );
     }
   }
@@ -129,11 +128,11 @@ export async function processExpireFiles() {
     let tt: number[] | undefined;
 
     if (
-      prerenderer &&
-      ((prerenderer.prerenderPolygon &&
-        !tileOverlapsLimits(prerenderer.prerenderPolygon, { zoom, x, y })) ||
-        zoom < prerenderer.minZoom ||
-        zoom > prerenderer.maxZoom)
+      config.prerender &&
+      ((prerenderPolygon &&
+        !tileOverlapsLimits(prerenderPolygon, { zoom, x, y })) ||
+        zoom < config.prerender.minZoom ||
+        zoom > config.prerender.maxZoom)
     ) {
       for (const scale of config.limits.scales) {
         const tileFile = `${tile}${

@@ -4,8 +4,6 @@ import { renderTile } from "./renderer.js";
 import { Worker } from "worker_threads";
 import { Tile } from "./types.js";
 import { config } from "./config.js";
-import { Polygon } from "geojson";
-import { readFileSync } from "fs";
 
 export const prerenderer = createPrerenderer();
 
@@ -101,17 +99,8 @@ function createPrerenderer() {
     }
   }
 
-  const prerenderPolygonFile = prerenderConfig.polygon;
-
-  const prerenderPolygon: Polygon | undefined =
-    prerenderPolygonFile &&
-    JSON.parse(readFileSync(prerenderPolygonFile, "utf-8"));
-
   return {
     resume,
     prerender,
-    prerenderPolygon,
-    minZoom: prerenderConfig.minZoom,
-    maxZoom: prerenderConfig.maxZoom,
   };
 }
