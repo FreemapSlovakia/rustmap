@@ -34,10 +34,36 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: Option<&str>) -> LayerRen
     context.save()?;
 
     // TODO measure performance impact of simplification, if it makes something faster
+    let width_case = match zoom {
+        12 => "CASE WHEN height_m % 50 = 0 THEN 0.2 ELSE 0.0 END",
+        13 | 14 => {
+            "CASE
+                WHEN height_m % 100 = 0 THEN 0.4
+                WHEN height_m % 20 = 0 THEN 0.2
+                ELSE 0.0
+            END"
+        }
+        _ => {
+            "CASE
+                WHEN height_m % 100 = 0 THEN 0.6
+                WHEN height_m % 10 = 0 THEN 0.3
+                WHEN height_m % 50 = 0 AND height_m % 100 <> 0 THEN 0.0
+                ELSE 0.0
+            END"
+        }
+    };
+
     let sql = format!(
-        "SELECT ST_SimplifyVW(wkb_geometry, $6) AS geometry, height
-        FROM {}
-        WHERE wkb_geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)",
+        "WITH contours AS (
+            SELECT
+                ST_SimplifyVW(wkb_geometry, $6) AS geometry,
+                height_m,
+                ({width_case})::double precision AS width
+            FROM {}
+            WHERE
+                wkb_geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
+        )
+        SELECT geometry, height_m, width FROM contours WHERE width > 0",
         &(if let Some(country) = country {
             format!("contour_{country}_split")
         } else {
@@ -54,39 +80,27 @@ pub fn render(ctx: &Ctx, client: &mut Client, country: Option<&str>) -> LayerRen
     let rows = client.query(&sql, &query_params)?;
 
     for row in rows {
-        let height: f64 = row.get("height");
+        let height: i16 = row.get("height_m");
 
-        let width = match zoom {
-            12 if height % 50.0 == 0.0 => 0.2,
-            13..=14 if height % 100.0 == 0.0 => 0.4,
-            13..=14 if height % 20.0 == 0.0 => 0.2,
-            15.. if height % 100.0 == 0.0 => 0.6,
-            15.. if height % 10.0 == 0.0 => 0.3,
-            15.. if height % 50.0 == 0.0 && height % 100.0 != 0.0 => 0.0,
-            _ => 0.0,
-        };
+        let width: f64 = row.get("width");
 
         let labels = match zoom {
-            12 if height % 50.0 == 0.0 => false,
-            13..=14 if height % 100.0 == 0.0 => true,
-            13..=14 if height % 20.0 == 0.0 => false,
-            15.. if height % 50.0 == 0.0 => true,
+            13..=14 => height % 100 == 0,
+            15.. => height % 50 == 0,
             _ => false,
         };
 
         let geom = geometry_line_string(&row).project_to_tile(&ctx.tile_projector);
 
-        if width > 0.0 {
-            context.set_dash(&[], 0.0);
+        context.set_dash(&[], 0.0);
 
-            context.set_line_width(width);
+        context.set_line_width(width);
 
-            context.set_source_color(colors::CONTOUR);
+        context.set_source_color(colors::CONTOUR);
 
-            path_smooth_bezier_spline(context, &geom, 1.0);
+        path_smooth_bezier_spline(context, &geom, 1.0);
 
-            context.stroke()?;
-        }
+        context.stroke()?;
 
         if labels {
             let _drawn = draw_text_on_line(
