@@ -150,7 +150,7 @@ pub fn render(
         feature_lines::render(ctx, client, svg_repo).with_layer("feature_lines")?;
     }
 
-    if zoom >= 13 {
+    if zoom >= 15 {
         feature_lines_maskable::render(
             ctx,
             client,

@@ -62,38 +62,26 @@ pub fn render(
         for row in &rows {
             let geom = geometry_line_string(row).project_to_tile(&ctx.tile_projector);
 
-            let zoom = ctx.zoom;
-
             match row.get("type") {
                 "earth_bank" => {
-                    if zoom >= 14 {
-                        draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("earth_bank")?)?;
-                    }
+                    draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("earth_bank")?)?;
                 }
                 "dyke" => {
-                    if zoom >= 14 {
-                        draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("dyke")?)?;
-                    }
+                    draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("dyke")?)?;
                 }
                 "embankment" => {
-                    if zoom >= 14 {
-                        draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("embankment-half")?)?;
-                    }
+                    draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("embankment-half")?)?;
                 }
                 "gully" => {
-                    if zoom >= 14 {
-                        draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("gully")?)?;
-                    }
+                    draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("gully")?)?;
                 }
                 "cliff" => {
-                    if zoom >= 13 {
-                        draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("cliff")?)?;
+                    draw_line_pattern(ctx, &geom, 0.8, svg_repo.get("cliff")?)?;
 
-                        context.set_source_color(colors::AREA_LABEL);
-                        context.set_line_width(1.0);
-                        path_line_string(context, &geom);
-                        context.stroke()?;
-                    }
+                    context.set_source_color(colors::AREA_LABEL);
+                    context.set_line_width(1.0);
+                    path_line_string(context, &geom);
+                    context.stroke()?;
                 }
                 _ => {
                     //
