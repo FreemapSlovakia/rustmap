@@ -8,5 +8,11 @@
     minZoom: 0,
     cleanup: true,
   },
-  exportMapConcurrency: 1,
+  prerender: {
+    cleanOnly: true,
+    minZoom: 0,
+    maxZoom: 7,
+  },
+  prerenderDelayWhenExpiring: null,
+  exportMapConcurrency: 2,
 }

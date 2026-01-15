@@ -8,6 +8,7 @@ import {
   open,
   access,
   FileHandle,
+  mkdir,
 } from "fs/promises";
 import {
   computeZoomedTiles,
@@ -151,6 +152,8 @@ export async function processExpireFiles() {
       const dirtyFile = `${tile}.dirty`;
 
       let t = Date.now();
+
+      await mkdir(path.resolve(tilesDir, `${zoom}/${x}`), { recursive: true });
 
       await (await open(path.resolve(tilesDir, dirtyFile), "w")).close();
 

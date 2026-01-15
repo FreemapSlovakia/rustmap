@@ -12,7 +12,7 @@ export const prerenderer = createPrerenderer();
 function createPrerenderer() {
   const prerenderConfig = config.prerender;
 
-  if (!prerenderConfig) {
+  if (!prerenderConfig || prerenderConfig.cleanOnly) {
     return;
   }
 

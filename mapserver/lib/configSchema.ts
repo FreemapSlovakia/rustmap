@@ -64,7 +64,8 @@ export const configSchema = strictObject({
       minZoom: number(),
       maxZoom: number(),
       polygon: string(),
-      zoomPrio: array(number()),
+      zoomPrio: nullish(array(number())),
+      cleanOnly: nullish(boolean()),
     })
   ),
   rerenderOlderThanMs: nullish(number()),
