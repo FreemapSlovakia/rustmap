@@ -3,7 +3,6 @@ import { stat } from "fs/promises";
 import { dirtyTiles } from "./dirtyTilesRegister.js";
 import { tile2key, tileRangeGenerator } from "./tileCalc.js";
 import { config, prerenderPolygon } from "./config.js";
-import { prerenderer } from "./prerenderer.js";
 
 const extension = config.format.extension;
 

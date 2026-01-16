@@ -67,7 +67,9 @@ if (config.prerender) {
   processNewDirties();
 
   try {
-    await fillDirtyTilesRegister();
+    if (prerenderer) {
+      await fillDirtyTilesRegister();
+    }
 
     if (config.dirs.expires) {
       watcher = chokidar.watch(config.dirs.expires);
