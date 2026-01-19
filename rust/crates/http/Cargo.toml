@@ -6,11 +6,10 @@ publish = false
 
 [dependencies]
 maprender-core = { path = "../core" }
-oxhttp = { version = "0.3" }
+axum = "0.8.8"
 postgres = { workspace = true }
 r2d2 = { workspace = true }
 r2d2_postgres = { workspace = true }
-regex = { workspace = true }
 tracy-client = { workspace = true }
 gdal = { workspace = true }
 clap = { version = "4.5.18", features = ["derive", "env"] }
@@ -19,3 +18,10 @@ geo = { workspace = true }
 geojson = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+tokio = { version = "1.40.0", features = ["fs", "macros", "rt-multi-thread"] }
+tower = { version = "0.5.1", features = ["limit", "timeout"] }
+rand = "0.8.5"
+serde = { version = "1.0.217", features = ["derive"] }
+notify = "6.1.1"
+fs2 = "0.4.3"
+tokio-util = { version = "0.7.12", features = ["io"] }
