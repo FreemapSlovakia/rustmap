@@ -74,7 +74,7 @@ fn should_use_bevel_join(
     let dot = v1_norm.0.mul_add(v2_norm.0, v1_norm.1 * v2_norm.1);
     let angle = dot.clamp(-1.0, 1.0).acos();
 
-    let miter_length = stroke_width / (2.0 * (angle / 2.0).sin());
+    let miter_length = stroke_width / (2.0 * (angle / 2.0).cos());
 
     miter_length > miter_limit * stroke_width
 }
@@ -214,7 +214,7 @@ pub fn draw_line_pattern_scaled(
             {
                 corner1 = intersection;
                 use_corner4 = false;
-            } else if let Some(intersection) = (bevel || cp > 0.0)
+            } else if let Some(intersection) = (!bevel && cp > 0.0)
                 .then(|| get_intersection(corner1, corner4, prev_corner1, prev_corner4))
                 .flatten()
             {
@@ -230,7 +230,7 @@ pub fn draw_line_pattern_scaled(
             {
                 corner2 = intersection;
                 use_corner3 = false;
-            } else if let Some(intersection) = (bevel || cp < 0.0)
+            } else if let Some(intersection) = (!bevel && cp < 0.0)
                 .then(|| get_intersection(corner2, corner3, prev_corner2, prev_corner3))
                 .flatten()
             {
@@ -271,7 +271,7 @@ pub fn draw_line_pattern_scaled(
                 get_intersection1(corner2, corner3, next_corner3, next_corner4)
             {
                 corner3 = intersection;
-            } else if let Some(intersection) = (bevel || cp < 0.0)
+            } else if let Some(intersection) = (!bevel && cp < 0.0)
                 .then(|| get_intersection(corner2, corner3, next_corner2, next_corner3))
                 .flatten()
             {
@@ -287,7 +287,7 @@ pub fn draw_line_pattern_scaled(
                 get_intersection1(corner1, corner4, next_corner3, next_corner4)
             {
                 corner4 = intersection;
-            } else if let Some(intersection) = (bevel || cp > 0.0)
+            } else if let Some(intersection) = (!bevel && cp > 0.0)
                 .then(|| get_intersection(corner1, corner4, next_corner1, next_corner4))
                 .flatten()
             {
