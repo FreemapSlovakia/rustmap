@@ -1,4 +1,4 @@
 /target
-/tiles
+/tiles*
 .env
 /*.pbf
