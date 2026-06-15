@@ -11,6 +11,41 @@ pub enum Mode {
     Shading,
 }
 
+/// In-place morphological erosion of a 0/255 mask by a rectangular structuring
+/// element (separable min-filter, independent radius per axis). Shrinks the
+/// valid region so output pixels whose Lanczos footprint could reach a masked
+/// source pixel get dropped. Operates on the tile-sized resampled buffer.
+fn erode(mask: &mut [u8], width: usize, height: usize, radius_x: usize, radius_y: usize) {
+    if width == 0 || height == 0 || (radius_x == 0 && radius_y == 0) {
+        return;
+    }
+
+    let mut tmp = mask.to_vec();
+
+    // horizontal pass: mask -> tmp
+    for y in 0..height {
+        let row = y * width;
+        for x in 0..width {
+            let lo = x.saturating_sub(radius_x);
+            let hi = (x + radius_x).min(width - 1);
+            tmp[row + x] = mask[row + lo..=row + hi].iter().copied().min().unwrap();
+        }
+    }
+
+    // vertical pass: tmp -> mask
+    for x in 0..width {
+        for y in 0..height {
+            let lo = y.saturating_sub(radius_y);
+            let hi = (y + radius_y).min(height - 1);
+            let mut m = 255u8;
+            for k in lo..=hi {
+                m = m.min(tmp[k * width + x]);
+            }
+            mask[y * width + x] = m;
+        }
+    }
+}
+
 fn read_rgba_from_gdal(
     dataset: &Dataset,
     ctx: &Ctx,
@@ -146,8 +181,33 @@ fn read_rgba_from_gdal(
         })
         .and_then(|_| alpha_band.open_mask_band().ok());
 
-    let mut mask_buffer = if mask_band.is_some() {
-        Some(vec![0u8; resampled_height * resampled_width])
+    // Read the per-dataset mask at the resampled (tile) resolution using
+    // NearestNeighbour (no Lanczos ringing in the mask itself), then erode it so
+    // any output pixel whose Lanczos footprint could reach a masked source pixel
+    // gets dropped. The Lanczos support is 3 source pixels; expressed in output
+    // pixels that is 3 * max(upscale, 1), so the radius only grows when
+    // overzooming (where the buffer is small anyway).
+    let eroded_mask = if let (Some(mask_band), true) =
+        (mask_band.as_ref(), resampled_width > 0 && resampled_height > 0)
+    {
+        let mut buf = vec![0u8; resampled_width * resampled_height];
+
+        mask_band.read_into_slice::<u8>(
+            (clamped_window_x, clamped_window_y),
+            (clamped_source_width, clamped_source_height),
+            (resampled_width, resampled_height),
+            &mut buf,
+            Some(gdal::raster::ResampleAlg::NearestNeighbour),
+        )?;
+
+        let ratio_x = resampled_width as f64 / clamped_source_width as f64;
+        let ratio_y = resampled_height as f64 / clamped_source_height as f64;
+        let radius_x = (3.0 * ratio_x.max(1.0)).ceil() as usize;
+        let radius_y = (3.0 * ratio_y.max(1.0)).ceil() as usize;
+
+        erode(&mut buf, resampled_width, resampled_height, radius_x, radius_y);
+
+        Some(buf)
     } else {
         None
     };
@@ -164,16 +224,6 @@ fn read_rgba_from_gdal(
             &mut band_buffer,
             Some(gdal::raster::ResampleAlg::Lanczos),
         )?;
-
-        if let (Some(mask_band), Some(mask_buffer)) = (mask_band.as_ref(), mask_buffer.as_mut()) {
-            mask_band.read_into_slice::<u8>(
-                (clamped_window_x, clamped_window_y),
-                (clamped_source_width, clamped_source_height),
-                (resampled_width, resampled_height), // Resampled size
-                mask_buffer,
-                Some(gdal::raster::ResampleAlg::Lanczos),
-            )?;
-        }
     }
 
     let mut has_data = false;
@@ -186,9 +236,7 @@ fn read_rgba_from_gdal(
                 let value = band_buffer[data_index];
 
                 if alpha_no_data.is_some_and(|nd| nd == value)
-                    || mask_buffer
-                        .as_ref()
-                        .is_some_and(|mask_buffer| mask_buffer[data_index] == 0)
+                    || eroded_mask.as_ref().is_some_and(|m| m[data_index] == 0)
                 {
                     (0, 0)
                 } else {
@@ -369,4 +417,3 @@ pub fn mask_covers_tile(surfaces: &mut [&mut ImageSurface]) -> Result<bool, Laye
 
     Ok(false)
 }
-
