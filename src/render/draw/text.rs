@@ -2,7 +2,7 @@ use crate::render::{
     collision::Collision,
     colors::{self, Color, ContextExt},
     draw::{
-        font_options::FontAndLayoutOptions,
+        font_options::{FontAndLayoutOptions, uppercase_label},
         font_system::{scale_outline, stamp_outline, with_font_system, with_scale_context},
     },
 };
@@ -89,7 +89,7 @@ pub fn draw_text(
     } = *flo;
 
     let text: Cow<str> = if uppercase {
-        Cow::Owned(text.to_uppercase())
+        Cow::Owned(uppercase_label(text))
     } else {
         Cow::Borrowed(text)
     };

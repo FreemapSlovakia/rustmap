@@ -2,7 +2,7 @@ use crate::render::{
     collision::Collision,
     colors::{self, Color, ContextExt},
     draw::{
-        font_options::FontAndLayoutOptions,
+        font_options::{FontAndLayoutOptions, uppercase_label},
         font_system::{scale_outline, stamp_outline, with_font_system, with_scale_context},
         offset_line::offset_line_string,
     },
@@ -449,7 +449,7 @@ fn collect_clusters(text: &str, flo: &FontAndLayoutOptions) -> Vec<ClusterInfo> 
         .letter_spacing((flo.letter_spacing / flo.size.max(0.0001)) as f32);
 
     let text_owned = if flo.uppercase {
-        text.to_uppercase()
+        uppercase_label(text)
     } else {
         text.to_string()
     };
