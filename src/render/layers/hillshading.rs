@@ -187,9 +187,10 @@ fn read_rgba_from_gdal(
     // gets dropped. The Lanczos support is 3 source pixels; expressed in output
     // pixels that is 3 * max(upscale, 1), so the radius only grows when
     // overzooming (where the buffer is small anyway).
-    let eroded_mask = if let (Some(mask_band), true) =
-        (mask_band.as_ref(), resampled_width > 0 && resampled_height > 0)
-    {
+    let eroded_mask = if let (Some(mask_band), true) = (
+        mask_band.as_ref(),
+        resampled_width > 0 && resampled_height > 0,
+    ) {
         let mut buf = vec![0u8; resampled_width * resampled_height];
 
         mask_band.read_into_slice::<u8>(
@@ -205,7 +206,13 @@ fn read_rgba_from_gdal(
         let radius_x = (3.0 * ratio_x.max(1.0)).ceil() as usize;
         let radius_y = (3.0 * ratio_y.max(1.0)).ceil() as usize;
 
-        erode(&mut buf, resampled_width, resampled_height, radius_x, radius_y);
+        erode(
+            &mut buf,
+            resampled_width,
+            resampled_height,
+            radius_x,
+            radius_y,
+        );
 
         Some(buf)
     } else {
