@@ -108,7 +108,9 @@ static POI_ENTRIES: LazyLock<Vec<PoiEntry>> = LazyLock::new(|| {
 
     let university_replacements = build_replacements(&[(r"[V]ysoká [Šš]kola", "VŠ")]);
 
-    use Category::{Poi, NaturalPoi, Water, Accommodation, Institution, Railway, Sport, GastroPoi, Other};
+    use Category::{
+        Accommodation, GastroPoi, Institution, NaturalPoi, Other, Poi, Railway, Sport, Water,
+    };
 
     #[rustfmt::skip]
     let entries = vec![
@@ -841,11 +843,20 @@ pub fn render_icons(
 
                 (Cow::Owned(key), names, Some(stylesheet))
             }
-            _ => (
-                Cow::Borrowed(key),
-                vec![key.to_string()],
-                def.extra.stylesheet.map(str::to_string),
-            ),
+            _ => {
+                let stylesheet = def.extra.stylesheet.map(str::to_string);
+
+                // Fold the stylesheet into the cache key so styled variants (e.g. the
+                // red volcano) don't collide with the unstyled icon of the same name
+                // (plain "peak"), whose surface is cached on first render regardless of
+                // stylesheet — see SvgRepo::get_extra.
+                let cache_key = match &stylesheet {
+                    Some(ss) => Cow::Owned(format!("{key}|{ss}")),
+                    None => Cow::Borrowed(key),
+                };
+
+                (cache_key, vec![key.to_string()], stylesheet)
+            }
         };
 
         let surface = svg_repo.get_extra(
