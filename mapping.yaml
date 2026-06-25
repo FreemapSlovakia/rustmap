@@ -332,6 +332,8 @@ tables:
             - scree
             - scrub
             - shingle
+            - shrubbery
+            - tundra
             - wetland
             - wood
       tourism:
@@ -960,19 +962,32 @@ tables:
           leisure:
             mapping:
               leisure:
+                - bathing_place
                 - beach_resort
                 - bird_hide
+                - dance
+                - disc_golf_course
                 - dog_park
                 - firepit
+                - fishing
+                - fitness_centre
+                - fitness_station
                 - golf_course
                 - horse_riding
+                - ice_rink
+                - marina
                 - miniature_golf
                 - outdoor_seating
                 - picnic_table
                 - playground
                 - resort
                 - sauna
+                - slipway
+                - sports_hall
+                - swimming_area
+                - swimming_pool
                 - water_park
+                - wildlife_hide
           man_made:
             mapping:
               man_made:
@@ -1019,6 +1034,8 @@ tables:
                 - stone
                 - strait # also as way
                 - tree
+                - tree_group
+                - tree_stump
                 - volcano
           power:
             mapping:
