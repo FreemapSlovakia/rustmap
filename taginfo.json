@@ -1651,6 +1651,75 @@
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/landcover_forest?mode=taginfo"
     },
     {
+      "key": "obstacle",
+      "object_types": ["node", "way"],
+      "icon_url": "https://raw.githubusercontent.com/FreemapSlovakia/freemap-outdoor-map/refs/heads/main/images/obstacle.svg",
+      "description": "Rendered as icon from zoom 14; repeated along the way for linear obstacles. No label."
+    },
+    {
+      "key": "obstacle",
+      "value": "branches",
+      "object_types": ["node", "way"],
+      "icon_url": "https://raw.githubusercontent.com/FreemapSlovakia/freemap-outdoor-map/refs/heads/main/images/obstacle_tree.svg",
+      "description": "Rendered as icon from zoom 14; repeated along the way for linear obstacles. No label."
+    },
+    {
+      "key": "obstacle",
+      "value": "deadwood",
+      "object_types": ["node", "way"],
+      "icon_url": "https://raw.githubusercontent.com/FreemapSlovakia/freemap-outdoor-map/refs/heads/main/images/obstacle_tree.svg",
+      "description": "Rendered as icon from zoom 14; repeated along the way for linear obstacles. No label."
+    },
+    {
+      "key": "obstacle",
+      "value": "dense_vegetation",
+      "object_types": ["node", "way"],
+      "icon_url": "https://raw.githubusercontent.com/FreemapSlovakia/freemap-outdoor-map/refs/heads/main/images/obstacle_vegetation.svg",
+      "description": "Rendered as icon from zoom 14; repeated along the way for linear obstacles. No label."
+    },
+    {
+      "key": "obstacle",
+      "value": "fallen_tree",
+      "object_types": ["node", "way"],
+      "icon_url": "https://raw.githubusercontent.com/FreemapSlovakia/freemap-outdoor-map/refs/heads/main/images/obstacle_tree.svg",
+      "description": "Rendered as icon from zoom 14; repeated along the way for linear obstacles. No label."
+    },
+    {
+      "key": "obstacle",
+      "value": "fallen_trees",
+      "object_types": ["node", "way"],
+      "icon_url": "https://raw.githubusercontent.com/FreemapSlovakia/freemap-outdoor-map/refs/heads/main/images/obstacle_tree.svg",
+      "description": "Rendered as icon from zoom 14; repeated along the way for linear obstacles. No label."
+    },
+    {
+      "key": "obstacle",
+      "value": "root",
+      "object_types": ["node", "way"],
+      "icon_url": "https://raw.githubusercontent.com/FreemapSlovakia/freemap-outdoor-map/refs/heads/main/images/obstacle_tree.svg",
+      "description": "Rendered as icon from zoom 14; repeated along the way for linear obstacles. No label."
+    },
+    {
+      "key": "obstacle",
+      "value": "tree",
+      "object_types": ["node", "way"],
+      "icon_url": "https://raw.githubusercontent.com/FreemapSlovakia/freemap-outdoor-map/refs/heads/main/images/obstacle_tree.svg",
+      "description": "Rendered as icon from zoom 14; repeated along the way for linear obstacles. No label."
+    },
+    {
+      "key": "obstacle",
+      "value": "trees",
+      "object_types": ["node", "way"],
+      "icon_url": "https://raw.githubusercontent.com/FreemapSlovakia/freemap-outdoor-map/refs/heads/main/images/obstacle_tree.svg",
+      "description": "Rendered as icon from zoom 14; repeated along the way for linear obstacles. No label."
+    },
+    {
+      "key": "obstacle",
+      "value": "vegetation",
+      "object_types": ["node", "way"],
+      "icon_url": "https://raw.githubusercontent.com/FreemapSlovakia/freemap-outdoor-map/refs/heads/main/images/obstacle_vegetation.svg",
+      "description": "Rendered as icon from zoom 14; repeated along the way for linear obstacles. No label."
+    },
+    {
       "key": "osmc:symbol",
       "object_types": ["relation"],
       "description": "Rendered from zoom 9. Label (name/ref) from zoom 14. Only waycolor is used: red, blue, green, yellow, black, white, orange, violet, purple",

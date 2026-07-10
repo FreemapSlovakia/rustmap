@@ -7,7 +7,6 @@ const PARALLEL = 24   # number of tiles processed in parallel
 const OVERLAP  = 6    # half of retile overlap; used for hillshading context
 const CROP     = 3    # pixels cropped from each edge after hillshading; OVERLAP - CROP leaves margin for warp alignment
 const TMPDIR   = "/dev/shm"  # ramdisk for intermediate files; change to "." to use local disk
-const ZONE     = "31"  # UTM zone to process this run; change to 30/31 and re-run for other zones
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -50,10 +49,20 @@ def process-tile [src: string, tr: string]: nothing -> nothing {
     let co_big  = [...$co -co BIGTIFF=YES]
     let co_calc = [--co=COMPRESS=ZSTD --co=PREDICTOR=2 --co=TILED=YES --co=NUM_THREADS=ALL_CPUS --co=BIGTIFF=YES]
 
+    # Heal spurious nodata holes before hillshading. GUGiK's WCS uses 0 for
+    # out-of-coverage, which collides with genuine 0.00 m coastal terrain
+    # (Żuławy etc.). gdaldem then treats those real 0 m pixels as nodata and
+    # emits 0, producing opaque specks (A=255, mask=0) scattered over flat land.
+    # gdal_fillnodata interpolates these small holes from their neighbours while
+    # leaving large out-of-coverage regions as nodata (kept transparent via the
+    # mask band) — flat water/sea has ~0 alpha anyway, so nothing visible is lost.
+    let dem = $"($d)/dem.tif"
+    gdal_fillnodata.py -md 5 $src $dem o> /dev/null err> /dev/null
+
     # Three hillshades at different azimuths (run on smooth tile with overlap so edges have real neighbours)
-    gdaldem hillshade $src $"($d)/_a.tif" -az -120 -igor -compute_edges ...$co o> /dev/null
-    gdaldem hillshade $src $"($d)/_b.tif" -az  60  -igor -compute_edges ...$co o> /dev/null
-    gdaldem hillshade $src $"($d)/_c.tif" -az -45  -igor -compute_edges ...$co o> /dev/null
+    gdaldem hillshade $dem $"($d)/_a.tif" -az -120 -igor -compute_edges ...$co o> /dev/null
+    gdaldem hillshade $dem $"($d)/_b.tif" -az  60  -igor -compute_edges ...$co o> /dev/null
+    gdaldem hillshade $dem $"($d)/_c.tif" -az -45  -igor -compute_edges ...$co o> /dev/null
 
     # Crop overlap from hillshades — discards edge pixels degraded by smoothing
     let info = gdalinfo -json $src | from json
@@ -109,22 +118,22 @@ let pi = (1 | math arctan) * 4
 let tr = ($pi * 2 * 6378137 / 256 / (2 ** $ZOOM) | into string)
 print $"ZOOM=($ZOOM) TR=($tr)"
 
-# 1. Build VRT from source DTM files
-print "==> Building source VRT"
-glob $"/home/martin/18TB/es/input/*-{H,HU}($ZONE)-*.{tif,TIF}" | save -f dtm_index
-gdalbuildvrt -allow_projection_difference -input_file_list dtm_index $"zone($ZONE).vrt"
+# # 1. Build VRT from source DTM files
+# print "==> Building source VRT"
+# glob $"/home/martin/18TB/es/input/*-{H,HU}($ZONE)-*.{tif,TIF}" | save -f dtm_index
+# gdalbuildvrt -allow_projection_difference -input_file_list dtm_index $"zone($ZONE).vrt"
 
 # 2. Retile with overlap (overlap is kept through processing to avoid hillshade edge artifacts)
 print "==> Retiling"
 mkdir retiled
-gdal_retile.py $"zone($ZONE).vrt" -ps 1500 1500 -overlap 12 -targetDir retiled -co COMPRESS=DEFLATE -co PREDICTOR=1
+gdal_retile.py poland_dtm.vrt -ps 1500 1500 -overlap 12 -targetDir retiled -co COMPRESS=DEFLATE -co PREDICTOR=1
 
 # 3. Smooth tiles — resumable, skips existing and all-nodata tiles
 print "==> Smoothing"
 mkdir smooth
 mkdir smooth/_tmp
 (
-  glob retiled/zone*.tif
+  glob retiled/*.tif
     | where {|f| not ($"smooth/($f | path basename)" | path exists)}
     | where {|f| has-data $f}
     | par-each -t $PARALLEL {|f|

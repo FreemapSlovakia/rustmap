@@ -28,7 +28,6 @@ tags:
     - horse
     - icao
     - intermittent
-    - location
     - operator
     - plant:method
     - plant:source
@@ -508,69 +507,89 @@ tables:
         aliases:
           ford:
             __any__: ford
-      - name: tags
-        type: hstore_tags
+          obstacle:
+            vegetation: obstacle_vegetation
+            dense_vegetation: obstacle_vegetation
+            fallen_tree: obstacle_tree
+            fallen_trees: obstacle_tree
+            fallen trees: obstacle_tree
+            deadwood: obstacle_tree
+            branches: obstacle_tree
+            tree: obstacle_tree
+            trees: obstacle_tree
+            root: obstacle_tree
+            landslide: obstacle_landslide
+            hole: obstacle_hole
+            heap: obstacle_heap
+            precipice: obstacle_precipice
+            rock: obstacle_rock
+            rocks: obstacle_rock
+            __any__: obstacle_yes
+      - name: under
+        type: expression
         args:
-          include:
-            - location
-      - name: fixme
-        type: string
-        key: fixme
+          expression: 'hasPrefix(tags["location"], "under") ? "1" : ""'
     filters:
       reject:
         ford:
           - "no"
     type: linestring
-    mapping:
-      aeroway:
-        - parking_position
-        - runway
-        - taxilane
-        - taxiway
-      aerialway:
-        - cable_car
-        - chair_lift
-        - drag_lift
-        - gondola
-        - goods
-        - j-bar
-        - magic_carpet
-        - mixed_lift
-        - platter
-        - rope_tow
-        - t-bar
-        - zip_line
-      barrier:
-        - city_wall
-        - ditch
-        - fence
-        - hedge
-        - retaining_wall
-        - wall
-      ford:
-        - __any__
-      man_made:
-        - cutline
-        - dyke
-        - embankment
-        - pipeline
-      millitary:
-        - trench
-      natural:
-        - bay # also in area/node
-        - cliff
-        - earth_bank
-        - gully
-        - ridge
-        - strait # also in area/node
-        - tree_row
-        - valley
-      power:
-        - line
-        - minor_line
-      waterway:
-        - dam
-        - weir
+    mappings:
+      obstacle:
+        mapping:
+          obstacle:
+            - __any__
+      default:
+        mapping:
+          aeroway:
+            - parking_position
+            - runway
+            - taxilane
+            - taxiway
+          aerialway:
+            - cable_car
+            - chair_lift
+            - drag_lift
+            - gondola
+            - goods
+            - j-bar
+            - magic_carpet
+            - mixed_lift
+            - platter
+            - rope_tow
+            - t-bar
+            - zip_line
+          barrier:
+            - city_wall
+            - ditch
+            - fence
+            - hedge
+            - retaining_wall
+            - wall
+          ford:
+            - __any__
+          man_made:
+            - cutline
+            - dyke
+            - embankment
+            - pipeline
+          millitary:
+            - trench
+          natural:
+            - bay # also in area/node
+            - cliff
+            - earth_bank
+            - gully
+            - ridge
+            - strait # also in area/node
+            - tree_row
+            - valley
+          power:
+            - line
+            - minor_line
+          waterway:
+            - dam
+            - weir
 
   pois:
     multi_values: [sport, amenity]
@@ -588,11 +607,17 @@ tables:
       - name: type
         type: mapping_value
         aliases:
+          abandoned:man_made:
+            adit: abandoned_adit
+            mineshaft: abandoned_mineshaft
           aerialway:
             station: aerialway_station
           building:
             ruins: building_ruins
             __any__: building
+          disused:man_made:
+            adit: disused_adit
+            mineshaft: disused_mineshaft
           ford:
             __any__: ford
           historic:
@@ -600,17 +625,29 @@ tables:
             bunker: historic_bunker
           mountain_pass:
             yes: mountain_pass
+          obstacle:
+            vegetation: obstacle_vegetation
+            dense_vegetation: obstacle_vegetation
+            fallen_tree: obstacle_tree
+            fallen_trees: obstacle_tree
+            fallen trees: obstacle_tree
+            deadwood: obstacle_tree
+            branches: obstacle_tree
+            tree: obstacle_tree
+            trees: obstacle_tree
+            root: obstacle_tree
+            landslide: obstacle_landslide
+            hole: obstacle_hole
+            heap: obstacle_heap
+            precipice: obstacle_precipice
+            rock: obstacle_rock
+            rocks: obstacle_rock
+            __any__: obstacle_yes
           power:
             tower: power_tower
           leisure:
             miniature_golf: leisure_miniature_golf
             horse_riding: leisure_horse_riding
-          disused:man_made:
-            adit: disused_adit
-            mineshaft: disused_mineshaft
-          abandoned:man_made:
-            adit: abandoned_adit
-            mineshaft: abandoned_mineshaft
       - name: tags
         type: hstore_tags
         args:
@@ -651,6 +688,8 @@ tables:
           - __any__
         mountain_pass:
           - "yes"
+        obstacle:
+          - __any__
       any:
         mappings:
           disused:man_made:
@@ -1305,22 +1344,22 @@ tables:
             - "yes"
             - left
             - right
-      - name: ref # TODO move to tags
+      - name: ref
         type: string
         key: ref
       - name: z_order
         type: wayzorder
         key: layer
-      - name: access # TODO move to tags
+      - name: access
         type: string
         key: access
-      - name: bicycle # TODO move to tags
+      - name: bicycle
         type: string
         key: bicycle
-      - name: foot # TODO move to tags
+      - name: foot
         type: string
         key: foot
-      - name: vehicle # TODO move to tags
+      - name: vehicle
         type: string
         key: vehicle
       - name: service
@@ -1353,9 +1392,6 @@ tables:
             - alpine_hiking
             - demanding_alpine_hiking
             - difficult_alpine_hiking
-      - name: fixme # TODO move to tags
-        type: string
-        key: fixme
       - name: tags
         type: hstore_tags
         args:
@@ -1507,7 +1543,13 @@ tables:
         type: geometry
       - name: type
         type: mapping_value
-    type: point
-    mapping:
-      fixme:
-        - __any__
+    type: geometry
+    type_mappings:
+      points:
+        mapping:
+          fixme:
+            - __any__
+      linestrings:
+        mapping:
+          fixme:
+            - __any__

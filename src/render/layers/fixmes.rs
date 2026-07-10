@@ -8,33 +8,46 @@ use crate::render::{
 };
 use cairo::Context;
 
-pub async fn query_points(ctx: &Ctx, client: &tokio_postgres::Client) -> Result<Vec<tokio_postgres::Row>, tokio_postgres::Error> {
+pub async fn query_points(
+    ctx: &Ctx,
+    client: &tokio_postgres::Client,
+) -> Result<Vec<tokio_postgres::Row>, tokio_postgres::Error> {
     let sql = "
         SELECT
             geometry
         FROM
             osm_fixmes
         WHERE
-            geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
+            GeometryType(geometry) = 'POINT'
+            AND geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
         ORDER BY
             osm_id
     ";
 
-    client.query(sql, &ctx.bbox_query_params(Some(8.0)).as_params()).await
+    client
+        .query(sql, &ctx.bbox_query_params(Some(8.0)).as_params())
+        .await
 }
 
-pub async fn query_lines(ctx: &Ctx, client: &tokio_postgres::Client) -> Result<Vec<tokio_postgres::Row>, tokio_postgres::Error> {
+pub async fn query_lines(
+    ctx: &Ctx,
+    client: &tokio_postgres::Client,
+) -> Result<Vec<tokio_postgres::Row>, tokio_postgres::Error> {
     let sql = "
-        SELECT * FROM (
-            SELECT geometry, fixme FROM osm_feature_lines
-            UNION
-            SELECT geometry, fixme FROM osm_roads
-        ) foo
+        SELECT
+            geometry
+        FROM
+            osm_fixmes
         WHERE
-            fixme <> '' AND
-            geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)";
+            GeometryType(geometry) = 'LINESTRING'
+            AND geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
+        ORDER BY
+            osm_id
+    ";
 
-    client.query(sql, &ctx.bbox_query_params(Some(8.0)).as_params()).await
+    client
+        .query(sql, &ctx.bbox_query_params(Some(8.0)).as_params())
+        .await
 }
 
 pub fn render_points(

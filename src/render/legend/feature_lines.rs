@@ -4,7 +4,6 @@ use crate::render::{
 };
 use geo::Point;
 use indexmap::IndexMap;
-use std::collections::HashMap;
 
 pub fn feature_lines(
     mapping_entries: &[MappingEntry],
@@ -129,14 +128,7 @@ pub fn feature_lines(
                         },
                     )
                     .with("class", "highway")
-                    .with(
-                        "tags",
-                        if types[0] == "pipeline_under" {
-                            HashMap::from([("location".into(), Some("underground".into()))])
-                        } else {
-                            HashMap::new()
-                        },
-                    )
+                    .with("under", types[0] == "pipeline_under")
                     .with_line_string(false)
             });
 

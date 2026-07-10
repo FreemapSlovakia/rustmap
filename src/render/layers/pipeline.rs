@@ -73,8 +73,19 @@ struct Params<'p, 'ctx> {
 /// Renders a layer from its (already fetched) features.
 type LayerRenderFn<'a> = Box<dyn FnOnce(Vec<Feature>, Params) -> LayerRenderResult + 'a>;
 
+/// Renders one stage from features borrowed from a shared query result.
+type SharedRenderFn<'a> = Box<dyn FnOnce(&[Feature], Params) -> LayerRenderResult + 'a>;
+
 /// Render-only step that needs no features.
 type PushFn<'a> = Box<dyn FnOnce(Params) -> Result<(), RenderError> + 'a>;
+
+/// A single query result reused across multiple render stages (e.g. `feature_lines`,
+/// drawn up to 5× in different draw-order positions from one DB fetch). The first
+/// stage to run awaits the query and caches the rows; the rest borrow them.
+struct SharedSlot {
+    jh: RefCell<Option<JoinHandle<Result<Vec<Feature>, LayerRenderError>>>>,
+    features: RefCell<Option<Vec<Feature>>>,
+}
 
 enum PendingLayer<'a> {
     /// A DB query running as its own tokio task (own pool connection → true parallelism).
@@ -82,6 +93,12 @@ enum PendingLayer<'a> {
         name: &'static str,
         jh: JoinHandle<Result<Vec<Feature>, LayerRenderError>>,
         render_fn: LayerRenderFn<'a>,
+    },
+    /// One of several render stages sharing a single `SharedSlot` query result.
+    Shared {
+        name: &'static str,
+        slot: Rc<SharedSlot>,
+        render_fn: SharedRenderFn<'a>,
     },
     /// Render-only step (`push_group`, `pop_group`, `blur_edges`, custom, …)
     Push(PushFn<'a>),
@@ -160,6 +177,74 @@ impl<'a> Prefetcher<'a> {
         });
     }
 
+    /// Spawn a query whose rows are shared by several render stages via [`add_shared`].
+    /// Returns `None` in legend mode (no DB query is run; stages fall back to legend data).
+    fn shared_query(
+        &self,
+        query_fn: impl FnOnce(
+            Arc<Ctx>,
+            deadpool_postgres::Object,
+        ) -> BoxFuture<'static, Result<Vec<Row>, tokio_postgres::Error>>
+        + Send
+        + 'static,
+    ) -> Option<Rc<SharedSlot>> {
+        if self.ctx.legend.is_some() {
+            return None;
+        }
+
+        let pool = self.pool.clone();
+        let ctx = self.ctx.clone();
+
+        let jh = self.handle.spawn(async move {
+            let conn = pool.get().await.map_err(LayerRenderError::from)?;
+            let rows = query_fn(ctx, conn).await.map_err(LayerRenderError::from)?;
+            Ok::<Vec<Feature>, LayerRenderError>(rows.into_iter().map(Feature::from).collect())
+        });
+
+        Some(Rc::new(SharedSlot {
+            jh: RefCell::new(Some(jh)),
+            features: RefCell::new(None),
+        }))
+    }
+
+    /// Add a render stage that draws from a [`shared_query`] result.
+    /// `slot` is `None` in legend mode, in which case the stage renders the legend
+    /// features for `legend_name` (matching [`add`]'s behavior).
+    fn add_shared(
+        &mut self,
+        name: &'static str,
+        legend_name: &'static str,
+        slot: &Option<Rc<SharedSlot>>,
+        render_fn: impl FnOnce(&[Feature], Params) -> LayerRenderResult + 'a,
+    ) {
+        if let Some(ref legend) = self.ctx.legend {
+            if let Some(legend) = legend.get(legend_name) {
+                let features = legend
+                    .iter()
+                    .map(|props| Feature::LegendData(props.clone()))
+                    .collect();
+
+                self.layers.push(PendingLayer::Legend {
+                    name,
+                    features,
+                    render_fn: Box::new(move |features, params| render_fn(&features, params)),
+                });
+            }
+
+            return;
+        }
+
+        let slot = slot
+            .clone()
+            .expect("shared slot must be present outside legend mode");
+
+        self.layers.push(PendingLayer::Shared {
+            name,
+            slot,
+            render_fn: Box::new(render_fn),
+        });
+    }
+
     fn push(&mut self, render_fn: impl FnOnce(Params) -> Result<(), RenderError> + 'a) {
         self.layers.push(PendingLayer::Push(Box::new(render_fn)));
     }
@@ -190,6 +275,33 @@ impl<'a> Prefetcher<'a> {
                             .await
                             .map_err(|_| RenderError::TaskPanic)?
                             .with_layer(name)?;
+
+                        render_fn(features, params).with_layer(name)?;
+                    }
+                    PendingLayer::Shared {
+                        name,
+                        slot,
+                        render_fn,
+                    } => {
+                        // The first stage to run awaits the shared query and caches the
+                        // rows; later stages reuse them without another round-trip.
+                        if slot.features.borrow().is_none() {
+                            let jh = slot
+                                .jh
+                                .borrow_mut()
+                                .take()
+                                .expect("shared query handle present");
+
+                            let features = jh
+                                .await
+                                .map_err(|_| RenderError::TaskPanic)?
+                                .with_layer(name)?;
+
+                            *slot.features.borrow_mut() = Some(features);
+                        }
+
+                        let guard = slot.features.borrow();
+                        let features = guard.as_deref().expect("shared features present");
 
                         render_fn(features, params).with_layer(name)?;
                     }
@@ -293,15 +405,23 @@ pub fn render(
         |rows, params| layers::landcover::render(&ctx, context, rows, params.svg_repo),
     );
 
-    // feature_lines is queried per render stage (up to 4×). All tasks run in parallel
-    // so the cost is a pool connection rather than a round-trip per query.
+    // feature_lines is drawn in up to 5 stages at different points in the draw order,
+    // but the query is identical for all of them, so fetch it once and let each stage
+    // borrow the cached rows. The lowest stage gate is zoom 11 (stage 3).
+    let feature_lines_slot = if zoom >= 11 {
+        prefetcher
+            .shared_query(|ctx, conn| async move { layers::feature_lines::query(&ctx, &conn).await }.boxed())
+    } else {
+        None
+    };
+
     if zoom >= 13 {
-        prefetcher.add(
+        prefetcher.add_shared(
             "feature_lines_1",
-            Some("feature_lines"),
-            |ctx, conn| async move { layers::feature_lines::query(&ctx, &conn).await }.boxed(),
+            "feature_lines",
+            &feature_lines_slot,
             |rows, params| {
-                layers::feature_lines::render(&ctx, context, 1, &rows, params.svg_repo, None)
+                layers::feature_lines::render(&ctx, context, 1, rows, params.svg_repo, None)
             },
         );
     }
@@ -339,16 +459,16 @@ pub fn render(
     }
 
     if zoom >= 12 {
-        prefetcher.add(
+        prefetcher.add_shared(
             "feature_lines_2",
-            Some("feature_lines"),
-            |ctx, conn| async move { layers::feature_lines::query(&ctx, &conn).await }.boxed(),
+            "feature_lines",
+            &feature_lines_slot,
             |rows, params| {
                 layers::feature_lines::render(
                     &ctx,
                     context,
                     2,
-                    &rows,
+                    rows,
                     params.svg_repo,
                     do_shading.then_some(params.hsd).flatten(),
                 )
@@ -388,12 +508,12 @@ pub fn render(
     }
 
     if zoom >= 11 {
-        prefetcher.add(
+        prefetcher.add_shared(
             "feature_lines_3",
-            Some("feature_lines"),
-            |ctx, conn| async move { layers::feature_lines::query(&ctx, &conn).await }.boxed(),
+            "feature_lines",
+            &feature_lines_slot,
             |rows, params| {
-                layers::feature_lines::render(&ctx, context, 3, &rows, params.svg_repo, None)
+                layers::feature_lines::render(&ctx, context, 3, rows, params.svg_repo, None)
             },
         );
     }
@@ -550,12 +670,12 @@ pub fn render(
     }
 
     if zoom >= 12 {
-        prefetcher.add(
+        prefetcher.add_shared(
             "feature_lines_4",
-            Some("feature_lines"),
-            |ctx, conn| async move { layers::feature_lines::query(&ctx, &conn).await }.boxed(),
+            "feature_lines",
+            &feature_lines_slot,
             |rows, params| {
-                layers::feature_lines::render(&ctx, context, 4, &rows, params.svg_repo, None)
+                layers::feature_lines::render(&ctx, context, 4, rows, params.svg_repo, None)
             },
         );
     }
@@ -640,6 +760,17 @@ pub fn render(
                 },
             );
         }
+    }
+
+    if zoom >= 14 {
+        prefetcher.add_shared(
+            "feature_lines_5",
+            "feature_lines",
+            &feature_lines_slot,
+            |rows, params| {
+                layers::feature_lines::render(&ctx, context, 5, rows, params.svg_repo, None)
+            },
+        );
     }
 
     if let Some(CustomLayer {

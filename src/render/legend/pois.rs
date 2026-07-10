@@ -258,6 +258,12 @@ fn build_poi_tags(
                 override_key = Some(&typ[8..]);
                 tags.push(("disused", "yes"));
             }
+            // The generic obstacle icon is the `obstacle=*` catch-all (every
+            // `obstacle_%` value except tree/vegetation collapses to `obstacle` in the
+            // query), so represent it with the wildcard rather than a single value.
+            "obstacle" => {
+                tags.push(("obstacle", "*"));
+            }
             _ => {}
         }
 

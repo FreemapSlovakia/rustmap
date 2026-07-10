@@ -4,6 +4,7 @@ use crate::render::{
     ctx::Ctx,
     draw::{
         line_pattern::{draw_line_pattern, draw_line_pattern_scaled},
+        markers_on_path::draw_markers_on_path,
         path_geom::path_line_string,
     },
     layer_render_error::{LayerRenderError, LayerRenderResult},
@@ -67,12 +68,18 @@ pub async fn query(
     let sql = "
         SELECT
             geometry,
-            type,
-            tags
+            CASE
+                WHEN type IN ('obstacle_tree', 'obstacle_vegetation')
+                THEN type
+                WHEN type LIKE 'obstacle_%'
+                THEN 'obstacle'
+                ELSE type
+            END AS type,
+            under = '1' AS under
         FROM
             osm_feature_lines
         WHERE
-            type = ANY($6)
+            (type = ANY($6) OR type LIKE 'obstacle_%')
             AND
             geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
     ";
@@ -107,7 +114,9 @@ pub fn render(
 
             let mut untouched = false;
 
-            match (stage, zoom, row.get_string("type")?, maskable) {
+            let _typ = row.get_string("type")?;
+
+            match (stage, zoom, _typ, maskable) {
                 (1, 13.., "cutline", false) => {
                     for row in rows {
                         let geom = row.get_line_string()?.project_to_tile(&ctx.tile_projector);
@@ -123,8 +132,6 @@ pub fn render(
                     }
                 }
                 (2, 12.., "pipeline", false) => {
-                    let tags = row.get_hstore("tags")?;
-
                     context.push_group();
 
                     path_line_string(context, &geom);
@@ -141,15 +148,7 @@ pub fn render(
 
                     context.pop_group_to_source()?;
 
-                    let location = tags.get("location").unwrap_or(&None).as_deref();
-
-                    let alpha = if matches!(location, Some("underground" | "underwater")) {
-                        0.33
-                    } else {
-                        1.0
-                    };
-
-                    context.paint_with_alpha(alpha)?;
+                    context.paint_with_alpha(if row.get_bool("under")? { 0.33 } else { 1.0 })?;
                 }
                 (2, 13.., "weir", false) => {
                     if zoom >= 16 {
@@ -289,6 +288,36 @@ pub fn render(
                     context.set_line_width(1.0);
                     context.stroke()?;
                 }
+                (5, 14.., "obstacle" | "obstacle_tree" | "obstacle_vegetation", false) => {
+                    path_line_string(context, &geom);
+
+                    let path = context.copy_path_flat()?;
+
+                    context.new_path();
+
+                    let surface = svg_repo.get(_typ)?;
+
+                    // NOTE: use ink_extents() rather than extents(): the same icon name
+                    // ("obstacle_tree"/"obstacle_vegetation") is also cached by the POI
+                    // layer via get_extra(.., use_extents: false), which yields an
+                    // *unbounded* recording surface. extents() returns None for an
+                    // unbounded surface, so whichever layer populates the shared cache
+                    // first decides the shape. ink_extents() works for both.
+                    let (ox, oy, w, h) = surface.ink_extents();
+
+                    let hw = ox + w / 2.0;
+
+                    let hh = oy + h / 2.0;
+
+                    draw_markers_on_path(&path, 50.0, 100.0, &|x, y, _angle| {
+                        context.save()?;
+                        context.translate((x - hw).round(), (y - hh).round());
+                        context.set_source_surface(surface, 0.0, 0.0)?;
+                        context.paint()?;
+                        context.restore()?;
+                        Ok(())
+                    })?;
+                }
                 _ => {
                     untouched = true;
                 }
@@ -322,7 +351,8 @@ pub fn render(
             draw(true)?;
 
             return Ok(());
-        } else if hillshading::mask_covers_tile(&mut mask_surfaces.iter_mut().collect::<Vec<_>>())? {
+        } else if hillshading::mask_covers_tile(&mut mask_surfaces.iter_mut().collect::<Vec<_>>())?
+        {
             return Ok(());
         }
 

@@ -109,7 +109,8 @@ static POI_ENTRIES: LazyLock<Vec<PoiEntry>> = LazyLock::new(|| {
     let university_replacements = build_replacements(&[(r"[V]ysoká [Šš]kola", "VŠ")]);
 
     use Category::{
-        Accommodation, GastroPoi, Institution, NaturalPoi, Other, Poi, Railway, Sport, Water,
+        Accommodation, GastroPoi, Institution, NaturalPoi, Other, Poi, Railway, Sport, Terrain,
+        Water,
     };
 
     #[rustfmt::skip]
@@ -220,6 +221,9 @@ static POI_ENTRIES: LazyLock<Vec<PoiEntry>> = LazyLock::new(|| {
         (14, 15, N, N, Sport, "horse_racing", Extra { icon: Some("horse_riding"), ..Extra::default() }), // TODO use different icon
         (14, 15, N, N, Sport, "skiing", Extra::default()),
         (14, 15, N, N, Poi, "golf_course", Extra::default()),
+        (14, NN, N, N, Terrain, "obstacle_tree", Extra::default()),
+        (14, NN, N, N, Terrain, "obstacle_vegetation", Extra::default()),
+        (14, NN, N, N, Terrain, "obstacle", Extra::default()),
         // TODO (14, 14, N, N, "recycling", Extra { text_color: colors::AREA_LABEL, ..Extra::default() }), // { icon: null } // has no icon yet - render as area name
         (15, NN, Y, N, Poi, "guidepost_noname", Extra { icon: Some("guidepost_x"), ..Extra::default() }),
         (15, 15, Y, Y, NaturalPoi, "saddle", Extra { font_size: 13.0, halo: false, ..Extra::default() }),
@@ -598,6 +602,10 @@ pub async fn query(
                         WHEN 'bell_tower' THEN '_bell_tower'
                         ELSE ''
                     END
+                WHEN type IN ('obstacle_tree', 'obstacle_vegetation')
+                THEN type
+                WHEN type LIKE 'obstacle_%'
+                THEN 'obstacle'
                 ELSE type
             END AS type
         FROM
