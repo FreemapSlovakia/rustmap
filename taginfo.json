@@ -1193,6 +1193,20 @@
     },
     {
       "key": "leisure",
+      "value": "fitness_centre",
+      "object_types": ["node", "area"],
+      "icon_url": "https://raw.githubusercontent.com/FreemapSlovakia/freemap-outdoor-map/refs/heads/main/images/fitness_centre.svg",
+      "description": "Rendered as icon. Icon from zoom 16. Label (name/ref) from zoom 17."
+    },
+    {
+      "key": "leisure",
+      "value": "fitness_station",
+      "object_types": ["node", "area"],
+      "icon_url": "https://raw.githubusercontent.com/FreemapSlovakia/freemap-outdoor-map/refs/heads/main/images/fitness_station.svg",
+      "description": "Rendered as icon. Icon from zoom 17. Label (name/ref) from zoom 18."
+    },
+    {
+      "key": "leisure",
       "value": "golf_course",
       "object_types": ["node", "area"],
       "icon_url": "https://raw.githubusercontent.com/FreemapSlovakia/freemap-outdoor-map/refs/heads/main/images/golf_course.svg",

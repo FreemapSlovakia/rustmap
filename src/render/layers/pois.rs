@@ -330,6 +330,8 @@ static POI_ENTRIES: LazyLock<Vec<PoiEntry>> = LazyLock::new(|| {
         (16, 17, N, N, Sport, "tennis", Extra::default()),
         (16, 17, N, N, Sport, "basketball", Extra::default()),
         (16, 17, N, N, Sport, "volleyball", Extra::default()),
+        (16, 17, N, N, Sport, "fitness_centre", Extra::default()),
+        (16, 17, N, N, Sport, "fitness_station", Extra::default()),
         (16, 17, N, N, Sport, "running", Extra::default()),
         (16, 17, N, N, Sport, "athletics", Extra { icon: Some("running"), ..Extra::default() }),
         (16, 17, N, N, Sport, "swimming", Extra { icon: Some("water_park"), ..Extra::default() }),

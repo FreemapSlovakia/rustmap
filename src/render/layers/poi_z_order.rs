@@ -59,6 +59,8 @@ const POI_Z_ORDER: &[&str] = &[
     "tennis",
     "basketball",
     "ice_skating",
+    "fitness_centre",
+    "fitness_station",
     "running",
     "athletics",
     "swimming",
