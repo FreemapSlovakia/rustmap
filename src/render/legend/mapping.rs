@@ -1,3 +1,4 @@
+use indexmap::IndexMap;
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -24,7 +25,7 @@ pub struct Column {
     #[serde(rename = "type")]
     pub(crate) column_type: String,
     #[serde(default)]
-    pub(crate) aliases: Option<HashMap<String, HashMap<String, String>>>,
+    pub(crate) aliases: Option<IndexMap<String, IndexMap<String, String>>>,
 }
 
 #[derive(Debug, Default, Deserialize)]

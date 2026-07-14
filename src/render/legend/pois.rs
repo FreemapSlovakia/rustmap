@@ -45,7 +45,16 @@ pub fn pois(
 
                     feature_alias_values.entry(key).or_default().insert(value);
 
-                    poi_tags.entry(alias).or_default().push((key, value));
+                    // Several values can alias to the same icon (e.g. both
+                    // `obstacle=vegetation` and `obstacle=dense_vegetation` →
+                    // `obstacle_vegetation`). They share the same tag key, so keep only
+                    // the first one listed (the `aliases` IndexMap preserves YAML order)
+                    // rather than letting a later value silently overwrite it.
+                    let entry = poi_tags.entry(alias).or_default();
+
+                    if !entry.iter().any(|(k, _)| *k == key) {
+                        entry.push((key, value));
+                    }
                 }
             }
         }
