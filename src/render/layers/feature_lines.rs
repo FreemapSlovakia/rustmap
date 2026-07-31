@@ -92,13 +92,20 @@ pub async fn query(
         .await
 }
 
+/// Hillshading inputs used to hide feature lines that the shading already conveys.
+pub struct HillshadingMask<'a> {
+    pub datasets: &'a mut HillshadingDatasets,
+    /// Countries whose hillshading masks cut the lines out.
+    pub countries: &'a [String],
+}
+
 pub fn render(
     ctx: &Ctx,
     context: &Context,
     stage: u8,
     rows: &[Feature],
     svg_repo: &mut SvgRepo,
-    hillshading_datasets: Option<&mut HillshadingDatasets>,
+    mask: Option<HillshadingMask<'_>>,
 ) -> LayerRenderResult {
     let _span = tracy_client::span!("feature_lines::render");
 
@@ -333,12 +340,14 @@ pub fn render(
 
     draw(false)?;
 
-    if let Some(hillshading_datasets) = hillshading_datasets {
+    if let Some(HillshadingMask {
+        datasets: hillshading_datasets,
+        countries,
+    }) = mask
+    {
         let mut mask_surfaces = Vec::new();
 
-        for cc in [
-            "pl", "sk", "cz", "at", /*"ch", "it" (CH, IT are not so detailed) */
-        ] {
+        for cc in countries {
             let mask_surface =
                 hillshading::load_surface(ctx, cc, hillshading_datasets, hillshading::Mode::Mask)?;
 

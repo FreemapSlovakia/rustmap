@@ -338,9 +338,9 @@ pub fn load_surface(
     shading_data: &mut HillshadingDatasets,
     mode: Mode,
 ) -> Result<Option<ImageSurface>, LayerRenderError> {
-    let hillshading_dataset = shading_data
-        .get(country)
-        .unwrap_or_else(|| panic!("no such dataset {country}"));
+    let Some(hillshading_dataset) = shading_data.get(country) else {
+        return Ok(None);
+    };
 
     let surface = read_rgba_from_gdal(hillshading_dataset, ctx, mode)?;
 

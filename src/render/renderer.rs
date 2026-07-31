@@ -1,9 +1,5 @@
 use crate::render::{
-    ContourCountries, HillshadingHierarchy,
-    image_format::ImageFormat,
-    layers::{self, HillshadingDatasets},
-    render_request::RenderRequest,
-    svg_repo::SvgRepo,
+    image_format::ImageFormat, layers, render_request::RenderRequest, svg_repo::SvgRepo,
     xyz::bbox_size_in_pixels,
 };
 use cairo::{Format, ImageSurface, PdfSurface, Surface, SvgSurface};
@@ -26,32 +22,17 @@ pub enum RenderError {
 
 pub fn render(
     request: &RenderRequest,
-    hillshading_hierarchy: Option<&HillshadingHierarchy>,
-    contour_countries: Option<&ContourCountries>,
+    shading: layers::Shading<'_>,
     pool: Pool,
     handle: Handle,
     svg_repo: &mut SvgRepo,
-    hillshading_datasets: Option<&mut HillshadingDatasets>,
 ) -> Result<Vec<u8>, RenderError> {
     let _span = tracy_client::span!("render_tile");
 
     let size = bbox_size_in_pixels(request.bbox, request.zoom as f64);
 
-    let render = |surface: &Surface| {
-        layers::render(
-            surface,
-            request,
-            layers::Shading {
-                hierarchy: hillshading_hierarchy,
-                contour_countries,
-                datasets: hillshading_datasets,
-            },
-            pool,
-            handle,
-            size,
-            svg_repo,
-        )
-    };
+    let render =
+        |surface: &Surface| layers::render(surface, request, shading, pool, handle, size, svg_repo);
 
     match request.format {
         ImageFormat::Svg => {

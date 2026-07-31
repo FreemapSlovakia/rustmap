@@ -1,6 +1,7 @@
+use crate::render::{FeatureLineMaskCountries, HillshadingHierarchy};
 use gdal::Dataset;
 use std::{
-    collections::{HashMap, hash_map::Entry},
+    collections::{HashMap, HashSet, hash_map::Entry},
     path::{Path, PathBuf},
     time::{Duration, Instant},
 };
@@ -14,13 +15,18 @@ struct CachedDataset {
 
 pub struct HillshadingDatasets {
     base: PathBuf,
+    /// Dataset names that may be opened. Any request for a name outside this set is
+    /// treated as "no dataset" so callers can hand in codes (e.g. hardcoded country
+    /// lists) that aren't part of the configured hillshading hierarchy.
+    allowed: HashSet<String>,
     datasets: HashMap<String, CachedDataset>,
 }
 
 impl HillshadingDatasets {
-    pub fn new(base: impl AsRef<Path>) -> Self {
+    pub fn new(base: impl AsRef<Path>, allowed: HashSet<String>) -> Self {
         Self {
             base: base.as_ref().to_path_buf(),
+            allowed,
             datasets: HashMap::new(),
         }
     }
@@ -33,6 +39,10 @@ impl HillshadingDatasets {
     }
 
     pub fn get(&mut self, name: &str) -> Option<&Dataset> {
+        if !self.allowed.contains(name) {
+            return None;
+        }
+
         match self.datasets.entry(name.to_string()) {
             Entry::Occupied(occ) => Some(&occ.into_mut().dataset),
             Entry::Vacant(vac) => {
@@ -66,6 +76,28 @@ impl HillshadingDatasets {
     }
 }
 
-pub fn load_hillshading_datasets(base: impl AsRef<Path>) -> HillshadingDatasets {
-    HillshadingDatasets::new(base)
+/// Create a lazily-loading dataset cache restricted to the hillshadings referenced by
+/// `hierarchy` (plus the `_` global fallback) and by `feature_line_mask_countries`, whose
+/// masks may come from countries that are not shaded themselves. Every `better` code is
+/// validated to also be a `country` key, so the `country` keys cover the full set of
+/// datasets the hierarchy references. Names outside this set are never opened from disk.
+pub fn load_hillshading_datasets(
+    base: impl AsRef<Path>,
+    hierarchy: &HillshadingHierarchy,
+    feature_line_mask_countries: Option<&FeatureLineMaskCountries>,
+) -> HillshadingDatasets {
+    let mut allowed: HashSet<String> = hierarchy
+        .entries()
+        .iter()
+        .map(|entry| entry.country.to_string())
+        .collect();
+
+    // Global fallback dataset used where no country mask covers the tile.
+    allowed.insert("_".to_string());
+
+    if let Some(feature_line_mask_countries) = feature_line_mask_countries {
+        allowed.extend(feature_line_mask_countries.countries().iter().cloned());
+    }
+
+    HillshadingDatasets::new(base, allowed)
 }

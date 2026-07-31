@@ -156,6 +156,49 @@ impl FromStr for ContourCountries {
     }
 }
 
+/// Countries whose hillshading is detailed enough to convey terrain feature lines
+/// (cliffs, embankments, …) on its own; those lines are masked out where the country's
+/// hillshading mask covers the tile. Comma-separated country codes.
+#[derive(Clone, Debug)]
+pub struct FeatureLineMaskCountries(Vec<String>);
+
+impl FeatureLineMaskCountries {
+    pub fn countries(&self) -> &[String] {
+        &self.0
+    }
+}
+
+impl FromStr for FeatureLineMaskCountries {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        let mut countries: Vec<String> = Vec::new();
+        let mut seen: HashSet<String> = HashSet::new();
+
+        for raw in value.split(',') {
+            let token = raw.trim();
+
+            if token.is_empty() {
+                return Err("feature-line-mask-countries entry cannot be empty".into());
+            }
+
+            if !seen.insert(token.to_string()) {
+                return Err(format!(
+                    "duplicate country '{token}' in feature-line-mask-countries"
+                ));
+            }
+
+            countries.push(token.to_string());
+        }
+
+        if countries.is_empty() {
+            return Err("feature-line-mask-countries cannot be empty".into());
+        }
+
+        Ok(Self(countries))
+    }
+}
+
 /// Static, server-side render configuration that does not vary per request.
 #[derive(Clone, Debug)]
 pub struct RenderConfig {
@@ -163,4 +206,5 @@ pub struct RenderConfig {
     pub hillshading_base_path: Option<PathBuf>,
     pub hillshading_hierarchy: Option<HillshadingHierarchy>,
     pub contour_countries: Option<ContourCountries>,
+    pub feature_line_mask_countries: Option<FeatureLineMaskCountries>,
 }

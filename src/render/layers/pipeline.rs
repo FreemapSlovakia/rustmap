@@ -2,7 +2,8 @@ use crate::render::colors::ContextExt;
 use crate::render::projectable::TileProjectable;
 use crate::render::render_request::CustomLayer;
 use crate::render::{
-    ContourCountries, CustomLayerOrder, HillshadingHierarchy, RenderLayer, colors,
+    ContourCountries, CustomLayerOrder, FeatureLineMaskCountries, HillshadingHierarchy,
+    RenderLayer, colors,
 };
 use crate::render::{
     Feature, ImageFormat,
@@ -327,6 +328,7 @@ impl<'a> Prefetcher<'a> {
 pub struct Shading<'a> {
     pub hierarchy: Option<&'a HillshadingHierarchy>,
     pub contour_countries: Option<&'a ContourCountries>,
+    pub feature_line_mask_countries: Option<&'a FeatureLineMaskCountries>,
     pub datasets: Option<&'a mut HillshadingDatasets>,
 }
 
@@ -357,6 +359,10 @@ pub fn render(
     let to_render = &request.to_render;
 
     let do_shading = to_render.contains(&RenderLayer::Shading) && shading.hierarchy.is_some();
+
+    let feature_line_mask_countries = shading
+        .feature_line_mask_countries
+        .map_or(&[] as &[String], FeatureLineMaskCountries::countries);
 
     let do_contours = to_render.contains(&RenderLayer::Contours)
         && shading.hierarchy.is_some()
@@ -470,7 +476,12 @@ pub fn render(
                     2,
                     rows,
                     params.svg_repo,
-                    do_shading.then_some(params.hsd).flatten(),
+                    do_shading.then_some(params.hsd).flatten().map(|datasets| {
+                        layers::feature_lines::HillshadingMask {
+                            datasets,
+                            countries: feature_line_mask_countries,
+                        }
+                    }),
                 )
             },
         );

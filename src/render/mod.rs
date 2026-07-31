@@ -2,7 +2,9 @@ pub use coverage::{TileCoverageRelation, tile_touches_coverage};
 pub use feature::{Feature, FeatureError, GeomError, LegendValue};
 pub use image_format::ImageFormat;
 pub use legend::{LegendMeta, LegendMode, legend_metadata, legend_render_request};
-pub use render_config::{ContourCountries, HillshadingHierarchy, RenderConfig};
+pub use render_config::{
+    ContourCountries, FeatureLineMaskCountries, HillshadingHierarchy, RenderConfig,
+};
 pub use render_request::{
     CustomLayer, CustomLayerOrder, Decorations, Glow, LabelStyle, RenderLayer, RenderRequest,
 };

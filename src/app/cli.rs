@@ -1,4 +1,6 @@
-use crate::render::{ContourCountries, HillshadingHierarchy, RenderLayer};
+use crate::render::{
+    ContourCountries, FeatureLineMaskCountries, HillshadingHierarchy, RenderLayer,
+};
 use clap::{Parser, ValueEnum, error::ErrorKind};
 use std::{collections::HashSet, net::Ipv4Addr, path::PathBuf, str::FromStr};
 
@@ -104,6 +106,14 @@ pub struct Cli {
     /// the global fallback source. If unset, no contours are rendered.
     #[arg(long, env = "MAPRENDER_CONTOUR_COUNTRIES")]
     pub contour_countries: Option<ContourCountries>,
+
+    /// Countries whose hillshading is detailed enough to convey terrain feature lines
+    /// (cliffs, embankments, …); those lines are masked out where the country's hillshading
+    /// mask covers the tile. Comma-separated country codes; they need not appear in
+    /// --hillshading-hierarchy, but a country without a hillshading dataset is ignored.
+    /// If unset, nothing is masked.
+    #[arg(long, env = "MAPRENDER_FEATURE_LINE_MASK_COUNTRIES")]
+    pub feature_line_mask_countries: Option<FeatureLineMaskCountries>,
 
     /// Number of rendering worker threads.
     #[arg(long, env = "MAPRENDER_WORKER_COUNT")]

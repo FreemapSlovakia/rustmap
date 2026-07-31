@@ -1,5 +1,7 @@
 use crate::render::{
-    self, RenderConfig, RenderRequest, layers::load_hillshading_datasets, renderer::RenderError,
+    self, RenderConfig, RenderRequest,
+    layers::{Shading, load_hillshading_datasets},
+    renderer::RenderError,
     svg_repo::SvgRepo,
 };
 use deadpool_postgres::Pool;
@@ -62,8 +64,13 @@ impl RenderWorkerPool {
                     let mut hillshading_datasets = config
                         .hillshading_base_path
                         .as_ref()
-                        .map(|hillshading_base_path| {
-                            load_hillshading_datasets(hillshading_base_path)
+                        .zip(config.hillshading_hierarchy.as_ref())
+                        .map(|(hillshading_base_path, hierarchy)| {
+                            load_hillshading_datasets(
+                                hillshading_base_path,
+                                hierarchy,
+                                config.feature_line_mask_countries.as_ref(),
+                            )
                         });
 
                     loop {
@@ -78,12 +85,17 @@ impl RenderWorkerPool {
 
                         let result = render::renderer::render(
                             &request,
-                            config.hillshading_hierarchy.as_ref(),
-                            config.contour_countries.as_ref(),
+                            Shading {
+                                hierarchy: config.hillshading_hierarchy.as_ref(),
+                                contour_countries: config.contour_countries.as_ref(),
+                                feature_line_mask_countries: config
+                                    .feature_line_mask_countries
+                                    .as_ref(),
+                                datasets: hillshading_datasets.as_mut(),
+                            },
                             pool.clone(),
                             handle.clone(),
                             &mut svg_repo,
-                            hillshading_datasets.as_mut(),
                         )
                         .map_err(ReError::from);
 

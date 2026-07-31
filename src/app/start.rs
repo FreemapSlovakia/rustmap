@@ -68,6 +68,7 @@ pub fn start() {
             hillshading_base_path: cli.hillshading_base_path,
             hillshading_hierarchy: cli.hillshading_hierarchy,
             contour_countries: cli.contour_countries,
+            feature_line_mask_countries: cli.feature_line_mask_countries,
         });
 
         Arc::new(RenderWorkerPool::new(
