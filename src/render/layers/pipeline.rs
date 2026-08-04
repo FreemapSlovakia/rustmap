@@ -404,10 +404,16 @@ pub fn render(
         );
     }
 
-    prefetcher.add(
+    // Landcovers are drawn in two stages: the fills here, and the ski resort boundaries
+    // much later, above the lines (cutlines in particular) that would cover them.
+    let landcover_slot = prefetcher.shared_query(|ctx, conn| {
+        async move { layers::landcover::query(&ctx, &conn).await }.boxed()
+    });
+
+    prefetcher.add_shared(
         "landcovers",
-        None,
-        |ctx, conn| async move { layers::landcover::query(&ctx, &conn).await }.boxed(),
+        "landcovers",
+        &landcover_slot,
         |rows, params| layers::landcover::render(&ctx, context, rows, params.svg_repo),
     );
 
@@ -697,6 +703,15 @@ pub fn render(
             None,
             |ctx, conn| async move { layers::power_towers_poles::query(&ctx, &conn).await }.boxed(),
             |rows, _params| layers::power_towers_poles::render(&ctx, context, rows),
+        );
+    }
+
+    if zoom >= 11 {
+        prefetcher.add_shared(
+            "winter_sports_boundaries",
+            "landcovers",
+            &landcover_slot,
+            |rows, _params| layers::landcover::render_winter_sports_boundaries(&ctx, context, rows),
         );
     }
 

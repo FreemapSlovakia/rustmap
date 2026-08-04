@@ -129,7 +129,7 @@ pub async fn query(
 pub fn render(
     ctx: &Ctx,
     context: &Context,
-    rows: Vec<Feature>,
+    rows: &[Feature],
     svg_repo: &mut SvgRepo,
 ) -> LayerRenderResult {
     let _span = tracy_client::span!("landcover::render");
@@ -140,7 +140,7 @@ pub fn render(
 
     context.save()?;
 
-    for row in &rows {
+    for row in rows {
         let typ = row.get_string("type")?;
 
         if matches!(typ, "forest_boundary" | "forest_compartment") {
@@ -207,32 +207,6 @@ pub fn render(
                 context.paint()?;
             }
         }
-
-        if typ == "winter_sports" && zoom >= 11 {
-            let wb = 0.5f64.mul_add(zoom as f64 - 10.0, 2.0);
-
-            context.push_group();
-
-            context.set_source_color(colors::WATER);
-            context.set_dash(&[], 0.0);
-            context.set_line_width(wb * 0.75);
-            context.set_line_cap(cairo::LineCap::Square);
-
-            path_geometry(context, &geom);
-            context.stroke()?;
-
-            context.set_line_width(wb);
-            context.set_source_color_a(colors::WATER, 0.5);
-            walk_geometry_line_strings(&geom, &mut |iter| {
-                path_line_string_with_offset(context, iter, wb * 0.75);
-
-                cairo::Result::Ok(())
-            })?;
-            context.stroke()?;
-
-            context.pop_group_to_source()?;
-            context.paint_with_alpha(0.66)?;
-        }
     }
 
     context.restore()?;
@@ -262,6 +236,57 @@ pub fn render(
 
         context.paint_with_alpha(0.2)?;
     }
+
+    Ok(())
+}
+
+/// Ski resort (`landuse=winter_sports`) boundaries.
+///
+/// Drawn in a separate, much later stage than the landcover fills so that lines painted
+/// on top of the landcovers - most notably cutlines, which often run along the very
+/// same ways - don't cover the boundary.
+pub fn render_winter_sports_boundaries(
+    ctx: &Ctx,
+    context: &Context,
+    rows: &[Feature],
+) -> LayerRenderResult {
+    let _span = tracy_client::span!("landcover::render_winter_sports_boundaries");
+
+    let wb = 0.5f64.mul_add(ctx.zoom as f64 - 10.0, 2.0);
+
+    context.save()?;
+
+    for row in rows {
+        if row.get_string("type")? != "winter_sports" {
+            continue;
+        }
+
+        let geom = row.get_geometry()?.project_to_tile(&ctx.tile_projector);
+
+        context.push_group();
+
+        context.set_source_color(colors::WATER);
+        context.set_dash(&[], 0.0);
+        context.set_line_width(wb * 0.75);
+        context.set_line_cap(cairo::LineCap::Square);
+
+        path_geometry(context, &geom);
+        context.stroke()?;
+
+        context.set_line_width(wb);
+        context.set_source_color_a(colors::WATER, 0.5);
+        walk_geometry_line_strings(&geom, &mut |iter| {
+            path_line_string_with_offset(context, iter, wb * 0.75);
+
+            cairo::Result::Ok(())
+        })?;
+        context.stroke()?;
+
+        context.pop_group_to_source()?;
+        context.paint_with_alpha(0.66)?;
+    }
+
+    context.restore()?;
 
     Ok(())
 }
