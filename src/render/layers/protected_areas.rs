@@ -13,7 +13,10 @@ use crate::render::{
 };
 use cairo::Context;
 
-pub async fn query_areas(ctx: &Ctx, client: &tokio_postgres::Client) -> Result<Vec<tokio_postgres::Row>, tokio_postgres::Error> {
+pub async fn query_areas(
+    ctx: &Ctx,
+    client: &tokio_postgres::Client,
+) -> Result<Vec<tokio_postgres::Row>, tokio_postgres::Error> {
     let extra_where = if ctx.zoom < 12 {
         " AND NOT (
             type = 'nature_reserve' OR
@@ -37,7 +40,9 @@ pub async fn query_areas(ctx: &Ctx, client: &tokio_postgres::Client) -> Result<V
             {extra_where}
         ");
 
-    client.query(sql, &ctx.bbox_query_params(Some(10.0)).as_params()).await
+    client
+        .query(sql, &ctx.bbox_query_params(Some(10.0)).as_params())
+        .await
 }
 
 pub async fn query_borders(
@@ -73,15 +78,17 @@ pub async fn query_borders(
             {w}
     ");
 
-    client.query(
-        sql,
-        &ctx.bbox_query_params(Some(10.0))
-            .push(((ctx.bbox.min().x - snap) / snap).floor() * snap)
-            .push(((ctx.bbox.min().y - snap) / snap).floor() * snap)
-            .push(((ctx.bbox.max().x + snap) / snap).ceil() * snap)
-            .push(((ctx.bbox.max().y + snap) / snap).ceil() * snap)
-            .as_params(),
-    ).await
+    client
+        .query(
+            sql,
+            &ctx.bbox_query_params(Some(10.0))
+                .push(((ctx.bbox.min().x - snap) / snap).floor() * snap)
+                .push(((ctx.bbox.min().y - snap) / snap).floor() * snap)
+                .push(((ctx.bbox.max().x + snap) / snap).ceil() * snap)
+                .push(((ctx.bbox.max().y + snap) / snap).ceil() * snap)
+                .as_params(),
+        )
+        .await
 }
 
 pub fn render_areas(ctx: &Ctx, context: &Context, areas: Vec<Feature>) -> LayerRenderResult {
@@ -160,6 +167,8 @@ pub fn render_borders(
         })
         .collect::<Result<Vec<_>, FeatureError>>()?;
 
+    context.push_group();
+
     for (projected, _, row) in &geometries {
         let typ = row.get_string("type")?;
         let protect_class = row.get_string("protect_class")?;
@@ -172,6 +181,9 @@ pub fn render_borders(
             })?;
         }
     }
+
+    context.pop_group_to_source()?;
+    context.paint_with_alpha(1.0 - ((zoom as i8 - 12).max(0).min(4) as f64) / 8.0)?;
 
     context.push_group();
 
@@ -207,7 +219,7 @@ pub fn render_borders(
     }
 
     context.pop_group_to_source()?;
-    context.paint_with_alpha(0.66)?;
+    context.paint_with_alpha(2.0 / 3.0 - ((zoom as i8 - 11).max(0).min(2) as f64) / 6.0)?;
 
     Ok(())
 }

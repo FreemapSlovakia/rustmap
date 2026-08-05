@@ -139,7 +139,7 @@ pub(super) fn build_legend_items(for_taginfo: bool) -> Vec<LegendItem<'static>> 
             .add_tag_set(|ts| ts.add_tags(|tags| tags.add("landuse", "military")))
             .add_feature("military_areas", |b| b.with_polygon(true))
             .build(),
-        LegendItem::builder("nature_reserve", Category::Borders, 17, for_taginfo)
+        LegendItem::builder("nature_reserve", Category::Borders, 15, for_taginfo)
             .add_tag_set(|ts| {
                 ts.add_tags(|tags| tags.add("leisure", "nature_reserve"))
                     .add_tags(|tags| {
@@ -169,7 +169,7 @@ pub(super) fn build_legend_items(for_taginfo: bool) -> Vec<LegendItem<'static>> 
                     .with_polygon(true)
             })
             .build(),
-        LegendItem::builder("national_park_zoom", Category::Borders, 17, for_taginfo)
+        LegendItem::builder("national_park_zoom", Category::Borders, 16, for_taginfo)
             .add_tag_set(|ts| {
                 ts.add_tags(|tags| tags.add("boundary", "national_park"))
                     .add_tags(|tags| {
