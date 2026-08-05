@@ -1,18 +1,19 @@
 use crate::render::{
-    layers::{Category, POI_ORDER, POIS},
+    layers::{Category, Def, POI_ORDER, POIS},
     legend::{
-        LegendItem, LegendItemBuilder, build_tags_map, leak_str,
+        BuildOpts, LegendItem, LegendItemBuilder, MAX_LEGEND_ZOOM, build_tags_map, leak_str,
         mapping::{self, MappingEntry},
     },
 };
 use geo::Point;
 use indexmap::IndexMap;
 use std::collections::{HashMap, HashSet};
+use std::ops::RangeInclusive;
 
 pub fn pois(
     mapping_root: &mapping::MappingRoot,
     mapping_entries: &[MappingEntry],
-    for_taginfo: bool,
+    opts: BuildOpts,
 ) -> Vec<LegendItem<'static>> {
     let mut poi_tags: HashMap<&'static str, Vec<(&'static str, &'static str)>> = HashMap::new();
     let mut feature_alias_values: HashMap<&'static str, HashSet<&'static str>> = HashMap::new();
@@ -76,16 +77,14 @@ pub fn pois(
         poi_tags.entry(value).or_default().push((key, value));
     }
 
-    type PoiGroups = IndexMap<
-        &'static str,
-        (
-            Category,
-            Vec<IndexMap<&'static str, &'static str>>,
-            &'static str,
-        ),
-    >;
+    struct PoiGroup {
+        category: Category,
+        tags: Vec<IndexMap<&'static str, &'static str>>,
+        repr_typ: &'static str,
+        zooms: RangeInclusive<u8>,
+    }
 
-    let mut poi_groups: PoiGroups = IndexMap::new();
+    let mut poi_groups: IndexMap<&'static str, PoiGroup> = IndexMap::new();
 
     for typ in POI_ORDER.iter() {
         if *typ == "guidepost_noname" || typ.starts_with("peak") && typ.len() == 5 {
@@ -96,6 +95,8 @@ pub fn pois(
             continue;
         };
 
+        // The icon is picked at zoom 19 so that item ids stay the same at every zoom, even
+        // where a type switches to a different icon at low zoom (guideposts do).
         let Some(def) = defs.iter().find(|def| def.is_active_at(19)) else {
             continue;
         };
@@ -106,42 +107,53 @@ pub fn pois(
             def.icon_key(typ)
         };
 
-        let entry = poi_groups
-            .entry(visual_key)
-            .or_insert_with(|| (def.category, Vec::new(), *typ));
+        let zooms = poi_zooms(defs);
 
-        entry.1.push(build_poi_tags(typ, &poi_tags));
+        let entry = poi_groups.entry(visual_key).or_insert_with(|| PoiGroup {
+            category: def.category,
+            tags: Vec::new(),
+            repr_typ: typ,
+            zooms: zooms.clone(),
+        });
+
+        entry.tags.push(build_poi_tags(typ, &poi_tags));
+
+        entry.zooms =
+            (*entry.zooms.start()).min(*zooms.start())..=(*entry.zooms.end()).max(*zooms.end());
     }
 
     poi_groups
         .into_iter()
-        .map(|(visual_key, (category, tags, repr_typ))| {
-            LegendItem::builder(
-                format!("poi_{visual_key}").leak(),
+        .map(|(visual_key, group)| {
+            let PoiGroup {
                 category,
-                19,
-                for_taginfo,
-            )
-            .add_tag_set(|mut ts| {
-                for tag_set in &tags {
-                    ts = ts.add_tags(|mut tb| {
-                        for (k, v) in tag_set {
-                            tb = tb.add(k, v);
-                        }
-                        tb
-                    });
-                }
+                tags,
+                repr_typ,
+                zooms,
+            } = group;
 
-                if visual_key == "spring" {
-                    ts = ts
-                        .add_tags(|t| t.add("natural", "geyser"))
-                        .add_tags(|t| t.add("man_made", "spring_box"));
-                }
+            LegendItem::builder(format!("poi_{visual_key}").leak(), category, 19, opts)
+                .zoom_range(*zooms.start(), *zooms.end())
+                .add_tag_set(|mut ts| {
+                    for tag_set in &tags {
+                        ts = ts.add_tags(|mut tb| {
+                            for (k, v) in tag_set {
+                                tb = tb.add(k, v);
+                            }
+                            tb
+                        });
+                    }
 
-                ts
-            })
-            .add_poi(repr_typ, HashMap::new(), category)
-            .build()
+                    if visual_key == "spring" {
+                        ts = ts
+                            .add_tags(|t| t.add("natural", "geyser"))
+                            .add_tags(|t| t.add("man_made", "spring_box"));
+                    }
+
+                    ts
+                })
+                .add_poi(repr_typ, HashMap::new(), category)
+                .build()
         })
         .chain(
             [
@@ -160,7 +172,7 @@ pub fn pois(
                     format!("poi_spring_{tag_key}_{tag_value}").leak(),
                     Category::Water,
                     19,
-                    for_taginfo,
+                    opts,
                 )
                 .add_tag_set(|mut ts| {
                     ts = ts.add_tags(|tags| {
@@ -182,6 +194,7 @@ pub fn pois(
 
                     ts
                 })
+                .zoom_range_of(poi_zooms_of("spring"))
                 .add_poi(
                     "spring",
                     HashMap::<String, Option<String>>::from([(
@@ -194,11 +207,12 @@ pub fn pois(
             }),
         )
         .chain([{
-            LegendItem::builder("private_poi", Category::Other, 19, for_taginfo)
+            LegendItem::builder("private_poi", Category::Other, 19, opts)
                 .add_tag_set(|ts| {
                     ts.add_tags(|tags| tags.add("access", "private"))
                         .add_tags(|tags| tags.add("access", "no"))
                 })
+                .zoom_range_of(poi_zooms_of("picnic_shelter"))
                 .add_poi(
                     "picnic_shelter",
                     HashMap::<String, Option<String>>::from([(
@@ -210,6 +224,27 @@ pub fn pois(
                 .build()
         }])
         .collect()
+}
+
+/// Zooms at which the POI layer draws any of these definitions, straight from the renderer's
+/// own table, narrowed by the zoom the `poi_icons` stage is gated at in `layers::pipeline`.
+fn poi_zooms(defs: &[Def]) -> RangeInclusive<u8> {
+    const POI_ICONS_FROM_ZOOM: u8 = 10;
+
+    let (min_zoom, max_zoom) = defs
+        .iter()
+        .map(Def::zoom_span)
+        .fold((u8::MAX, 0), |(min_zoom, max_zoom), (from, to)| {
+            (min_zoom.min(from), max_zoom.max(to))
+        });
+
+    min_zoom.max(POI_ICONS_FROM_ZOOM)..=max_zoom.min(MAX_LEGEND_ZOOM)
+}
+
+/// [`poi_zooms`] for a single POI type.
+fn poi_zooms_of(typ: &str) -> RangeInclusive<u8> {
+    POIS.get(typ)
+        .map_or(0..=MAX_LEGEND_ZOOM, |defs| poi_zooms(defs))
 }
 
 fn build_poi_tags(

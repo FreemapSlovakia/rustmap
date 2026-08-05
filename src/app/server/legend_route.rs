@@ -11,23 +11,34 @@ use axum::{
 use serde::Deserialize;
 
 #[derive(Deserialize)]
+pub struct LegendMetadataQuery {
+    /// List only the items the map draws at this zoom; defaults to listing all of them.
+    zoom: Option<u8>,
+}
+
+#[derive(Deserialize)]
 pub struct LegendQuery {
     scale: Option<f64>,
     mode: Option<LegendMode>,
+    /// Render the item as it appears at this zoom; defaults to the item's preferred zoom.
+    zoom: Option<u8>,
 }
 
-pub async fn get_metadata() -> Json<Vec<LegendMeta<'static>>> {
-    Json(legend_metadata())
+pub async fn get_metadata(
+    Query(LegendMetadataQuery { zoom }): Query<LegendMetadataQuery>,
+) -> Json<Vec<LegendMeta<'static>>> {
+    Json(legend_metadata(zoom))
 }
 
 pub async fn get(
     State(state): State<AppState>,
     Path(id): Path<String>,
-    Query(LegendQuery { scale, mode }): Query<LegendQuery>,
+    Query(LegendQuery { scale, mode, zoom }): Query<LegendQuery>,
 ) -> Response<Body> {
     let mode = mode.unwrap_or(LegendMode::Normal);
 
-    let Some(render_request) = legend_render_request(id.as_str(), scale.unwrap_or(1f64), mode)
+    let Some(render_request) =
+        legend_render_request(id.as_str(), zoom, scale.unwrap_or(1f64), mode)
     else {
         return Response::builder()
             .status(StatusCode::NOT_FOUND)

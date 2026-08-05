@@ -1,12 +1,45 @@
 use crate::render::{
     LegendValue,
     layers::Category,
-    legend::{LegendItem, PropsBuilder},
+    legend::{BuildOpts, LegendItem, PropsBuilder},
 };
 use indexmap::IndexMap;
 use std::fmt::Write as _;
 
-pub fn roads(for_taginfo: bool) -> Vec<LegendItem<'static>> {
+/// Route markings are gated in `layers::pipeline` — zoom 8 with `RoutesHikingKst`, which a
+/// legend render never asks for, otherwise zoom 9.
+const ROUTE_MARKING_FROM_ZOOM: u8 = 9;
+
+/// Lowest zoom at which `layers::roads::render` draws a way of this class and type — see the
+/// `match (zoom, class, typ)` there. Paths, tracks and the like are also drawn at zoom 12
+/// when the way is part of a route, which a legend sample never is.
+fn road_from_zoom(class: &str, typ: &str) -> u8 {
+    match (class, typ) {
+        ("railway", "rail") => 8,
+        (
+            "railway",
+            "light_rail" | "tram" | "miniature" | "monorail" | "funicular" | "narrow_gauge"
+            | "subway",
+        ) => 13,
+        // Construction ways get a bare glow from zoom 12 via the catch-all `(_, _,
+        // "construction")` arm of the glow pass, but no rails until 14.
+        ("railway", _) => 14, // construction, disused, preserved
+        (
+            _,
+            "motorway" | "trunk" | "motorway_link" | "trunk_link" | "primary" | "primary_link"
+            | "secondary" | "secondary_link" | "tertiary" | "tertiary_link",
+        ) => 8,
+        (
+            _,
+            "residential" | "unclassified" | "living_street" | "road" | "construction" | "service"
+            | "bridge" | "tunnel",
+        ) => 12,
+        (_, "cycleway" | "path" | "bridleway" | "via_ferrata" | "track") => 13,
+        _ => 14, // footway, pedestrian, platform, steps, piste, water_slide
+    }
+}
+
+pub fn roads(opts: BuildOpts) -> Vec<LegendItem<'static>> {
     [
         &["motorway", "trunk"] as &[&str],
         &["primary", "motorway_link", "trunk_link"],
@@ -30,7 +63,7 @@ pub fn roads(for_taginfo: bool) -> Vec<LegendItem<'static>> {
             format!("road_{}", types[0]).leak(),
             Category::RoadsAndPaths,
             17,
-            for_taginfo,
+            opts,
         )
         .add_tag_set(|mut ts| {
             for typ in *types {
@@ -46,6 +79,7 @@ pub fn roads(for_taginfo: bool) -> Vec<LegendItem<'static>> {
 
             ts
         })
+        .min_zoom(road_from_zoom("highway", types[0]))
         .add_landcover(if i < 10 { "residential" } else { "wood" })
         .add_feature("roads", |b| b.with_road(types[0]).with("class", "highway"))
         .build()
@@ -67,6 +101,16 @@ pub fn roads(for_taginfo: bool) -> Vec<LegendItem<'static>> {
                 _ => "service",
             };
 
+            // The way underneath is drawn earlier than the detail this entry is about, so the
+            // lower edge is not something a render can be probed for: bridge and tunnel casings
+            // appear with the road class itself, oneway arrows and access restriction markers
+            // only from zoom 14.
+            let from_zoom = match tags[0].0 {
+                // `draw_bridges_tunnels` is only reached from the zoom 12+ arms of the match.
+                "bridge" | "tunnel" => 12,
+                _ => 14,
+            };
+
             LegendItem::builder(
                 format!(
                     "road_{}",
@@ -78,7 +122,7 @@ pub fn roads(for_taginfo: bool) -> Vec<LegendItem<'static>> {
                 .leak(),
                 Category::RoadsAndPaths,
                 17,
-                for_taginfo,
+                opts,
             )
             .add_tag_set(|ts| {
                 ts.add_tags(|tags_builder| {
@@ -89,6 +133,7 @@ pub fn roads(for_taginfo: bool) -> Vec<LegendItem<'static>> {
                     tags_builder
                 })
             })
+            .min_zoom_unprobeable(from_zoom)
             .add_landcover("wood")
             .add_feature("roads", |b| {
                 let mut b = b.with_road(road_type).with("class", "highway");
@@ -132,7 +177,7 @@ pub fn roads(for_taginfo: bool) -> Vec<LegendItem<'static>> {
         }),
     )
     .chain([
-        LegendItem::builder("path_bike_foot", Category::RoadsAndPaths, 17, for_taginfo)
+        LegendItem::builder("path_bike_foot", Category::RoadsAndPaths, 17, opts)
             .add_tag_set(|ts| {
                 ts.add_tags(|tags| {
                     tags.add("highway", "path")
@@ -140,6 +185,7 @@ pub fn roads(for_taginfo: bool) -> Vec<LegendItem<'static>> {
                         .add("bicycle", "designated")
                 })
             })
+            .min_zoom(road_from_zoom("highway", "path"))
             .add_landcover("residential")
             .add_feature("roads", |b| {
                 b.with_road("path")
@@ -148,19 +194,15 @@ pub fn roads(for_taginfo: bool) -> Vec<LegendItem<'static>> {
                     .with("bicycle", "designated")
             })
             .build(),
-        LegendItem::builder(
-            "road_construction",
-            Category::RoadsAndPaths,
-            17,
-            for_taginfo,
-        )
-        .add_tag_set(|ts| ts.add_tags(|tags| tags.add("highway", "construction")))
-        .add_landcover("residential")
-        .add_feature("roads", |b| {
-            b.with_road("construction").with("class", "highway")
-        })
-        .build(),
-        LegendItem::builder("route_hiking", Category::RoadsAndPaths, 17, for_taginfo)
+        LegendItem::builder("road_construction", Category::RoadsAndPaths, 17, opts)
+            .add_tag_set(|ts| ts.add_tags(|tags| tags.add("highway", "construction")))
+            .min_zoom(road_from_zoom("highway", "construction"))
+            .add_landcover("residential")
+            .add_feature("roads", |b| {
+                b.with_road("construction").with("class", "highway")
+            })
+            .build(),
+        LegendItem::builder("route_hiking", Category::RoadsAndPaths, 17, opts)
             .add_tag_set(|ts| {
                 ts.add_tags(|tags| {
                     tags.add("type", "route")
@@ -178,6 +220,7 @@ pub fn roads(for_taginfo: bool) -> Vec<LegendItem<'static>> {
                         .add("network", "iwn")
                 })
             })
+            .min_zoom(ROUTE_MARKING_FROM_ZOOM)
             .add_landcover("wood")
             .add_feature("roads", |b| {
                 b.with_road("track")
@@ -192,34 +235,30 @@ pub fn roads(for_taginfo: bool) -> Vec<LegendItem<'static>> {
                     .with("h_red", 1i32)
             })
             .build(),
-        LegendItem::builder(
-            "route_hiking_local",
-            Category::RoadsAndPaths,
-            17,
-            for_taginfo,
-        )
-        .add_tag_set(|ts| {
-            ts.add_tags(|tags| {
-                tags.add("type", "route")
-                    .add("route", "hiking")
-                    .add("network", "lwn")
+        LegendItem::builder("route_hiking_local", Category::RoadsAndPaths, 17, opts)
+            .add_tag_set(|ts| {
+                ts.add_tags(|tags| {
+                    tags.add("type", "route")
+                        .add("route", "hiking")
+                        .add("network", "lwn")
+                })
             })
-        })
-        .add_landcover("wood")
-        .add_feature("roads", |b| {
-            b.with_road("track")
-                .with("name", "")
-                .with("class", "highway")
-                .with("tracktype", "grade3")
-        })
-        .add_feature("routes", |b| {
-            b.with_route(false)
-                .with("refs1", "M0123")
-                .with("off1", 1i32)
-                .with("h_red_loc", 1i32)
-        })
-        .build(),
-        LegendItem::builder("route_bicycle", Category::RoadsAndPaths, 17, for_taginfo)
+            .min_zoom(ROUTE_MARKING_FROM_ZOOM)
+            .add_landcover("wood")
+            .add_feature("roads", |b| {
+                b.with_road("track")
+                    .with("name", "")
+                    .with("class", "highway")
+                    .with("tracktype", "grade3")
+            })
+            .add_feature("routes", |b| {
+                b.with_route(false)
+                    .with("refs1", "M0123")
+                    .with("off1", 1i32)
+                    .with("h_red_loc", 1i32)
+            })
+            .build(),
+        LegendItem::builder("route_bicycle", Category::RoadsAndPaths, 17, opts)
             .add_tag_set(|ts| {
                 ts.add_tags(|tags| {
                     tags.add("type", "route")
@@ -227,6 +266,7 @@ pub fn roads(for_taginfo: bool) -> Vec<LegendItem<'static>> {
                         .add("network", "lwn")
                 })
             })
+            .min_zoom(ROUTE_MARKING_FROM_ZOOM)
             .add_landcover("wood")
             .add_feature("roads", |b| {
                 b.with_road("track")
@@ -241,8 +281,9 @@ pub fn roads(for_taginfo: bool) -> Vec<LegendItem<'static>> {
                     .with("b_red", 1i32)
             })
             .build(),
-        LegendItem::builder("route_ski", Category::RoadsAndPaths, 17, for_taginfo)
+        LegendItem::builder("route_ski", Category::RoadsAndPaths, 17, opts)
             .add_tag_set(|ts| ts.add_tags(|tags| tags.add("type", "route").add("route", "ski")))
+            .min_zoom(ROUTE_MARKING_FROM_ZOOM)
             .add_landcover("wood")
             .add_feature("roads", |b| {
                 b.with_road("track")
@@ -257,8 +298,9 @@ pub fn roads(for_taginfo: bool) -> Vec<LegendItem<'static>> {
                     .with("s_red", 1i32)
             })
             .build(),
-        LegendItem::builder("route_horse", Category::RoadsAndPaths, 17, for_taginfo)
+        LegendItem::builder("route_horse", Category::RoadsAndPaths, 17, opts)
             .add_tag_set(|ts| ts.add_tags(|tags| tags.add("type", "route").add("route", "horse")))
+            .min_zoom(ROUTE_MARKING_FROM_ZOOM)
             .add_landcover("wood")
             .add_feature("roads", |b| {
                 b.with_road("track")
@@ -281,7 +323,7 @@ pub fn roads(for_taginfo: bool) -> Vec<LegendItem<'static>> {
             format!("road_track_{grade}").leak(),
             Category::RoadsAndPaths,
             17,
-            for_taginfo,
+            opts,
         )
         .add_tag_set(|mut ts| {
             ts = ts.add_tags(|tags| tags.add("highway", "track").add("tracktype", grade));
@@ -294,6 +336,12 @@ pub fn roads(for_taginfo: bool) -> Vec<LegendItem<'static>> {
             }
 
             ts
+        })
+        // Only grade1 tracks are firm enough to be drawn one zoom earlier than the rest.
+        .min_zoom(if grade == "grade1" {
+            12
+        } else {
+            road_from_zoom("highway", "track")
         })
         .add_landcover("wood")
         .add_feature("roads", |b| {
@@ -312,9 +360,10 @@ pub fn roads(for_taginfo: bool) -> Vec<LegendItem<'static>> {
                     format!("trail_visibility_{visibility}").leak(),
                     Category::RoadsAndPaths,
                     17,
-                    for_taginfo,
+                    opts,
                 )
                 .add_tag_set(|ts| ts.add_tags(|tags| tags.add("trail_visibility", visibility)))
+                .min_zoom(road_from_zoom("highway", "path"))
                 .add_landcover("wood")
                 .add_feature("roads", |b| {
                     b.with_road("path")
@@ -340,41 +389,52 @@ pub fn roads(for_taginfo: bool) -> Vec<LegendItem<'static>> {
         ]
         .iter()
         .map(|types| {
-            LegendItem::builder(
+            let builder = LegendItem::builder(
                 format!("railway_{}", types[0]).leak(),
                 Category::Railway,
                 17,
-                for_taginfo,
-            )
-            .add_tag_set(|mut ts| {
-                for tag_set in types.iter().flat_map(|typ| match *typ {
-                    "rail" => vec![
-                        IndexMap::from([("railway", "rail")]),
-                        IndexMap::from([("railway", "rail"), ("service", "main")]),
-                    ],
-                    "light_rail" => vec![
-                        IndexMap::from([("railway", "light_rail")]),
-                        IndexMap::from([("railway", "rail"), ("service", "≠main")]),
-                    ],
-                    _ => vec![IndexMap::from([("railway", *typ)])],
-                }) {
-                    ts = ts.add_tags(|mut tb| {
-                        for (k, v) in &tag_set {
-                            tb = tb.add(k, v);
-                        }
-                        tb
-                    });
-                }
-                ts
-            })
-            .add_landcover("residential")
-            .add_feature("roads", |b| b.with_road(types[0]).with("class", "railway"))
-            .build()
+                opts,
+            );
+
+            // Only construction ways get the glow-without-rails treatment; the rest appear
+            // for real at the zoom they are declared at.
+            let builder = if types[0] == "construction" {
+                builder.min_zoom_unprobeable(road_from_zoom("railway", types[0]))
+            } else {
+                builder.min_zoom(road_from_zoom("railway", types[0]))
+            };
+
+            builder
+                .add_tag_set(|mut ts| {
+                    for tag_set in types.iter().flat_map(|typ| match *typ {
+                        "rail" => vec![
+                            IndexMap::from([("railway", "rail")]),
+                            IndexMap::from([("railway", "rail"), ("service", "main")]),
+                        ],
+                        "light_rail" => vec![
+                            IndexMap::from([("railway", "light_rail")]),
+                            IndexMap::from([("railway", "rail"), ("service", "≠main")]),
+                        ],
+                        _ => vec![IndexMap::from([("railway", *typ)])],
+                    }) {
+                        ts = ts.add_tags(|mut tb| {
+                            for (k, v) in &tag_set {
+                                tb = tb.add(k, v);
+                            }
+                            tb
+                        });
+                    }
+                    ts
+                })
+                .add_landcover("residential")
+                .add_feature("roads", |b| b.with_road(types[0]).with("class", "railway"))
+                .build()
         }),
     )
     .chain([
-        LegendItem::builder("railway_bridge", Category::Railway, 17, for_taginfo)
+        LegendItem::builder("railway_bridge", Category::Railway, 17, opts)
             .add_tag_set(|ts| ts.add_tags(|tags| tags.add("railway", "rail").add("bridge", "yes")))
+            .min_zoom(road_from_zoom("railway", "rail"))
             .add_landcover("residential")
             .add_feature("roads", |b| {
                 b.with_road("rail")
@@ -382,8 +442,9 @@ pub fn roads(for_taginfo: bool) -> Vec<LegendItem<'static>> {
                     .with("bridge", 1i16)
             })
             .build(),
-        LegendItem::builder("railway_tunnel", Category::Railway, 17, for_taginfo)
+        LegendItem::builder("railway_tunnel", Category::Railway, 17, opts)
             .add_tag_set(|ts| ts.add_tags(|tags| tags.add("railway", "rail").add("tunnel", "yes")))
+            .min_zoom(road_from_zoom("railway", "rail"))
             .add_landcover("residential")
             .add_feature("roads", |b| {
                 b.with_road("rail")
@@ -391,8 +452,9 @@ pub fn roads(for_taginfo: bool) -> Vec<LegendItem<'static>> {
                     .with("tunnel", 1i16)
             })
             .build(),
-        LegendItem::builder("water_slide", Category::Other, 17, for_taginfo)
+        LegendItem::builder("water_slide", Category::Other, 17, opts)
             .add_tag_set(|ts| ts.add_tags(|tags| tags.add("attraction", "water_slide")))
+            .min_zoom(road_from_zoom("attraction", "water_slide"))
             .add_feature("roads", |b| {
                 b.with_road("water_slide").with("class", "attraction")
             })
@@ -414,6 +476,9 @@ impl PropsBuilder {
             .with("bicycle", "")
             .with("foot", "")
             .with("trail_visibility", 0)
+            // Read by `layers::roads::render` at zoom <= 12; a legend sample is never part
+            // of a route, so paths and tracks stay hidden there just like on the map.
+            .with("is_in_route", false)
             .with_line_string(false)
     }
 

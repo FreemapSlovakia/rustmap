@@ -65,6 +65,11 @@ impl Def {
         self.min_zoom <= zoom && self.extra.max_zoom >= zoom
     }
 
+    /// Zooms this definition is drawn at, both ends inclusive.
+    pub(crate) const fn zoom_span(&self) -> (u8, u8) {
+        (self.min_zoom, self.extra.max_zoom)
+    }
+
     pub(crate) fn icon_key<'a>(&'a self, typ: &'a str) -> &'a str {
         self.extra.icon.unwrap_or(typ)
     }

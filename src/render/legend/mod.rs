@@ -5,6 +5,9 @@ mod mapping;
 mod pois;
 mod roads;
 
+#[cfg(test)]
+mod zoom_range_test;
+
 use crate::render::layers::Category;
 use crate::render::{ImageFormat, LegendValue, RenderLayer, RenderRequest};
 use geo::{Coord, LineString, Polygon, Rect};
@@ -13,6 +16,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::f64;
+use std::ops::RangeInclusive;
 use std::path::PathBuf;
 use std::sync::LazyLock;
 use std::sync::OnceLock;
@@ -22,6 +26,18 @@ use std::sync::OnceLock;
 pub enum LegendMode {
     Normal,
     Taginfo,
+}
+
+/// Highest zoom a legend item may be built for. Legend renders are not tiles, so this is
+/// independent of `--max-zoom`; it only bounds the per-zoom item cache.
+pub const MAX_LEGEND_ZOOM: u8 = 20;
+
+/// Inputs shared by every legend item builder.
+#[derive(Clone, Copy)]
+pub struct BuildOpts {
+    /// Render every item at this zoom instead of at its own preferred zoom.
+    pub zoom: Option<u8>,
+    pub for_taginfo: bool,
 }
 
 #[derive(Clone, Serialize)]
@@ -34,7 +50,16 @@ pub struct LegendMeta<'a> {
 pub struct LegendItem<'a> {
     pub meta: LegendMeta<'a>,
     pub data: LegendItemData,
+    /// Landcover drawn underneath so the symbol is legible. Kept apart from `data` so it can
+    /// be rendered on its own as the "nothing to see here" baseline (see the zoom range test).
+    pub background: LegendItemData,
     pub zoom: u8,
+    /// Zooms at which the map actually shows this feature. Mirrors the gating in
+    /// `layers::pipeline` and the layer render fns; kept honest by `zoom_range_test`.
+    pub zooms: RangeInclusive<u8>,
+    /// Whether `zoom_range_test` can verify the lower end of `zooms` by rendering.
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub probe_lower_edge: bool,
 }
 
 pub struct LegendItemBuilder<'a> {
@@ -42,24 +67,47 @@ pub struct LegendItemBuilder<'a> {
     pub category: Category,
     pub tags: Vec<IndexMap<&'a str, &'a str>>,
     pub zoom: u8,
+    pub zooms: RangeInclusive<u8>,
+    pub probe_lower_edge: bool,
     pub data: LegendItemData,
+    pub background: LegendItemData,
     pub for_taginfo: bool,
 }
 
+impl LegendItem<'_> {
+    /// The item's own features drawn on top of its background landcover.
+    pub fn render_data(&self) -> LegendItemData {
+        let mut data = self.background.clone();
+
+        for (layer, features) in &self.data {
+            data.entry(layer.clone())
+                .or_default()
+                .extend(features.iter().cloned());
+        }
+
+        data
+    }
+}
+
 impl<'a> LegendItem<'a> {
+    /// `preferred_zoom` is the zoom the item is drawn at when the request does not ask for
+    /// a specific one; [`BuildOpts::zoom`] overrides it.
     pub fn builder(
         id: &'a str,
         category: Category,
-        zoom: u8,
-        for_taginfo: bool,
+        preferred_zoom: u8,
+        opts: BuildOpts,
     ) -> LegendItemBuilder<'a> {
         LegendItemBuilder {
             id,
             category,
             tags: vec![],
-            zoom,
+            zoom: opts.zoom.unwrap_or(preferred_zoom),
+            zooms: 0..=MAX_LEGEND_ZOOM,
+            probe_lower_edge: true,
             data: HashMap::new(),
-            for_taginfo,
+            background: HashMap::new(),
+            for_taginfo: opts.for_taginfo,
         }
     }
 }
@@ -73,8 +121,39 @@ impl<'a> LegendItemBuilder<'a> {
                 tags: self.tags,
             },
             data: self.data,
+            background: self.background,
             zoom: self.zoom,
+            zooms: self.zooms,
+            probe_lower_edge: self.probe_lower_edge,
         }
+    }
+
+    /// Lowest zoom at which the map draws this feature.
+    const fn min_zoom(self, min: u8) -> Self {
+        let max = *self.zooms.end();
+
+        self.zoom_range(min, max)
+    }
+
+    /// Like [`Self::min_zoom`], for a lower edge the zoom range test cannot probe: the sample
+    /// still ends up on a legend render below `min`, either because the detail the entry is
+    /// about (a bridge casing, a oneway arrow) is missing from an otherwise identical drawing,
+    /// or because the map drops the feature in the layer's SQL, which legend renders skip.
+    const fn min_zoom_unprobeable(mut self, min: u8) -> Self {
+        self.probe_lower_edge = false;
+
+        self.min_zoom(min)
+    }
+
+    /// Zoom span at which the map draws this feature, both ends inclusive.
+    const fn zoom_range(self, min: u8, max: u8) -> Self {
+        self.zoom_range_of(min..=max)
+    }
+
+    const fn zoom_range_of(mut self, zooms: RangeInclusive<u8>) -> Self {
+        self.zooms = zooms;
+
+        self
     }
 
     fn add_tag_set(self, cb: impl FnOnce(TagsSetBuilder<'a>) -> TagsSetBuilder<'a>) -> Self {
@@ -102,14 +181,26 @@ impl<'a> LegendItemBuilder<'a> {
         self
     }
 
-    fn add_landcover(self, typ: &'static str) -> Self {
+    fn add_landcover(mut self, typ: &'static str) -> Self {
         if self.for_taginfo {
-            self
-        } else {
-            self.add_feature("landcovers", |b| {
-                b.with("type", typ).with("name", "").with_polygon(true)
-            })
+            return self;
         }
+
+        let props_builder = PropsBuilder {
+            zoom: self.zoom,
+            for_taginfo: self.for_taginfo,
+            props: HashMap::new(),
+        }
+        .with("type", typ)
+        .with("name", "")
+        .with_polygon(true);
+
+        self.background
+            .entry("landcovers".to_owned())
+            .or_default()
+            .push(props_builder.props);
+
+        self
     }
 }
 
@@ -171,27 +262,66 @@ pub fn mapping_path() -> &'static PathBuf {
         .expect("mapping path must be set before legend use")
 }
 
-static LEGEND_ITEMS: LazyLock<Vec<LegendItem>> =
-    LazyLock::new(|| default::build_legend_items(false));
+/// One slot per zoom, plus a trailing slot for "each item at its own preferred zoom".
+const SLOT_COUNT: usize = MAX_LEGEND_ZOOM as usize + 2;
 
-static LEGEND_ITEMS_FOR_TAGINFO: LazyLock<Vec<LegendItem>> =
-    LazyLock::new(|| default::build_legend_items(true));
+const PREFERRED_ZOOM_SLOT: usize = MAX_LEGEND_ZOOM as usize + 1;
 
-pub fn legend_metadata() -> Vec<LegendMeta<'static>> {
-    LEGEND_ITEMS.iter().map(|item| item.meta.clone()).collect()
+type ZoomSlots = [OnceLock<Vec<LegendItem<'static>>>; SLOT_COUNT];
+
+/// Items are built lazily per (zoom, taginfo) combination and kept forever; building is
+/// cheap once the mapping file is parsed, and the items borrow leaked `'static` strs.
+static LEGEND_ITEMS: LazyLock<[ZoomSlots; 2]> =
+    LazyLock::new(|| std::array::from_fn(|_| std::array::from_fn(|_| OnceLock::new())));
+
+/// A zoom above [`MAX_LEGEND_ZOOM`] is clamped rather than rejected — callers pass through
+/// user input, and an out-of-range zoom has no sensible rendering anyway.
+fn clamp_zoom(zoom: u8) -> u8 {
+    zoom.min(MAX_LEGEND_ZOOM)
 }
 
-pub fn legend_render_request(id: &str, scale: f64, mode: LegendMode) -> Option<RenderRequest> {
-    let items = match mode {
-        LegendMode::Normal => &LEGEND_ITEMS,
-        LegendMode::Taginfo => &LEGEND_ITEMS_FOR_TAGINFO,
-    };
+fn legend_items(zoom: Option<u8>, for_taginfo: bool) -> &'static [LegendItem<'static>] {
+    let zoom = zoom.map(clamp_zoom);
 
-    let (legend_item_data, zoom) = items
+    let slot = zoom.map_or(PREFERRED_ZOOM_SLOT, usize::from);
+
+    LEGEND_ITEMS[usize::from(for_taginfo)][slot]
+        .get_or_init(|| default::build_legend_items(BuildOpts { zoom, for_taginfo }))
+}
+
+/// Metadata for every legend item, or — with `zoom` — only for those the map actually
+/// draws at that zoom.
+pub fn legend_metadata(zoom: Option<u8>) -> Vec<LegendMeta<'static>> {
+    let zoom = zoom.map(clamp_zoom);
+
+    // Zoom only decides which items are listed, never what their metadata says, so this reads
+    // the items built at their preferred zooms instead of building a set of its own.
+    legend_items(None, false)
         .iter()
-        .find(|item| item.meta.id == id)
-        .map(|item| (item.data.clone(), item.zoom))?;
+        .filter(|item| zoom.is_none_or(|zoom| item.zooms.contains(&zoom)))
+        .map(|item| item.meta.clone())
+        .collect()
+}
 
+pub fn legend_render_request(
+    id: &str,
+    zoom: Option<u8>,
+    scale: f64,
+    mode: LegendMode,
+) -> Option<RenderRequest> {
+    let items = legend_items(zoom, mode == LegendMode::Taginfo);
+
+    let item = items.iter().find(|item| item.meta.id == id)?;
+
+    Some(render_request(item.render_data(), item.zoom, scale, mode))
+}
+
+fn render_request(
+    legend_item_data: LegendItemData,
+    zoom: u8,
+    scale: f64,
+    mode: LegendMode,
+) -> RenderRequest {
     let bbox = match mode {
         LegendMode::Normal => {
             let zoom_factor = (20f64 - zoom as f64).exp2();
@@ -234,7 +364,7 @@ pub fn legend_render_request(id: &str, scale: f64, mode: LegendMode) -> Option<R
 
     render_request.legend = Some(legend_item_data);
 
-    Some(render_request)
+    render_request
 }
 
 impl PropsBuilder {

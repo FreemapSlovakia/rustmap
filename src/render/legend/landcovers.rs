@@ -1,14 +1,14 @@
 use crate::render::{
     layers::{Category, PAINT_DEFS},
     legend::{
-        LegendItem, build_tags_map, leak_str,
+        BuildOpts, LegendItem, build_tags_map, leak_str,
         mapping::{MappingEntry, MappingKind},
     },
 };
 use indexmap::IndexMap;
 use std::collections::HashMap;
 
-pub fn landcovers(mapping_entries: &[MappingEntry], for_taginfo: bool) -> Vec<LegendItem<'static>> {
+pub fn landcovers(mapping_entries: &[MappingEntry], opts: BuildOpts) -> Vec<LegendItem<'static>> {
     let mut landcover_tags = HashMap::<&'static str, &'static str>::new();
 
     for entry in mapping_entries {
@@ -35,11 +35,11 @@ pub fn landcovers(mapping_entries: &[MappingEntry], for_taginfo: bool) -> Vec<Le
 
             let skew = !matches!(id_typ, "silo" | "parking");
 
-            LegendItem::builder(
+            let builder = LegendItem::builder(
                 format!("landcover_{id_typ}").leak(),
                 Category::Landcover,
                 19,
-                for_taginfo,
+                opts,
             )
             .add_tag_set(|mut ts| {
                 for tag_set in &tags {
@@ -51,11 +51,26 @@ pub fn landcovers(mapping_entries: &[MappingEntry], for_taginfo: bool) -> Vec<Le
                     });
                 }
                 ts
-            })
-            .add_feature("landcovers", |b| {
-                b.with("type", id_typ).with_name().with_polygon(skew)
-            })
-            .build()
+            });
+
+            let builder = match id_typ {
+                // Dropped by the `excl_types` filter in `layers::landcover::query` — a filter
+                // legend renders never run, hence "unprobeable". Pitches (with playgrounds,
+                // golf courses and tracks) are excluded by both of its arms, so they first
+                // appear at zoom 13. Parking and silo are excluded at zoom 12 only, but below
+                // that the query reads the generalized tables, which keep nothing under 5 ha
+                // (50 ha below zoom 10) — so in practice those first show up at 13 as well.
+                "pitch" | "parking" | "silo" => builder.min_zoom_unprobeable(13),
+                // Ski resort boundaries are drawn by a stage of their own.
+                "winter_sports" => builder.min_zoom(11),
+                _ => builder,
+            };
+
+            builder
+                .add_feature("landcovers", |b| {
+                    b.with("type", id_typ).with_name().with_polygon(skew)
+                })
+                .build()
         })
         .collect()
 }
