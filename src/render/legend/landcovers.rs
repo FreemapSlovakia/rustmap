@@ -56,11 +56,10 @@ pub fn landcovers(mapping_entries: &[MappingEntry], opts: BuildOpts) -> Vec<Lege
             let builder = match id_typ {
                 // Dropped by the `excl_types` filter in `layers::landcover::query` — a filter
                 // legend renders never run, hence "unprobeable". Pitches (with playgrounds,
-                // golf courses and tracks) are excluded by both of its arms, so they first
-                // appear at zoom 13. Parking and silo are excluded at zoom 12 only, but below
-                // that the query reads the generalized tables, which keep nothing under 5 ha
-                // (50 ha below zoom 10) — so in practice those first show up at 13 as well.
-                "pitch" | "parking" | "silo" => builder.min_zoom_unprobeable(13),
+                // golf courses and tracks) are excluded up to and including zoom 12; parking
+                // and silo only below it.
+                "pitch" => builder.min_zoom_unprobeable(13),
+                "parking" | "silo" => builder.min_zoom_unprobeable(12),
                 // Ski resort boundaries are drawn by a stage of their own.
                 "winter_sports" => builder.min_zoom(11),
                 _ => builder,

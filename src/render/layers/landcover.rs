@@ -1,7 +1,12 @@
 use super::landcover_z_order::build_landcover_z_order_case;
 use crate::render::{
     Feature,
-    colors::{self, Color, ContextExt, FOREST, GRASSY, SCRUB, HEATH, GLACIER, SCREE, FARMLAND, FARMYARD, BLACK, BEACH, ORCHARD, QUARRY, RESIDENTIAL, COMMERCIAL, INDUSTRIAL, BROWNFIELD, LANDFILL, DAM, HOSPITAL, ALLOTMENTS, PITCH, PITCH_STROKE, COLLEGE, NONE, PARKING, PARKING_STROKE, RECREATION_GROUND, SILO, SILO_STROKE, TREE},
+    colors::{
+        self, ALLOTMENTS, BEACH, BLACK, BROWNFIELD, COLLEGE, COMMERCIAL, Color, ContextExt, DAM,
+        FARMLAND, FARMYARD, FOREST, GLACIER, GRASSY, HEATH, HOSPITAL, INDUSTRIAL, LANDFILL, NONE,
+        ORCHARD, PARKING, PARKING_STROKE, PITCH, PITCH_STROKE, QUARRY, RECREATION_GROUND,
+        RESIDENTIAL, SCREE, SCRUB, SILO, SILO_STROKE, TREE,
+    },
     ctx::Ctx,
     draw::path_geom::{path_geometry, path_line_string_with_offset, walk_geometry_line_strings},
     layer_render_error::LayerRenderResult,
@@ -62,7 +67,7 @@ pub const PAINT_DEFS: &[(&[&str], &[Paint])] = &[
     (&["parking"], &[Paint::Fill(PARKING), Paint::Stroke(2.0, PARKING_STROKE)]),
     (&["recreation_ground"], &[Paint::Fill(RECREATION_GROUND)]),
     (&["winter_sports"], &[]), // NOTE handled separately
-    (&["silo"], &[Paint::Fill(SILO), Paint::Stroke(2.0, SILO_STROKE)]),
+    (&["silo", "bunker_silo", "storage_tank"], &[Paint::Fill(SILO), Paint::Stroke(2.0, SILO_STROKE)]),
 ];
 
 pub static PAINTS: LazyLock<HashMap<&'static str, &'static [Paint]>> = LazyLock::new(|| {
@@ -84,10 +89,8 @@ pub async fn query(
     let a = "'pitch', 'playground', 'golf_course', 'track'";
 
     let excl_types = match ctx.zoom {
-        ..12 => &format!("type NOT IN ({a}) AND"),
-        12..13 => {
-            &format!("type NOT IN ({a}, 'parking', 'bunker_silo', 'storage_tank', 'silo') AND")
-        }
+        ..12 => &format!("type NOT IN ({a}, 'parking', 'bunker_silo', 'storage_tank', 'silo') AND"),
+        12..13 => &format!("type NOT IN ({a}) AND"),
         _ => "",
     };
 

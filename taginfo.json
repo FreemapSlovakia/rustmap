@@ -316,7 +316,7 @@
       "value": "parking",
       "object_types": ["area"],
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/landcover_parking?mode=taginfo",
-      "description": "Rendered as area fill from zoom 0."
+      "description": "Rendered as area fill from zoom 12."
     },
     {
       "key": "amenity",
@@ -742,35 +742,35 @@
       "key": "natural",
       "value": "cliff",
       "object_types": ["way"],
-      "description": "Rendered from zoom 16.",
+      "description": "Rendered from zoom 15.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/line_cliff?mode=taginfo"
     },
     {
       "key": "natural",
       "value": "earth_bank",
       "object_types": ["way"],
-      "description": "Rendered from zoom 16.",
+      "description": "Rendered from zoom 15.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/line_earth_bank?mode=taginfo"
     },
     {
       "key": "man_made",
       "value": "dyke",
       "object_types": ["way"],
-      "description": "Rendered from zoom 16.",
+      "description": "Rendered from zoom 15.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/line_dyke?mode=taginfo"
     },
     {
       "key": "man_made",
       "value": "embankment",
       "object_types": ["way"],
-      "description": "Rendered from zoom 16.",
+      "description": "Rendered from zoom 15.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/line_embankment?mode=taginfo"
     },
     {
       "key": "natural",
       "value": "gully",
       "object_types": ["way"],
-      "description": "Rendered from zoom 16.",
+      "description": "Rendered from zoom 15.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/line_gully?mode=taginfo"
     },
     {
@@ -1084,34 +1084,34 @@
       "value": "park",
       "object_types": ["area"],
       "description": "Rendered from zoom 0. Label (name) from zoom 12.",
-      "icon_url": "https://outdoor.tiles.freemap.sk/legend/landcover_park?mode=taginfo"
+      "icon_url": "https://outdoor.tiles.freemap.sk/legend/landcover_garden?mode=taginfo"
     },
     {
       "key": "leisure",
       "value": "pitch",
       "object_types": ["area"],
-      "description": "Rendered from zoom 0. Label (name) from zoom 12.",
+      "description": "Rendered from zoom 13. Label (name) from zoom 12.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/landcover_pitch?mode=taginfo"
     },
     {
       "key": "leisure",
       "value": "playground",
       "object_types": ["area"],
-      "description": "Rendered from zoom 0. Label (name) from zoom 12.",
+      "description": "Rendered from zoom 13. Label (name) from zoom 12.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/landcover_pitch?mode=taginfo"
     },
     {
       "key": "leisure",
       "value": "golf_course",
       "object_types": ["area"],
-      "description": "Rendered from zoom 0. Label (name) from zoom 12.",
+      "description": "Rendered from zoom 13. Label (name) from zoom 12.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/landcover_pitch?mode=taginfo"
     },
     {
       "key": "leisure",
       "value": "track",
       "object_types": ["area"],
-      "description": "Rendered from zoom 0. Label (name) from zoom 12.",
+      "description": "Rendered from zoom 13. Label (name) from zoom 12.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/landcover_pitch?mode=taginfo"
     },
     {
@@ -1153,14 +1153,28 @@
       "key": "landuse",
       "value": "winter_sports",
       "object_types": ["area"],
-      "description": "Rendered from zoom 0. Label (name) from zoom 12.",
+      "description": "Rendered from zoom 11. Label (name) from zoom 12.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/landcover_winter_sports?mode=taginfo"
     },
     {
       "key": "man_made",
       "value": "silo",
       "object_types": ["area"],
-      "description": "Rendered from zoom 0. Label (name) from zoom 12.",
+      "description": "Rendered from zoom 12. Label (name) from zoom 12.",
+      "icon_url": "https://outdoor.tiles.freemap.sk/legend/landcover_silo?mode=taginfo"
+    },
+    {
+      "key": "man_made",
+      "value": "bunker_silo",
+      "object_types": ["area"],
+      "description": "Rendered from zoom 12. Label (name) from zoom 12.",
+      "icon_url": "https://outdoor.tiles.freemap.sk/legend/landcover_silo?mode=taginfo"
+    },
+    {
+      "key": "man_made",
+      "value": "storage_tank",
+      "object_types": ["area"],
+      "description": "Rendered from zoom 12. Label (name) from zoom 12.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/landcover_silo?mode=taginfo"
     },
     {
@@ -1769,21 +1783,21 @@
       "key": "power",
       "value": "minor_line",
       "object_types": ["way"],
-      "description": "Rendered from zoom 13.",
+      "description": "Rendered from zoom 14.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/line_minor_line?mode=taginfo"
     },
     {
       "key": "power",
       "value": "tower",
       "object_types": ["node", "area"],
-      "description": "Rendered from zoom 13.",
+      "description": "Rendered from zoom 14.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/line_line?mode=taginfo"
     },
     {
       "key": "power",
       "value": "pole",
       "object_types": ["node", "area"],
-      "description": "Rendered as dot from zoom 15.",
+      "description": "Rendered as dot from zoom 14.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/line_minor_line?mode=taginfo"
     },
     {
@@ -1930,15 +1944,15 @@
       "key": "highway",
       "value": "cycleway",
       "object_types": ["way"],
-      "description": "Rendered from zoom 12.",
+      "description": "Rendered from zoom 13.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/road_cycleway?mode=taginfo"
     },
     {
       "key": "highway",
       "value": "path",
       "object_types": ["way"],
-      "description": "Rendered from zoom 12.",
-      "icon_url": "https://outdoor.tiles.freemap.sk/legend/road_path?display=taginfo"
+      "description": "Rendered from zoom 13.",
+      "icon_url": "https://outdoor.tiles.freemap.sk/legend/road_path?mode=taginfo"
     },
     {
       "key": "highway",
@@ -1965,7 +1979,7 @@
       "key": "highway",
       "value": "track",
       "object_types": ["way"],
-      "description": "Rendered from zoom 12.",
+      "description": "Rendered from zoom 13.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/road_track?mode=taginfo"
     },
     {
@@ -2035,42 +2049,42 @@
       "key": "trail_visibility",
       "value": "excellent",
       "object_types": ["way"],
-      "description": "Lowers the opacity of path and track lines as visibility worsens. Rendered from zoom 12.",
+      "description": "Lowers the opacity of path and track lines as visibility worsens. Rendered from zoom 13.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/trail_visibility_excellent?mode=taginfo"
     },
     {
       "key": "trail_visibility",
       "value": "good",
       "object_types": ["way"],
-      "description": "Lowers the opacity of path and track lines as visibility worsens. Rendered from zoom 12.",
+      "description": "Lowers the opacity of path and track lines as visibility worsens. Rendered from zoom 13.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/trail_visibility_good?mode=taginfo"
     },
     {
       "key": "trail_visibility",
       "value": "intermediate",
       "object_types": ["way"],
-      "description": "Lowers the opacity of path and track lines as visibility worsens. Rendered from zoom 12.",
+      "description": "Lowers the opacity of path and track lines as visibility worsens. Rendered from zoom 13.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/trail_visibility_intermediate?mode=taginfo"
     },
     {
       "key": "trail_visibility",
       "value": "bad",
       "object_types": ["way"],
-      "description": "Lowers the opacity of path and track lines as visibility worsens. Rendered from zoom 12.",
+      "description": "Lowers the opacity of path and track lines as visibility worsens. Rendered from zoom 13.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/trail_visibility_bad?mode=taginfo"
     },
     {
       "key": "trail_visibility",
       "value": "horrible",
       "object_types": ["way"],
-      "description": "Lowers the opacity of path and track lines as visibility worsens. Rendered from zoom 12.",
+      "description": "Lowers the opacity of path and track lines as visibility worsens. Rendered from zoom 13.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/trail_visibility_horrible?mode=taginfo"
     },
     {
       "key": "trail_visibility",
       "value": "no",
       "object_types": ["way"],
-      "description": "Lowers the opacity of path and track lines as visibility worsens. Rendered from zoom 12.",
+      "description": "Lowers the opacity of path and track lines as visibility worsens. Rendered from zoom 13.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/trail_visibility_no?mode=taginfo"
     },
     {
@@ -2106,35 +2120,35 @@
       "key": "railway",
       "value": "miniature",
       "object_types": ["way"],
-      "description": "Rendered from zoom 14.",
+      "description": "Rendered from zoom 13.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/railway_miniature?mode=taginfo"
     },
     {
       "key": "railway",
       "value": "monorail",
       "object_types": ["way"],
-      "description": "Rendered from zoom 14.",
+      "description": "Rendered from zoom 13.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/railway_miniature?mode=taginfo"
     },
     {
       "key": "railway",
       "value": "funicular",
       "object_types": ["way"],
-      "description": "Rendered from zoom 14.",
+      "description": "Rendered from zoom 13.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/railway_miniature?mode=taginfo"
     },
     {
       "key": "railway",
       "value": "narrow_gauge",
       "object_types": ["way"],
-      "description": "Rendered from zoom 14.",
+      "description": "Rendered from zoom 13.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/railway_miniature?mode=taginfo"
     },
     {
       "key": "railway",
       "value": "subway",
       "object_types": ["way"],
-      "description": "Rendered from zoom 14.",
+      "description": "Rendered from zoom 13.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/railway_miniature?mode=taginfo"
     },
     {
@@ -2581,49 +2595,49 @@
       "key": "waterway",
       "value": "ditch",
       "object_types": ["way"],
-      "description": "Rendered from zoom 0. Label (name) from zoom 12.",
+      "description": "Rendered from zoom 12. Label (name) from zoom 12.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/river_stream?mode=taginfo"
     },
     {
       "key": "waterway",
       "value": "drain",
       "object_types": ["way"],
-      "description": "Rendered from zoom 0. Label (name) from zoom 12.",
+      "description": "Rendered from zoom 12. Label (name) from zoom 12.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/river_stream?mode=taginfo"
     },
     {
       "key": "waterway",
       "value": "rapids",
       "object_types": ["way"],
-      "description": "Rendered from zoom 0. Label (name) from zoom 12.",
+      "description": "Rendered from zoom 12. Label (name) from zoom 12.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/river_stream?mode=taginfo"
     },
     {
       "key": "waterway",
       "value": "tidal_channel",
       "object_types": ["way"],
-      "description": "Rendered from zoom 0. Label (name) from zoom 12.",
+      "description": "Rendered from zoom 12. Label (name) from zoom 12.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/river_stream?mode=taginfo"
     },
     {
       "key": "waterway",
       "value": "pressurised",
       "object_types": ["way"],
-      "description": "Rendered from zoom 0. Label (name) from zoom 12.",
+      "description": "Rendered from zoom 12. Label (name) from zoom 12.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/river_stream?mode=taginfo"
     },
     {
       "key": "waterway",
       "value": "canoe_pass",
       "object_types": ["way"],
-      "description": "Rendered from zoom 0. Label (name) from zoom 12.",
+      "description": "Rendered from zoom 12. Label (name) from zoom 12.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/river_stream?mode=taginfo"
     },
     {
       "key": "waterway",
       "value": "fish_pass",
       "object_types": ["way"],
-      "description": "Rendered from zoom 0. Label (name) from zoom 12.",
+      "description": "Rendered from zoom 12. Label (name) from zoom 12.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/river_stream?mode=taginfo"
     },
     {
@@ -2644,7 +2658,7 @@
       "key": "waterway",
       "value": "stream",
       "object_types": ["way"],
-      "description": "Rendered from zoom 0. Label (name) from zoom 12.",
+      "description": "Rendered from zoom 12. Label (name) from zoom 12.",
       "icon_url": "https://outdoor.tiles.freemap.sk/legend/river_stream?mode=taginfo"
     },
     {
