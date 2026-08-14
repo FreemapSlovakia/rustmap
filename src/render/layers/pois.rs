@@ -766,6 +766,74 @@ pub(super) struct PendingLabel {
 
 pub(super) type ToLabel = Vec<PendingLabel>;
 
+/// Builds the cache key, legend names and stylesheet for a `spring` POI, whose icon
+/// varies with several `extra` tags (mineral/refitted/hot/intermittent/drinkable)
+/// rather than coming from a single static definition.
+fn spring_variant(
+    extra: &HashMap<String, Option<String>>,
+) -> (Cow<'static, str>, Vec<String>, Option<String>) {
+    let mut stylesheet = String::new();
+
+    let is_mineral = extra
+        .get("water_characteristic")
+        .is_some_and(|v| v.is_some() && v.as_deref() != Some(""));
+
+    let mut key = (if is_mineral {
+        "mineral-spring"
+    } else {
+        "spring"
+    })
+    .to_string();
+
+    let mut names = vec![key.clone()];
+
+    if !is_mineral
+        && extra
+            .get("refitted")
+            .is_some_and(|r| r.as_deref() == Some("yes"))
+    {
+        key.push_str("|refitted");
+        names.push("refitted_spring".into());
+    }
+
+    let fill = if extra
+        .get("hot")
+        .is_some_and(|r| r.as_deref() == Some("true"))
+    {
+        key.push_str("|hot");
+
+        "#e11919"
+    } else {
+        "#0064ff"
+    };
+
+    if extra
+        .get("intermittent")
+        .is_some_and(|r| r.as_deref() == Some("yes"))
+    {
+        key.push_str("|tmp");
+        names.push("intermittent".into());
+    }
+
+    let _ = write!(stylesheet, "#spring {{ fill: {fill} }}");
+
+    match extra.get("drinkable").and_then(Option::as_deref) {
+        Some("yes" | "treated") => {
+            key.push_str("|drinkable");
+            names.push("drinkable_spring".into());
+            stylesheet.push_str(r"#drinkable { fill: #00ff00 } ");
+        }
+        Some("no") => {
+            key.push_str("|not_drinkable");
+            names.push("drinkable_spring".into());
+            stylesheet.push_str(r"#drinkable { fill: #ff0000 } ");
+        }
+        _ => {}
+    }
+
+    (Cow::Owned(key), names, Some(stylesheet))
+}
+
 pub fn render_icons(
     ctx: &Ctx,
     context: &Context,
@@ -795,83 +863,20 @@ pub fn render_icons(
 
         let key = def.extra.icon.unwrap_or(typ);
 
-        let (key, names, stylesheet) = match key {
-            "spring" => {
-                let mut stylesheet = String::new();
+        let (key, names, stylesheet) = if key == "spring" {
+            spring_variant(&extra)
+        } else {
+            let stylesheet = def.extra.stylesheet.map(str::to_string);
 
-                let is_mineral = extra
-                    .get("water_characteristic")
-                    .is_some_and(|v| v.is_some() && v.as_deref() != Some(""));
+            // Fold the stylesheet into the cache key so styled variants (e.g. the
+            // red volcano) don't collide with the unstyled icon of the same name
+            // (plain "peak"), whose surface is cached on first render regardless of
+            // stylesheet — see SvgRepo::get_extra.
+            let cache_key = stylesheet
+                .as_ref()
+                .map_or(Cow::Borrowed(key), |ss| Cow::Owned(format!("{key}|{ss}")));
 
-                let mut key = (if is_mineral {
-                    "mineral-spring"
-                } else {
-                    "spring"
-                })
-                .to_string();
-
-                let mut names = vec![key.clone()];
-
-                if !is_mineral
-                    && extra
-                        .get("refitted")
-                        .is_some_and(|r| r.as_deref() == Some("yes"))
-                {
-                    key.push_str("|refitted");
-                    names.push("refitted_spring".into());
-                }
-
-                let fill = if extra
-                    .get("hot")
-                    .is_some_and(|r| r.as_deref() == Some("true"))
-                {
-                    key.push_str("|hot");
-
-                    "#e11919"
-                } else {
-                    "#0064ff"
-                };
-
-                if extra
-                    .get("intermittent")
-                    .is_some_and(|r| r.as_deref() == Some("yes"))
-                {
-                    key.push_str("|tmp");
-                    names.push("intermittent".into());
-                }
-
-                let _ = write!(stylesheet, "#spring {{ fill: {fill} }}");
-
-                match extra.get("drinkable").and_then(Option::as_deref) {
-                    Some("yes" | "treated") => {
-                        key.push_str("|drinkable");
-                        names.push("drinkable_spring".into());
-                        stylesheet.push_str(r"#drinkable { fill: #00ff00 } ");
-                    }
-                    Some("no") => {
-                        key.push_str("|not_drinkable");
-                        names.push("drinkable_spring".into());
-                        stylesheet.push_str(r"#drinkable { fill: #ff0000 } ");
-                    }
-                    _ => {}
-                }
-
-                (Cow::Owned(key), names, Some(stylesheet))
-            }
-            _ => {
-                let stylesheet = def.extra.stylesheet.map(str::to_string);
-
-                // Fold the stylesheet into the cache key so styled variants (e.g. the
-                // red volcano) don't collide with the unstyled icon of the same name
-                // (plain "peak"), whose surface is cached on first render regardless of
-                // stylesheet — see SvgRepo::get_extra.
-                let cache_key = match &stylesheet {
-                    Some(ss) => Cow::Owned(format!("{key}|{ss}")),
-                    None => Cow::Borrowed(key),
-                };
-
-                (cache_key, vec![key.to_string()], stylesheet)
-            }
+            (cache_key, vec![key.to_string()], stylesheet)
         };
 
         let surface = svg_repo.get_extra(

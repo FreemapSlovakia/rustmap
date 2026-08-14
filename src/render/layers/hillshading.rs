@@ -28,7 +28,11 @@ fn erode(mask: &mut [u8], width: usize, height: usize, radius_x: usize, radius_y
         for x in 0..width {
             let lo = x.saturating_sub(radius_x);
             let hi = (x + radius_x).min(width - 1);
-            tmp[row + x] = mask[row + lo..=row + hi].iter().copied().min().unwrap();
+            tmp[row + x] = mask[row + lo..=row + hi]
+                .iter()
+                .copied()
+                .min()
+                .expect("window is non-empty: lo <= x <= hi");
         }
     }
 

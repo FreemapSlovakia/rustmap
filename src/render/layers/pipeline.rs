@@ -80,11 +80,14 @@ type SharedRenderFn<'a> = Box<dyn FnOnce(&[Feature], Params) -> LayerRenderResul
 /// Render-only step that needs no features.
 type PushFn<'a> = Box<dyn FnOnce(Params) -> Result<(), RenderError> + 'a>;
 
+/// The tokio task running a layer's DB query, until its rows are awaited.
+type FeatureQueryHandle = JoinHandle<Result<Vec<Feature>, LayerRenderError>>;
+
 /// A single query result reused across multiple render stages (e.g. `feature_lines`,
 /// drawn up to 5× in different draw-order positions from one DB fetch). The first
 /// stage to run awaits the query and caches the rows; the rest borrow them.
 struct SharedSlot {
-    jh: RefCell<Option<JoinHandle<Result<Vec<Feature>, LayerRenderError>>>>,
+    jh: RefCell<Option<FeatureQueryHandle>>,
     features: RefCell<Option<Vec<Feature>>>,
 }
 
@@ -92,7 +95,7 @@ enum PendingLayer<'a> {
     /// A DB query running as its own tokio task (own pool connection → true parallelism).
     Query {
         name: &'static str,
-        jh: JoinHandle<Result<Vec<Feature>, LayerRenderError>>,
+        jh: FeatureQueryHandle,
         render_fn: LayerRenderFn<'a>,
     },
     /// One of several render stages sharing a single `SharedSlot` query result.
@@ -215,7 +218,7 @@ impl<'a> Prefetcher<'a> {
         &mut self,
         name: &'static str,
         legend_name: &'static str,
-        slot: &Option<Rc<SharedSlot>>,
+        slot: Option<&Rc<SharedSlot>>,
         render_fn: impl FnOnce(&[Feature], Params) -> LayerRenderResult + 'a,
     ) {
         if let Some(ref legend) = self.ctx.legend {
@@ -236,7 +239,7 @@ impl<'a> Prefetcher<'a> {
         }
 
         let slot = slot
-            .clone()
+            .cloned()
             .expect("shared slot must be present outside legend mode");
 
         self.layers.push(PendingLayer::Shared {
@@ -413,7 +416,7 @@ pub fn render(
     prefetcher.add_shared(
         "landcovers",
         "landcovers",
-        &landcover_slot,
+        landcover_slot.as_ref(),
         |rows, params| layers::landcover::render(&ctx, context, rows, params.svg_repo),
     );
 
@@ -431,7 +434,7 @@ pub fn render(
         prefetcher.add_shared(
             "feature_lines_1",
             "feature_lines",
-            &feature_lines_slot,
+            feature_lines_slot.as_ref(),
             |rows, params| {
                 layers::feature_lines::render(&ctx, context, 1, rows, params.svg_repo, None)
             },
@@ -474,7 +477,7 @@ pub fn render(
         prefetcher.add_shared(
             "feature_lines_2",
             "feature_lines",
-            &feature_lines_slot,
+            feature_lines_slot.as_ref(),
             |rows, params| {
                 layers::feature_lines::render(
                     &ctx,
@@ -528,7 +531,7 @@ pub fn render(
         prefetcher.add_shared(
             "feature_lines_3",
             "feature_lines",
-            &feature_lines_slot,
+            feature_lines_slot.as_ref(),
             |rows, params| {
                 layers::feature_lines::render(&ctx, context, 3, rows, params.svg_repo, None)
             },
@@ -690,7 +693,7 @@ pub fn render(
         prefetcher.add_shared(
             "feature_lines_4",
             "feature_lines",
-            &feature_lines_slot,
+            feature_lines_slot.as_ref(),
             |rows, params| {
                 layers::feature_lines::render(&ctx, context, 4, rows, params.svg_repo, None)
             },
@@ -710,7 +713,7 @@ pub fn render(
         prefetcher.add_shared(
             "winter_sports_boundaries",
             "landcovers",
-            &landcover_slot,
+            landcover_slot.as_ref(),
             |rows, _params| layers::landcover::render_winter_sports_boundaries(&ctx, context, rows),
         );
     }
@@ -792,7 +795,7 @@ pub fn render(
         prefetcher.add_shared(
             "feature_lines_5",
             "feature_lines",
-            &feature_lines_slot,
+            feature_lines_slot.as_ref(),
             |rows, params| {
                 layers::feature_lines::render(&ctx, context, 5, rows, params.svg_repo, None)
             },

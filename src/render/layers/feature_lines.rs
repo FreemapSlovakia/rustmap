@@ -121,9 +121,9 @@ pub fn render(
 
             let mut untouched = false;
 
-            let _typ = row.get_string("type")?;
+            let typ = row.get_string("type")?;
 
-            match (stage, zoom, _typ, maskable) {
+            match (stage, zoom, typ, maskable) {
                 (1, 13.., "cutline", false) => {
                     for row in rows {
                         let geom = row.get_line_string()?.project_to_tile(&ctx.tile_projector);
@@ -302,7 +302,7 @@ pub fn render(
 
                     context.new_path();
 
-                    let surface = svg_repo.get(_typ)?;
+                    let surface = svg_repo.get(typ)?;
 
                     // NOTE: use ink_extents() rather than extents(): the same icon name
                     // ("obstacle_tree"/"obstacle_vegetation") is also cached by the POI

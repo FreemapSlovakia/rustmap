@@ -183,7 +183,7 @@ pub fn render_borders(
     }
 
     context.pop_group_to_source()?;
-    context.paint_with_alpha(1.0 - ((zoom as i8 - 12).max(0).min(4) as f64) / 8.0)?;
+    context.paint_with_alpha(1.0 - ((zoom as i8 - 12).clamp(0, 4) as f64) / 8.0)?;
 
     context.push_group();
 
@@ -219,7 +219,7 @@ pub fn render_borders(
     }
 
     context.pop_group_to_source()?;
-    context.paint_with_alpha(2.0 / 3.0 - ((zoom as i8 - 11).max(0).min(2) as f64) / 6.0)?;
+    context.paint_with_alpha(2.0 / 3.0 - ((zoom as i8 - 11).clamp(0, 2) as f64) / 6.0)?;
 
     Ok(())
 }
