@@ -35,7 +35,7 @@ pub async fn query(ctx: &Ctx, client: &tokio_postgres::Client) -> Result<Vec<tok
         "
         WITH merged AS (
             SELECT
-                ST_LineMerge(ST_Collect(ST_Segmentize(ST_Simplify(geometry, 24), 200))) AS geometry,
+                ST_LineMerge(ST_Collect(ST_Segmentize(COALESCE(ST_Simplify(geometry, 24), geometry), 200))) AS geometry,
                 name,
                 type,
                 MIN(osm_id) AS osm_id

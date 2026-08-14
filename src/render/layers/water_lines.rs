@@ -10,10 +10,11 @@ use crate::render::{
 use cairo::Context;
 
 pub async fn query(ctx: &Ctx, client: &tokio_postgres::Client) -> Result<Vec<tokio_postgres::Row>, tokio_postgres::Error> {
+    // ST_Simplify returns NULL for closed lines collapsing under the tolerance, hence the COALESCE
     let geom_query = match ctx.zoom {
-        12 => "ST_Segmentize(ST_Simplify(geometry, 24), 200) AS geometry",
-        13 => "ST_Segmentize(ST_Simplify(geometry, 12), 200) AS geometry",
-        14 => "ST_Segmentize(ST_Simplify(geometry, 6), 200) AS geometry",
+        12 => "ST_Segmentize(COALESCE(ST_Simplify(geometry, 24), geometry), 200) AS geometry",
+        13 => "ST_Segmentize(COALESCE(ST_Simplify(geometry, 12), geometry), 200) AS geometry",
+        14 => "ST_Segmentize(COALESCE(ST_Simplify(geometry, 6), geometry), 200) AS geometry",
         _ => "geometry",
     };
 
