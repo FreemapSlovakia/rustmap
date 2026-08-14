@@ -125,18 +125,12 @@ pub fn render(
 
             match (stage, zoom, typ, maskable) {
                 (1, 13.., "cutline", false) => {
-                    for row in rows {
-                        let geom = row.get_line_string()?.project_to_tile(&ctx.tile_projector);
+                    path_line_string(context, &geom);
 
-                        path_line_string(context, &geom);
-
-                        context.set_source_color(colors::SCRUB);
-                        context.set_dash(&[], 0.0);
-                        context
-                            .set_line_width(0.33f64.mul_add(((ctx.zoom - 12) as f64).exp2(), 2.0));
-                        context.stroke_preserve()?;
-                        context.stroke()?;
-                    }
+                    context.set_source_color(colors::SCRUB);
+                    context.set_dash(&[], 0.0);
+                    context.set_line_width(0.33f64.mul_add(((zoom - 12) as f64).exp2(), 2.0));
+                    context.stroke()?;
                 }
                 (2, 12.., "pipeline", false) => {
                     context.push_group();
