@@ -34,7 +34,7 @@ image = { version = "0.25.10", default-features = false, features = [
 ] }
 librsvg = { version = "2.62.3" }
 cairo-rs = { version = "0.22.0", features = ["pdf", "png", "svg"] }
-cavalier_contours = { version = "0.7.0" }
+cavalier_contours = { version = "0.8.0" }
 colorsys = "0.7.3"
 geo-postgis = "0.2.2"
 postgis = "0.9.0"
@@ -50,9 +50,9 @@ futures-util = "0.3"
 regex = "1.13.1"
 serde_json = "1.0.151"
 tracy-client = { version = "0.18.4", default-features = false }
-thiserror = "2.0.19"
+thiserror = "2.0.20"
 axum = "0.8.9"
-clap = { version = "4.6.4", features = ["derive", "env"] }
+clap = { version = "4.6.6", features = ["derive", "env"] }
 dotenvy = "0.15.7"
 tokio = { version = "1.53.1", features = [
   "fs",
@@ -64,7 +64,7 @@ tower = { version = "0.5.3", features = ["limit", "timeout"] }
 tower-http = { version = "0.7.0", features = ["cors"] }
 rand = "0.10.2"
 serde = { version = "1.0.229", features = ["derive"] }
-serde-saphyr = "0.0.29"
+serde-saphyr = "1.0.1"
 indexmap = { version = "2.14.0", features = ["serde"] }
 notify = "8.2.0"
 tokio-util = { version = "0.7.19", features = ["io"] }
