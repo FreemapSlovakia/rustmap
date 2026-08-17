@@ -33,7 +33,7 @@ mod locality_names;
 mod military_areas;
 mod national_park_names;
 mod pipeline;
-mod place_names;
+pub mod place_names;
 mod poi_z_order;
 mod pois;
 mod power_towers_poles;

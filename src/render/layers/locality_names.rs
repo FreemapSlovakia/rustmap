@@ -28,7 +28,7 @@ pub async fn query(
             geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5)
         ORDER BY
             z_order DESC,
-            population DESC,
+            population DESC NULLS LAST,
             osm_id
     ";
 

@@ -93,6 +93,7 @@ impl RenderWorkerPool {
                                     .as_ref(),
                                 datasets: hillshading_datasets.as_mut(),
                             },
+                            config.place_type_overrides.clone(),
                             pool.clone(),
                             handle.clone(),
                             &mut svg_repo,

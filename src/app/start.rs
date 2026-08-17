@@ -63,12 +63,29 @@ pub fn start() {
             .expect("build db pool")
         };
 
+        // Fail here rather than on every z8+ tile: without the table the place query errors.
+        if cli.place_type_overrides.is_some() {
+            let pool = pool.clone();
+
+            rt.block_on(async move {
+                pool.get()
+                    .await
+                    .expect("db connection for countries check")
+                    .query_one("SELECT count(*) FROM countries", &[])
+                    .await
+                    .expect(
+                        "--place-type-overrides needs the `countries` table; build it with sql/countries.sql",
+                    );
+            });
+        }
+
         let render_config = Arc::new(RenderConfig {
             svg_base_path: Arc::from(cli.svg_base_path),
             hillshading_base_path: cli.hillshading_base_path,
             hillshading_hierarchy: cli.hillshading_hierarchy,
             contour_countries: cli.contour_countries,
             feature_line_mask_countries: cli.feature_line_mask_countries,
+            place_type_overrides: cli.place_type_overrides.map(Arc::new),
         });
 
         Arc::new(RenderWorkerPool::new(

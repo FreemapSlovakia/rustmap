@@ -3,7 +3,7 @@ use crate::render::projectable::TileProjectable;
 use crate::render::render_request::CustomLayer;
 use crate::render::{
     ContourCountries, CustomLayerOrder, FeatureLineMaskCountries, HillshadingHierarchy,
-    RenderLayer, colors,
+    PlaceTypeOverrides, RenderLayer, colors,
 };
 use crate::render::{
     Feature, ImageFormat,
@@ -335,10 +335,12 @@ pub struct Shading<'a> {
     pub datasets: Option<&'a mut HillshadingDatasets>,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn render(
     surface: &Surface,
     request: &RenderRequest,
     mut shading: Shading,
+    place_type_overrides: Option<Arc<PlaceTypeOverrides>>,
     pool: Pool,
     handle: Handle,
     size: Size<u32>,
@@ -380,6 +382,7 @@ pub fn render(
         tile_projector: TileProjector::new(bbox, size),
         scale,
         legend,
+        place_type_overrides,
     });
 
     let coverage_geometry = if ctx.legend.is_none()

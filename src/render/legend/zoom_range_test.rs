@@ -43,6 +43,7 @@ fn render(
             feature_line_mask_countries: None,
             datasets: None,
         },
+        None,
         pool.clone(),
         handle.clone(),
         svg_repo,

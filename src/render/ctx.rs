@@ -1,5 +1,8 @@
-use crate::render::{legend::LegendItemData, projectable::TileProjector, size::Size};
+use crate::render::{
+    PlaceTypeOverrides, legend::LegendItemData, projectable::TileProjector, size::Size,
+};
 use geo::Rect;
+use std::sync::Arc;
 use tokio_postgres::types::ToSql;
 
 pub struct SqlParams {
@@ -33,6 +36,7 @@ pub struct Ctx {
     pub tile_projector: TileProjector,
     pub scale: f64,
     pub legend: Option<LegendItemData>,
+    pub place_type_overrides: Option<Arc<PlaceTypeOverrides>>,
 }
 
 impl Ctx {

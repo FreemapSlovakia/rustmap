@@ -1,5 +1,6 @@
 use crate::render::{
-    ContourCountries, FeatureLineMaskCountries, HillshadingHierarchy, RenderLayer,
+    ContourCountries, FeatureLineMaskCountries, HillshadingHierarchy, PlaceTypeOverrides,
+    RenderLayer,
 };
 use clap::{Parser, ValueEnum, error::ErrorKind};
 use std::{collections::HashSet, net::Ipv4Addr, path::PathBuf, str::FromStr};
@@ -114,6 +115,21 @@ pub struct Cli {
     /// If unset, nothing is masked.
     #[arg(long, env = "MAPRENDER_FEATURE_LINE_MASK_COUNTRIES")]
     pub feature_line_mask_countries: Option<FeatureLineMaskCountries>,
+
+    /// Per-country place type remapping for place labels, for countries tagging `place=*`
+    /// more finely than the style expects. Format:
+    /// `<country>:<rule>[,<rule>…][;<country>:…]`, where the country is a lowercase ISO
+    /// 3166-1 alpha-2 code or `*` for every country without rules of its own, and `<rule>`
+    /// is `<from>[@<population>]=<to>`. The target is `z<zoom>[/<style>]` — from which zoom
+    /// to label the place and in which style (xxl, xl, l, m, s, xs, xxs; the source type's
+    /// own if omitted) — or `-` to not label the type in that country at all. The optional
+    /// `@<population>` matches only places below that population (untagged counts as 0);
+    /// several rules for one type form tiers, the lowest matching population wins and a
+    /// rule without `@` takes the rest. A rule may only postpone a type, never make it
+    /// appear earlier. Requires the `countries` table (see sql/countries.sql). If unset,
+    /// place labels are the same everywhere.
+    #[arg(long, env = "MAPRENDER_PLACE_TYPE_OVERRIDES")]
+    pub place_type_overrides: Option<PlaceTypeOverrides>,
 
     /// Number of rendering worker threads.
     #[arg(long, env = "MAPRENDER_WORKER_COUNT")]

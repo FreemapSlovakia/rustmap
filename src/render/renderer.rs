@@ -1,11 +1,12 @@
 use crate::render::{
-    image_format::ImageFormat, layers, render_request::RenderRequest, svg_repo::SvgRepo,
-    xyz::bbox_size_in_pixels,
+    PlaceTypeOverrides, image_format::ImageFormat, layers, render_request::RenderRequest,
+    svg_repo::SvgRepo, xyz::bbox_size_in_pixels,
 };
 use cairo::{Format, ImageSurface, PdfSurface, Surface, SvgSurface};
 use deadpool_postgres::Pool;
 use image::codecs::jpeg::JpegEncoder;
 use image::{ExtendedColorType, ImageEncoder};
+use std::sync::Arc;
 use tokio::runtime::Handle;
 
 #[derive(Debug, thiserror::Error)]
@@ -23,6 +24,7 @@ pub enum RenderError {
 pub fn render(
     request: &RenderRequest,
     shading: layers::Shading<'_>,
+    place_type_overrides: Option<Arc<PlaceTypeOverrides>>,
     pool: Pool,
     handle: Handle,
     svg_repo: &mut SvgRepo,
@@ -31,8 +33,18 @@ pub fn render(
 
     let size = bbox_size_in_pixels(request.bbox, request.zoom as f64);
 
-    let render =
-        |surface: &Surface| layers::render(surface, request, shading, pool, handle, size, svg_repo);
+    let render = |surface: &Surface| {
+        layers::render(
+            surface,
+            request,
+            shading,
+            place_type_overrides,
+            pool,
+            handle,
+            size,
+            svg_repo,
+        )
+    };
 
     match request.format {
         ImageFormat::Svg => {

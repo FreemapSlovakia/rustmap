@@ -137,6 +137,32 @@ imposm import -connection postgis: -mapping borders.yaml -read countries.osm.pbf
 imposm import -connection postgis: -mapping borders.yaml -deployproduction
 ```
 
+## Country polygons
+
+Needed only for `--place-type-overrides` (`MAPRENDER_PLACE_TYPE_OVERRIDES`), which decides
+per country how a `place=*` type is labelled. The polygons are built from the country
+borders imported above, so no extra download is needed — but that import must have
+deployed both of its tables, `osm_country_members` (the border ways) and
+`osm_country_relations` (their ISO 3166-1 codes):
+
+```sh
+psql < sql/countries.sql
+```
+
+[countries.sql](./sql/countries.sql) polygonizes each relation's border ways, cuts out
+enclaves (Lesotho, San Marino, …), tags every polygon with the relation's lowercase
+ISO 3166-1 code and subdivides them — the renderer does a point-in-polygon lookup per
+place label, and whole-country polygons would make it slow. It takes about half a minute
+and results in ~50 000 polygons for ~215 countries. Re-run it after re-importing borders.
+
+## Place labels
+
+`place=*` is tagged at very different granularities per country, so one zoom ladder makes
+some countries far busier than others. [doc/place-labels.md](./doc/place-labels.md) explains
+the `MAPRENDER_PLACE_TYPE_OVERRIDES` rule syntax, how to measure a country before writing a
+rule, and what the measurements said — with the per-country data in
+[doc/place-density.csv](./doc/place-density.csv).
+
 ## Importing OSM data
 
 ⚠️ You must use [Imposm with improvements](https://github.com/FreemapSlovakia/imposm3).
