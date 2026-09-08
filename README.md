@@ -62,10 +62,10 @@ Legacy manual: https://github.com/FreemapSlovakia/freemap-mapnik/blob/develop/do
 
 ~~Legacy manual: https://github.com/FreemapSlovakia/freemap-mapnik/blob/develop/doc/SHADING_AND_CONTOURS.md~~
 
-Run [shading.nu](./shading.nu) to produce `shading.tif`. Adjust `ZOOM`, `PARALLEL`, and the whitebox_tools parameters at the top of the script.
+Run [scripts/shading.nu](./scripts/shading.nu) to produce `shading.tif`. Adjust `ZOOM`, `PARALLEL`, and the whitebox_tools parameters at the top of the script.
 
 ```sh
-nu shading.nu
+nu scripts/shading.nu
 ```
 
 The script is resumable — re-running it skips already completed tiles.
@@ -98,7 +98,7 @@ rustflags = ["-C", "link-arg=-Wl,-rpath,/home/<you>/miniforge3/envs/geo/lib"]
 PKG_CONFIG_PATH = "/home/<you>/miniforge3/envs/geo/lib/pkgconfig"
 ```
 
-For `shading.nu`, invoke `gdal_translate`/`gdaladdo` from the env (e.g. `mamba activate geo` before running, or hard-code `~/miniforge3/envs/geo/bin/...` paths).
+For `scripts/shading.nu`, invoke `gdal_translate`/`gdaladdo` from the env (e.g. `mamba activate geo` before running, or hard-code `~/miniforge3/envs/geo/bin/...` paths).
 
 ## Country labels
 
