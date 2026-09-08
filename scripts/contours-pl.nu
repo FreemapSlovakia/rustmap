@@ -21,7 +21,7 @@
 #
 # Output: /mnt/osm/poland_contours.gpkg (layer `cont_pl_dmr`, EPSG:2180).
 # Handoff to the splitter (split ≤1000 pts, simplify, stream into PostGIS):
-#   DATABASE_URL="postgresql://martin:b0n0@localhost/martin" \
+#   DATABASE_URL="postgresql://martin@localhost/martin" \
 #     /home/martin/fm/splitter/target/release/splitter-rs \
 #       --source-gpkg /mnt/osm/poland_contours.gpkg \
 #       --source-table cont_pl_dmr --dest-table cont_pl_dmr_split \

@@ -51,7 +51,10 @@
 #        --source-table cont_de_by_dtm --dest-table contours_de_by \
 #        --source-epsg 25832 --split-max-points 1000 \
 #        --simplify-tolerance 2 --commit-interval 1000 --drop-existing \
-#        --database-url "postgresql://martin:b0n0@localhost/martin"
+#        --database-url "postgresql://martin@localhost/martin"
+#
+#    No password in the URL — libpq reads it from $PGPASSWORD or ~/.pgpass.
+#    This repo is public; do not paste one back in.
 #
 #    NOTE: `--simplify-high-quality` and `--drop-existing` are boolean FLAGS —
 #    passing either a value fails with "unexpected argument".
