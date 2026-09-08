@@ -33,7 +33,7 @@ pub fn landcovers(mapping_entries: &[MappingEntry], opts: BuildOpts) -> Vec<Lege
 
             let id_typ = types[0];
 
-            let skew = !matches!(id_typ, "silo" | "parking");
+            let skew = !matches!(id_typ, "parking");
 
             let builder = LegendItem::builder(
                 format!("landcover_{id_typ}").leak(),
@@ -57,9 +57,9 @@ pub fn landcovers(mapping_entries: &[MappingEntry], opts: BuildOpts) -> Vec<Lege
                 // Dropped by the `excl_types` filter in `layers::landcover::query` — a filter
                 // legend renders never run, hence "unprobeable". Pitches (with playgrounds,
                 // golf courses and tracks) are excluded up to and including zoom 12; parking
-                // and silo only below it.
+                // only below it.
                 "pitch" => builder.min_zoom_unprobeable(13),
-                "parking" | "silo" => builder.min_zoom_unprobeable(12),
+                "parking" => builder.min_zoom_unprobeable(12),
                 // Ski resort boundaries are drawn by a stage of their own.
                 "winter_sports" => builder.min_zoom(11),
                 _ => builder,

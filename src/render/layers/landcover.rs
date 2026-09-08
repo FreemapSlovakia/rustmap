@@ -67,7 +67,7 @@ pub const PAINT_DEFS: &[(&[&str], &[Paint])] = &[
     (&["parking"], &[Paint::Fill(PARKING), Paint::Stroke(2.0, PARKING_STROKE)]),
     (&["recreation_ground"], &[Paint::Fill(RECREATION_GROUND)]),
     (&["winter_sports"], &[]), // NOTE handled separately
-    (&["silo", "bunker_silo", "storage_tank"], &[Paint::Fill(SILO), Paint::Stroke(2.0, SILO_STROKE)]),
+    (&["bunker_silo"], &[Paint::Fill(SILO), Paint::Stroke(2.0, SILO_STROKE)]),
 ];
 
 pub static PAINTS: LazyLock<HashMap<&'static str, &'static [Paint]>> = LazyLock::new(|| {
@@ -89,7 +89,7 @@ pub async fn query(
     let a = "'pitch', 'playground', 'golf_course', 'track'";
 
     let excl_types = match ctx.zoom {
-        ..12 => &format!("type NOT IN ({a}, 'parking', 'bunker_silo', 'storage_tank', 'silo') AND"),
+        ..12 => &format!("type NOT IN ({a}, 'parking', 'bunker_silo') AND"),
         12..13 => &format!("type NOT IN ({a}) AND"),
         _ => "",
     };

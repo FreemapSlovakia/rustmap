@@ -312,8 +312,8 @@ tables:
           man_made:
             - clearcut
             - bunker_silo
-            - silo
-            - storage_tank
+            - silo # TODO remove
+            - storage_tank # TODO remove
             - wastewater_plant
             - bridge
       natural:
@@ -977,8 +977,8 @@ tables:
                 - boundary_stone
                 - bunker
                 - castle
-                - city_gate # TODO new tag
-                - fort # TODO new tag
+                - city_gate
+                - fort
                 - manor
                 - memorial
                 - mine
@@ -1037,23 +1037,25 @@ tables:
                 - beehive
                 - chimney
                 - communications_tower
+                - cooling_tower
                 - cross
                 - forester's_lodge
                 - ice_house # TODO
-                - lighthouse # TODO new
+                - lighthouse
                 - mineshaft
-                - obelisk # TODO new
+                - obelisk
                 - pumping_station
                 - reservoir_covered
                 - silo
                 - spring_box
+                - storage_tank
                 - tower
                 - mast
                 - wastewater_plant
                 - water_tower
                 - water_well
                 - water_works
-                - windmill # TODO new
+                - windmill
           military:
             mapping:
               military:
@@ -1104,6 +1106,7 @@ tables:
                 - camp_site
                 - caravan_site
                 - chalet
+                - gallery
                 - guest_house
                 - hostel
                 - hotel
