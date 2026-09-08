@@ -977,6 +977,8 @@ tables:
                 - boundary_stone
                 - bunker
                 - castle
+                - city_gate # TODO new tag
+                - fort # TODO new tag
                 - manor
                 - memorial
                 - mine
@@ -1038,7 +1040,9 @@ tables:
                 - cross
                 - forester's_lodge
                 - ice_house # TODO
+                - lighthouse # TODO new
                 - mineshaft
+                - obelisk # TODO new
                 - pumping_station
                 - reservoir_covered
                 - silo
@@ -1049,6 +1053,7 @@ tables:
                 - water_tower
                 - water_well
                 - water_works
+                - windmill # TODO new
           military:
             mapping:
               military:

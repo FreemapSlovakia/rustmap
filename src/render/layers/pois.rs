@@ -384,6 +384,21 @@ static POI_ENTRIES: LazyLock<Vec<PoiEntry>> = LazyLock::new(|| {
         (18, NN, N, N, Poi, "gate", Extra::default()),
         (18, NN, N, N, Poi, "waste_disposal", Extra::default()),
         (19, NN, N, N, Poi, "waste_basket", Extra::default()),
+        (15, 16, N, N, GastroPoi, "marketplace", Extra::default()),
+        (15, 16, N, N, Sport, "public_bath", Extra::default()),
+        (14, 15, N, N, Poi, "beach_resort", Extra::default()),
+        (14, 15, N, N, Sport, "fishing", Extra::default()),
+        (14, 15, N, N, Accommodation, "caravan_site", Extra::default()),
+        (17, 18, N, N, Poi, "shower", Extra::default()),
+        (14, 15, N, N, Poi, "helipad", Extra::default()),
+        (15, 16, N, N, Poi, "charging_station", Extra::default()),
+        (15, 16, N, N, Poi, "tower_defensive", Extra::default()),
+        (15, 16, N, N, Poi, "tower_cooling", Extra::default()),
+        (15, 16, N, N, Poi, "windmill", Extra::default()),
+        (15, 16, N, N, Poi, "lighthouse", Extra::default()),
+        (15, 16, N, N, Poi, "obelisk", Extra::default()),
+        (16, 17, N, N, Poi, "storage_tank", Extra::default()),
+        (16, 17, N, N, Poi, "silo", Extra { icon: Some("storage_tank"), ..Extra::default() }),
         ];
 
     entries
@@ -607,6 +622,8 @@ pub async fn query(
                         WHEN 'communication' THEN '_communication'
                         WHEN 'observation' THEN '_observation'
                         WHEN 'bell_tower' THEN '_bell_tower'
+                        WHEN 'cooling' THEN '_cooling'
+                        WHEN 'defensive' THEN '_defensive'
                         ELSE ''
                     END
                 WHEN type IN ('obstacle_tree', 'obstacle_vegetation')
