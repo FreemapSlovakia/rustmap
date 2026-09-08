@@ -1,9 +1,9 @@
 #!/usr/bin/env nu
 
-# Generate contour lines for Bayern from the 2 m smoothed DEM tiles that
-# shading-de-by.nu emitted along the way. Port of contours-be.nu.
+# Generate contour lines for Nordrhein-Westfalen from the 2 m smoothed DEM tiles
+# that shading-de-nw.nu emitted along the way. Port of contours-de-by.nu.
 #
-# Pipeline: /mnt/osm/de-by/smooth2m/*.tif  (1250x1250 px windows, 2 m, EPSG:25832)
+# Pipeline: /mnt/osm/de-nw/smooth2m/*.tif  (1250x1250 px windows, 2 m, EPSG:25832)
 #             -> one state VRT
 #             -> consolidate to ONE contiguous raster on the 18TB
 #             -> gdal_contour -> GPKG (EPSG:25832)
@@ -12,7 +12,7 @@
 #   unusable spaghetti — every furrow and forest-floor speckle becomes a closed
 #   loop. That is why the shading run bothers to emit smooth2m/ rather than
 #   letting this script downsample the source itself. If smooth2m is empty, run
-#   shading-de-by.nu first; do NOT point this at the DGM1 tiles as a shortcut.
+#   shading-de-nw.nu first; do NOT point this at the DGM1 tiles as a shortcut.
 #   (Luxembourg measured the difference: 46103 features unsmoothed against 30995
 #   smoothed over identical terrain — a third of the lines were noise.)
 #
@@ -25,30 +25,37 @@
 #   Contrast England (OSGB36, needs OSTN15) and Flanders (BD72, needs the IGN
 #   NTv2 grid). This GPKG is native 25832 regardless.
 #
-# EDGE TRIANGULATION AT THE STATE BORDER. Measured 2026-09-07 near 50.209 N,
-#   10.723 E: surface roughness falls from 0.0273 m in the interior to 0.0142 m
-#   in the outer 50 m of coverage — the Bavarian DGM1 is TIN-interpolated where
-#   the LiDAR ends. Contours inherit that: expect slightly too-smooth, slightly
-#   too-straight lines within ~300 m of the state boundary. A cutline at the
-#   administrative border would remove it; not applied yet.
+# EDGE TRIANGULATION AT THE STATE BORDER. Bayern's DGM1 was measured to be
+#   TIN-interpolated in the outer ~50 m of coverage (roughness 0.0142 m against
+#   0.0273 m inland), and the same is assumed here rather than re-measured.
+#   Expect slightly too-smooth, too-straight lines within ~300 m of the NRW
+#   boundary. A cutline at the administrative border would remove it; not
+#   applied yet.
 #
-# ELEVATION RANGE. Bayern spans roughly 100 m (Lower Main valley) to 2962 m
-#   (Zugspitze), so at a 10 m interval expect ~290 distinct levels — far more
-#   than the flat countries, and a correspondingly large feature count.
+# ELEVATION RANGE. NRW spans roughly 10 m (Lower Rhine at the Dutch border) to
+#   843 m (Langenberg, Rothaargebirge), so at a 10 m interval expect ~85 levels
+#   — a third of Bayern's ~290, and closer to Belgium's 83.
 #
-# Output: <18TB>/de-by/bayern_contours.gpkg (layer `cont_de_by_dtm`, EPSG:25832).
+#   THAT MATTERS FOR MEMORY: the offset-pass machinery below exists because
+#   Bayern's 290 levels over 33 Gpx got the single-pass run OOM-killed at 41 GB.
+#   NRW is both flatter and half the size (~15 Gpx), i.e. comfortably inside
+#   what Belgium did in one pass. The passes are kept anyway — they cost only
+#   wall-clock, the union is identical, and guessing wrong costs an hour.
 #
-# ── HANDOFF TO POSTGIS — THE THINGS THAT BIT ON EARLIER COUNTRIES ─────────────
+# Output: <18TB>/de-nw/nrw_contours.gpkg (layer `cont_de_nw_dtm`, EPSG:25832).
+#
+# ── HANDOFF TO POSTGIS ────────────────────────────────────────────────────────
 #
 # 1. LOAD IT. The splitter now creates the destination table in its final
 #    serving shape (height_m smallint, wkb_geometry geometry(LineString,3857))
-#    and builds the GiST index itself when the load finishes, so the old dance
-#    — hand-CREATE a wide table, then DROP ogc_fid, DROP id, cast height to
-#    smallint, rename the column, rename the table, CREATE INDEX — is gone.
+#    and builds the GiST index itself when the load finishes. The old dance —
+#    hand-CREATE a wide table, then DROP ogc_fid, DROP id, cast height to
+#    smallint, rename to height_m, rename the table, CREATE INDEX — is gone,
+#    along with the chances to forget a step between countries.
 #
 #      /home/martin/fm/splitter/target/release/splitter-rs \
-#        --source-gpkg <18TB>/de-by/bayern_contours.gpkg \
-#        --source-table cont_de_by_dtm --dest-table contours_de_by \
+#        --source-gpkg <18TB>/de-nw/nrw_contours.gpkg \
+#        --source-table cont_de_nw_dtm --dest-table contours_de_nw \
 #        --source-epsg 25832 --split-max-points 1000 \
 #        --simplify-tolerance 2 --commit-interval 1000 --drop-existing \
 #        --database-url "postgresql://martin:b0n0@localhost/martin"
@@ -56,33 +63,28 @@
 #    NOTE: `--simplify-high-quality` and `--drop-existing` are boolean FLAGS —
 #    passing either a value fails with "unexpected argument".
 #
-#    PASS --simplify-tolerance 2 EXPLICITLY. The default is 1.0, and leaving it
-#    out silently loads a denser table than en/lu/be/hr, which all used 2 (the
-#    first Bayern load did exactly that: 1066570 rows / 1130 MB at the default).
-#    The tolerance is applied in the SOURCE CRS, i.e. metres here.
-#
-#    smallint holds Bayern's range comfortably (max 2962 m).
-#    Index naming: en/hr/no/se/lu/sk/be all use contours_<cc>_wkb_geometry_geom_idx.
+#    smallint holds NRW's range with room to spare (max 843 m). The index is
+#    named contours_de_nw_wkb_geometry_geom_idx, matching en/hr/no/se/lu/sk/be.
 #
 # 2. pg_restore ONTO fm5 NEEDS --no-tablespaces (the dump carries this box's
 #    `osm_ext`, which does not exist there) AND --no-owner (no `martin` role):
 #
 #      pg_restore --dbname=freemap --no-owner --no-privileges --no-tablespaces \
-#        --single-transaction /tmp/contours_de_by.dump
+#        --single-transaction /tmp/contours_de_nw.dump
 #
 # Resumable: the VRT, consolidated raster and GPKG are each skipped if present
 # (delete to force a rebuild). Run via:
-#   nice ~/miniforge3/bin/conda run --no-capture-output -n geo nu ~/fm/freemap-outdoor-map/scripts/contours-de-by.nu
+#   nice ~/miniforge3/bin/conda run --no-capture-output -n geo nu ~/fm/freemap-outdoor-map/scripts/contours-de-nw.nu
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-const DATA_DIR   = "/mnt/osm/de-by"
-const SRC_DIR    = "/mnt/osm/de-by/smooth2m"     # 2 m tiles from shading-de-by.nu
+const DATA_DIR   = "/mnt/osm/de-nw"
+const SRC_DIR    = "/mnt/osm/de-nw/smooth2m"     # 2 m tiles from shading-de-nw.nu
 const INTERVAL   = 10                            # contour interval, metres
 const HEIGHT_COL = "height"
 const NODATA     = "-9999"
-const TABLE      = "cont_de_by_dtm"              # layer name inside the GPKG
-const VRT        = "bayern_dem_2m.vrt"
+const TABLE      = "cont_de_nw_dtm"              # layer name inside the GPKG
+const VRT        = "nrw_dem_2m.vrt"
 
 # ── Drive discovery ───────────────────────────────────────────────────────────
 # udisks2 moves the removable 18TB between /media and /run/media, and the unused
@@ -100,8 +102,8 @@ def find-drive []: nothing -> string {
 }
 
 let DRIVE   = (find-drive)
-let DEM_TIF = $"($DRIVE)/de-by/bayern_dem_2m.tif"      # consolidated DEM (EPSG:25832)
-let GPKG    = $"($DRIVE)/de-by/bayern_contours.gpkg"   # splitter input (EPSG:25832)
+let DEM_TIF = $"($DRIVE)/de-nw/nrw_dem_2m.tif"      # consolidated DEM (EPSG:25832)
+let GPKG    = $"($DRIVE)/de-nw/nrw_contours.gpkg"   # splitter input (EPSG:25832)
 
 print $"==> drive: ($DRIVE)"
 
@@ -109,13 +111,13 @@ print $"==> drive: ($DRIVE)"
 # failing loudly. Always run inside the geo env, never with its bin on PATH.
 let _probe = (do { gdalsrsinfo -o proj4 "EPSG:25832" } | complete)
 if $_probe.exit_code != 0 or ($_probe.stdout | str trim | is-empty) {
-    error make {msg: "PROJ cannot resolve EPSG:25832 — run via: nice ~/miniforge3/bin/conda run --no-capture-output -n geo nu contours-de-by.nu"}
+    error make {msg: "PROJ cannot resolve EPSG:25832 — run via: nice ~/miniforge3/bin/conda run --no-capture-output -n geo nu contours-de-nw.nu"}
 }
 
 cd $DATA_DIR
 
 if (not ($SRC_DIR | path exists)) or ((glob $"($SRC_DIR)/*.tif" | length) == 0) {
-    error make {msg: $"($SRC_DIR) is empty — run shading-de-by.nu first \(it emits the smoothed 2 m tiles\)"}
+    error make {msg: $"($SRC_DIR) is empty — run shading-de-nw.nu first \(it emits the smoothed 2 m tiles\)"}
 }
 
 # ── 1. State VRT straight from the 2 m tiles (no cropping needed) ─────────────
@@ -191,7 +193,7 @@ if ($GPKG | path exists) {
     print $"==> Generating contours in ($offsets | length) offset passes \(-i ($OFF_INTERVAL), -off ($offsets | str join ', ')\)"
 
     $offsets | par-each -t $PARALLEL_OFF {|off|
-        let part = $"($DATA_DIR)/bayern_contours_off($off).gpkg"
+        let part = $"($DATA_DIR)/nrw_contours_off($off).gpkg"
         if ($part | path exists) {
             print $"  skip offset ($off) — already done"
         } else {
@@ -214,7 +216,7 @@ if ($GPKG | path exists) {
     # Every partial must exist before merging, or the country silently loses a
     # tenth of its contour levels — the same class of failure as merging a
     # partial shading mosaic.
-    let missing = ($offsets | where {|off| not ($"($DATA_DIR)/bayern_contours_off($off).gpkg" | path exists) })
+    let missing = ($offsets | where {|off| not ($"($DATA_DIR)/nrw_contours_off($off).gpkg" | path exists) })
     if ($missing | is-not-empty) {
         error make {msg: $"offsets ($missing | str join ', ') produced no output — re-run; finished offsets are skipped"}
     }
@@ -230,7 +232,7 @@ if ($GPKG | path exists) {
     let tmp = $"($GPKG).tmp"
     rm -f $tmp
     for it in ($offsets | enumerate) {
-        let part = $"($DATA_DIR)/bayern_contours_off($it.item).gpkg"
+        let part = $"($DATA_DIR)/nrw_contours_off($it.item).gpkg"
         if $it.index == 0 {
             print $"  base   offset ($it.item)"
             cp $part $tmp

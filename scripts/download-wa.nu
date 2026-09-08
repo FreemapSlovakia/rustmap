@@ -39,7 +39,7 @@
 #
 # Resumable at province granularity: a province whose unpacked marker exists is
 # skipped. Delete the marker to force a re-fetch. Run via:
-#   nice ~/miniforge3/bin/conda run --no-capture-output -n geo nu ~/fm/freemap-outdoor-map/download-wa.nu
+#   nice ~/miniforge3/bin/conda run --no-capture-output -n geo nu ~/fm/freemap-outdoor-map/scripts/download-wa.nu
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 

@@ -92,7 +92,7 @@
 #
 # Resumable: the VRT, consolidated raster and GPKG are each skipped if present
 # (delete to force a rebuild). Run via:
-#   nice ~/miniforge3/bin/conda run --no-capture-output -n geo nu ~/fm/freemap-outdoor-map/contours-be.nu
+#   nice ~/miniforge3/bin/conda run --no-capture-output -n geo nu ~/fm/freemap-outdoor-map/scripts/contours-be.nu
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
