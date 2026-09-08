@@ -34,7 +34,6 @@ mod military_areas;
 mod national_park_names;
 mod pipeline;
 pub mod place_names;
-mod poi_z_order;
 mod pois;
 mod power_towers_poles;
 mod protected_areas;
