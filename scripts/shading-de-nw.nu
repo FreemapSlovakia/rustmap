@@ -1,53 +1,58 @@
 #!/usr/bin/env nu
 
-# Generate shaded relief for Bayern (Germany) from the Bavarian DGM1.
-# First of the German states; port of shading-be.nu.
+# Generate shaded relief for Nordrhein-Westfalen (Germany) from the NRW DGM1.
+# Second of the German states; port of shading-de-by.nu.
 #
 # GERMANY IS DONE STATE BY STATE, one shading + contours product each, keyed
-#   de-<state> on the ISO 3166-2:DE code. Bayern first: the data was already on
-#   disk, it is the biggest outdoor draw (Alps, Bavarian Forest, Franconian
-#   Jura), and at 70550 km2 it is 2.3x Belgium — a real test of the per-state
-#   approach before the other fifteen.
+#   de-<state> on the ISO 3166-2:DE code. NRW follows Bayern: the data was
+#   likewise already on disk, and at 34110 km2 it is under half of Bayern
+#   (62 Gpx against 131 Gpx), so it is a cheap second state. The terrain is
+#   mostly lowland, with the Eifel, Sauerland and Teutoburger Wald carrying
+#   whatever relief there is to show.
 #
-# Source: /run/media/martin/2190983A5767510F/DGM1/Bayern — 71979 GeoTIFF tiles
-#   of 1x1 km, 1 m, Float32, LZW, nodata -9999, EPSG:25832, with an all.vrt
-#   already built over them. Downloaded via that directory's downloader.nu from
-#   geodaten.bayern.de (OpenData, dl-de/by-2-0).
+# Source: /run/media/martin/2190983A5767510F/DGM1/North Rhine-Westphalia —
+#   35863 GeoTIFF tiles of 1x1 km, 1 m, Float32, nodata -9999, EPSG:25832, with
+#   an all.vrt already built over them. From geobasis.nrw.de (dl-de/zero-2-0,
+#   i.e. no attribution legally required — but we credit it anyway).
 #
 # EPSG:25832 IS ETRS89 / UTM 32N, so there is NO datum hazard: the path to
 #   EPSG:3857 is a null transform, as it was for Wallonia's 3812. Contrast
 #   Belgium's Flanders half (EPSG:31370 on BD72), which needed the IGN NTv2
 #   grid. Nothing to install here.
 #
-# ZOOM=17, MEASURED 2026-09-04 on smoothed data through this exact pipeline.
-#   Each coarser render resampled onto the z17 grid and differenced:
+# ZOOM=17 BY STANDING PREFERENCE, NOT MEASURED FOR NRW. Bayern's z17 was earned
+#   by the Alps (31.90% of pixels off by >5 at z16); NRW has no comparable
+#   terrain, and Bayern's own header warns in as many words not to assume the
+#   Alpine figure transfers to the flatter states. The honest expectation here
+#   is a z16-vs-z17 difference in the 1-3% band, i.e. the same "subtle" range
+#   that England, Luxembourg and Wallonia landed in.
 #
-#     Berchtesgaden / Watzmann   z15 mean 10.81  p95 37  50.86% of px off by >5
-#                                z16 mean  5.90  p95 21  31.90%
-#     Bavarian Forest, Gr. Arber z16 mean  1.47  p95  5   4.50%
-#     Danube plain, Ingolstadt   z16 mean  0.83  p95  3   2.38%
-#     Altmuehltal karst          z16 mean  0.60  p95  2   1.26%
+#   It is set to 17 anyway because that is the explicit call — no compromise on
+#   quality, and consistency across the German states matters more than the
+#   disk: NRW is under half of Bayern, so even at z17 this costs roughly 15 GB
+#   of final.tif against Bayern's 34 GB.
 #
-#   THE ALPS SETTLE IT AND IT IS NOT CLOSE. 31.90% against England's 3.2%,
-#   Luxembourg's 2.6% and Wallonia's 4.2% — an order of magnitude more than any
-#   terrain handled so far. Steep rock, couloirs and scree hold detail at 1 m
-#   that survives --filter 11 and cannot be represented at z16's 1.6 ground
-#   metres. A z17 pixel here is 0.81 ground metres against a 1 m source, i.e.
-#   mildly oversampling, which is the right side to err on.
+#   If that trade is ever revisited, measure it properly first: render a few
+#   representative windows (Eifel, Sauerland, Teutoburger Wald, and a Muensterland
+#   or Lower-Rhine flat for contrast) at z16, resample onto the z17 grid, and
+#   difference — and do it on SMOOTHED data. Differencing unsmoothed renders
+#   overstates the case for the finer zoom by about 3x (Luxembourg: 8.5%
+#   unsmoothed against 2.6% smoothed for the same test).
 #
-#   Note how strongly this varies WITHIN one state: the karst at 1.26% would
-#   have been perfectly happy at z16. Do not assume the Alpine figure transfers
-#   to the flat northern states — measure each, on SMOOTHED data. Differencing
-#   unsmoothed renders overstates the case for a finer zoom by about 3x
-#   (Luxembourg: 8.5% unsmoothed against 2.6% smoothed for the same test).
+# NO gdal_fillnodata, MEASURED 2026-09-08. 60 random 1200x1200 windows, 43 of
+#   them inland, 61.9 Mpx. Raw nodata came to 0.8240%, which looked alarming
+#   next to Bayern's flat 0.0000% — but all of it sat in exactly two windows,
+#   near Eupen (311628, 5585609) and the Hessen border (477426, 5686365). Both
+#   are the STATE BOUNDARY, not holes: flood-filling nodata from the window
+#   border consumed 510238 of 510238 nodata pixels, leaving 0 px = 0.0000%
+#   interior void.
 #
-# NO gdal_fillnodata, MEASURED 2026-09-04. 60 random 1200x1200 windows, 31 of
-#   them inland, 45 Mpx: 0.0000% nodata, NO voids of any size. The delivered
-#   Bavarian DGM1 is gap-free within its footprint, as Flanders' DHMV II was.
-#   (Luxembourg and Wallonia had voids, but every one was open water and none
-#   was <= 25 px, so the step was dropped there too.) DGM1 is a different
-#   product from a different authority, so this was measured rather than
-#   assumed — do the same for each new state. To restore:
+#   That distinction is the whole point of the check. Filling boundary nodata
+#   would not repair data, it would invent terrain outside NRW and smear it
+#   across the seam with the neighbouring state. Only interior voids justify
+#   the step, and there are none — so, as for Bayern and Flanders, it is off.
+#   Re-measure per state; scripts/nw_voids.py does the border/interior split.
+#   To restore:
 #     let dem = $"($d)/dem.tif"
 #     gdal_fillnodata.py -md 5 $smooth $dem
 #   and point step 5/6 at $dem instead of $smooth.
@@ -65,22 +70,22 @@
 #
 # THE GRID ORIGIN IS PINNED, NOT DERIVED FROM THE EXTENT. Deriving it was the
 #   Belgium trap: adding a region moved the origin, every window id changed, and
-#   a resumable run treated thousands of finished tiles as pending. Pinned below
-#   the Bayern extent (498000, 5235717) on the STEP grid. Do NOT change these:
-#   doing so renames every tile.
+#   a resumable run treated thousands of finished tiles as pending. Pinned at
+#   the NRW extent (280000, 5576000) floored to the STEP grid. Do NOT change
+#   these: doing so renames every tile.
 #
 # ALWAYS RUN VIA `conda run -n geo`, never with the env's bin on PATH — that
 #   leaves PROJ_DATA unset, degrades every CRS to ENGCRS["unnamed"], and the
 #   warp fails hours in with "Cannot find coordinate operations".
 #
 # Run via:
-#   nice ~/miniforge3/bin/conda run --no-capture-output -n geo nu ~/fm/freemap-outdoor-map/scripts/shading-de-by.nu
+#   nice ~/miniforge3/bin/conda run --no-capture-output -n geo nu ~/fm/freemap-outdoor-map/scripts/shading-de-nw.nu
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-const SRC_VRT   = "/run/media/martin/2190983A5767510F/DGM1/Bayern/all.vrt"
-const DATA_ROOT = "/mnt/osm/de-by"               # smooth2m/, tiles/ on NVMe
-const TILES_DIR = "/mnt/osm/de-by/tiles"
+const SRC_VRT   = "/run/media/martin/2190983A5767510F/DGM1/North Rhine-Westphalia/all.vrt"
+const DATA_ROOT = "/mnt/osm/de-nw"               # smooth2m/, tiles/ on NVMe
+const TILES_DIR = "/mnt/osm/de-nw/tiles"
 const EPSG      = "EPSG:25832"                   # ETRS89 / UTM zone 32N
 const NODATA    = "-9999"
 const ZOOM      = 17                             # MEASURED — see header
@@ -91,8 +96,8 @@ const STEP      = 2500                           # window size, m (= px at 1 m)
 const COLLAR    = 6
 const CROP      = 3
 
-const GRID_X0   = 495000
-const GRID_Y0   = 5235000
+const GRID_X0   = 280000
+const GRID_Y0   = 5575000
 
 const SM_FILTER    = 11
 const SM_NORM_DIFF = 16
@@ -115,7 +120,7 @@ def find-drive []: nothing -> string {
 }
 
 let DRIVE   = (find-drive)
-let OUT_DIR = $"($DRIVE)/de-by"
+let OUT_DIR = $"($DRIVE)/de-nw"
 let OUT_TIF = $"($OUT_DIR)/shading.tif"
 
 print $"==> drive: ($DRIVE)"
@@ -128,7 +133,7 @@ if not ($SRC_VRT | path exists) {
 # CRS to ENGCRS and breaks the warp long after the run has started.
 let _probe = (do { gdalsrsinfo -o proj4 $EPSG } | complete)
 if $_probe.exit_code != 0 or ($_probe.stdout | str trim | is-empty) {
-    error make {msg: $"PROJ cannot resolve ($EPSG) — run via: nice ~/miniforge3/bin/conda run --no-capture-output -n geo nu shading-de-by.nu"}
+    error make {msg: $"PROJ cannot resolve ($EPSG) — run via: nice ~/miniforge3/bin/conda run --no-capture-output -n geo nu shading-de-nw.nu"}
 }
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -200,7 +205,7 @@ def render-window [w: record, tr: string, data_dir: string]: nothing -> nothing 
           --num_iter $SM_NUM_ITER --max_diff $SM_MAX_DIFF)
     }
 
-    # 3. 2 m DEM for contours-de-by.nu — collar cropped, nodata-aware `average`.
+    # 3. 2 m DEM for contours-de-nw.nu — collar cropped, nodata-aware `average`.
     let dem2 = $"($data_dir)/smooth2m/($w.id).tif"
     if not ($dem2 | path exists) {
         let tmp2 = $"($d)/dem2m.tif"

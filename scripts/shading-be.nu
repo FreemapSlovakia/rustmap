@@ -101,7 +101,7 @@
 #
 # Resumable at window granularity; empty windows leave a .empty marker; failures
 # land in failed/ and are retried on the next run. Run via:
-#   nice ~/miniforge3/bin/conda run --no-capture-output -n geo nu ~/fm/freemap-outdoor-map/shading-be.nu
+#   nice ~/miniforge3/bin/conda run --no-capture-output -n geo nu ~/fm/freemap-outdoor-map/scripts/shading-be.nu
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 

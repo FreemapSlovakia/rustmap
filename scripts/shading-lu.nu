@@ -106,7 +106,7 @@
 # re-cut on the next run. ~45% of the 759 windows are outside the border and land
 # as .empty on the first pass. A window that throws is recorded in failed/ and
 # skipped. Run via:
-#   nice ~/miniforge3/bin/conda run --no-capture-output -n geo nu ~/fm/freemap-outdoor-map/shading-lu.nu
+#   nice ~/miniforge3/bin/conda run --no-capture-output -n geo nu ~/fm/freemap-outdoor-map/scripts/shading-lu.nu
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 

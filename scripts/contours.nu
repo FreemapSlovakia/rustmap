@@ -27,7 +27,10 @@ const ZONES       = [29 30 31]
 const CROP        = 6                         # px to drop from each tile edge
 
 
-const PG_CONN     = "PG:host=localhost user=martin password=b0n0 dbname=martin"
+# No password here: GDAL's PG driver hands this to libpq, which picks the
+# password up from $PGPASSWORD or ~/.pgpass. Keep it that way — this repo is
+# public.
+const PG_CONN     = "PG:host=localhost user=martin dbname=martin"
 const TABLE       = "cont_es_dmr"
 const HEIGHT_COL  = "height"
 const INTERVAL    = 10

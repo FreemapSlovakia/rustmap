@@ -80,7 +80,7 @@
 # Output: /media/martin/18TB/en/england_contours.gpkg (layer `cont_en_dtm`,
 # EPSG:27700).
 # Handoff to the splitter (split <=1000 pts, simplify, stream into PostGIS):
-#   DATABASE_URL="postgresql://martin:b0n0@localhost/martin" \
+#   DATABASE_URL="postgresql://martin@localhost/martin" \
 #     /home/martin/fm/splitter/target/release/splitter-rs \
 #       --source-gpkg /media/martin/18TB/en/england_contours.gpkg \
 #       --source-table cont_en_dtm --dest-table cont_en_dtm_split \

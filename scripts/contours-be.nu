@@ -52,7 +52,7 @@
 #    (splitter-rs inserts into id/height/wkb_geometry and reprojects to 3857.)
 #
 #    Then run it:
-#      DATABASE_URL="postgresql://martin:b0n0@localhost/martin" \
+#      DATABASE_URL="postgresql://martin@localhost/martin" \
 #        /home/martin/fm/splitter/target/release/splitter-rs \
 #          --source-gpkg <18TB>/be/belgium_contours.gpkg \
 #          --source-table cont_be_dtm --dest-table cont_be_dtm_split \
@@ -82,7 +82,7 @@
 #    `invalid value for parameter "default_tablespace"`. Also --no-owner, since
 #    the `martin` role does not exist on fm5:
 #
-#      pg_dump "postgresql://martin:b0n0@localhost/martin" --format=custom \
+#      pg_dump "postgresql://martin@localhost/martin" --format=custom \
 #        --compress=zstd --no-owner --no-privileges \
 #        --table=public.contours_be --file=contours_be.dump
 #      scp contours_be.dump fm5:/tmp/
@@ -92,7 +92,7 @@
 #
 # Resumable: the VRT, consolidated raster and GPKG are each skipped if present
 # (delete to force a rebuild). Run via:
-#   nice ~/miniforge3/bin/conda run --no-capture-output -n geo nu ~/fm/freemap-outdoor-map/contours-be.nu
+#   nice ~/miniforge3/bin/conda run --no-capture-output -n geo nu ~/fm/freemap-outdoor-map/scripts/contours-be.nu
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
