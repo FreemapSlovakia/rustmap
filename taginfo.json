@@ -407,7 +407,7 @@
       "value": "toilets",
       "object_types": ["node", "area"],
       "icon_url": "https://raw.githubusercontent.com/FreemapSlovakia/freemap-outdoor-map/refs/heads/main/images/toilets.svg",
-      "description": "Rendered as icon. Icon from zoom 17. No label."
+      "description": "Rendered as icon. Icon from zoom 16. No label."
     },
     {
       "key": "amenity",
@@ -688,6 +688,13 @@
       "description": "Rendered as icon when amenity=place_of_worship."
     },
     {
+      "key": "building",
+      "value": "temple",
+      "object_types": ["node", "area"],
+      "icon_url": "https://raw.githubusercontent.com/FreemapSlovakia/freemap-outdoor-map/refs/heads/main/images/church.svg",
+      "description": "Rendered as icon when amenity=place_of_worship."
+    },
+    {
       "key": "colour",
       "object_types": ["relation"],
       "description": "Rendered from zoom 9. Label (name/ref) from zoom 14. Supported colors: red, blue, green, yellow, black, white, orange, violet, purple"
@@ -783,7 +790,7 @@
       "key": "ford",
       "object_types": ["node"],
       "icon_url": "https://raw.githubusercontent.com/FreemapSlovakia/freemap-outdoor-map/refs/heads/main/images/ford.svg",
-      "description": "Rendered as icon. Icon from zoom 17. No label."
+      "description": "Rendered as icon. Icon from zoom 16. No label."
     },
     {
       "key": "generator:method",
@@ -902,7 +909,7 @@
       "value": "board",
       "object_types": ["node", "area"],
       "icon_url": "https://raw.githubusercontent.com/FreemapSlovakia/freemap-outdoor-map/refs/heads/main/images/board.svg",
-      "description": "Rendered as icon. Icon from zoom 16. Label (name/ref) from zoom 16."
+      "description": "Rendered as icon. Icon from zoom 17. Label (name/ref) from zoom 17."
     },
     {
       "key": "information",
@@ -916,7 +923,7 @@
       "value": "map",
       "object_types": ["node", "area"],
       "icon_url": "https://raw.githubusercontent.com/FreemapSlovakia/freemap-outdoor-map/refs/heads/main/images/map.svg",
-      "description": "Rendered as icon. Icon from zoom 16. Label (name/ref) from zoom 17."
+      "description": "Rendered as icon. Icon from zoom 17. Label (name/ref) from zoom 18."
     },
     {
       "key": "information",
@@ -1203,7 +1210,7 @@
       "value": "firepit",
       "object_types": ["node", "area"],
       "icon_url": "https://raw.githubusercontent.com/FreemapSlovakia/freemap-outdoor-map/refs/heads/main/images/firepit.svg",
-      "description": "Rendered as icon. Icon from zoom 17. No label."
+      "description": "Rendered as icon. Icon from zoom 16. No label."
     },
     {
       "key": "leisure",

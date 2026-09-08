@@ -118,9 +118,30 @@ pub fn pois(
 
         entry.tags.push(build_poi_tags(typ, &poi_tags));
 
+        // The group's zoom range is the union over its members, so the member standing for
+        // it has to be one the renderer actually draws at the start of that range - not
+        // whichever happens to rank highest. `swimming` shares the `water_park` icon but
+        // only from z16, while the group starts at z14.
+        if *zooms.start() < *entry.zooms.start() {
+            entry.repr_typ = typ;
+        }
+
         entry.zooms =
             (*entry.zooms.start()).min(*zooms.start())..=(*entry.zooms.end()).max(*zooms.end());
     }
+
+    // Read the legend in the order the map reveals things: earliest zoom first, and within
+    // a zoom the collision priority, which is a fair importance ranking. Priority alone
+    // would look arbitrary here - a legend item shows its zoom range, so zoom is the one
+    // ordering a reader can see the reason for.
+    poi_groups.sort_by_cached_key(|_, group| {
+        let rank = POI_ORDER
+            .iter()
+            .position(|typ| *typ == group.repr_typ)
+            .unwrap_or(usize::MAX);
+
+        (*group.zooms.start(), rank)
+    });
 
     poi_groups
         .into_iter()
