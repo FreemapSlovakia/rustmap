@@ -140,7 +140,9 @@ static POI_ENTRIES: LazyLock<Vec<PoiEntry>> = LazyLock::new(|| {
             ..Extra::default()
         }),
         (14, 15, Y, Y, NaturalPoi, "arch", Extra::default()),
-        (15, 16, N, N, Institution, "office", Extra::default()),           // information=office
+        (15, 16, N, N, Institution, "information_office", Extra::default()),           // information=office
+        (17, 18, N, N, Poi, "information_terminal", Extra::default()),           // information=office
+        (17, 18, N, N, Poi, "audioguide", Extra::default()),           // information=office
         (14, 15, N, N, Poi, "water_park", Extra::default()),
         (14, 15, Y, N, Accommodation, "hotel", Extra {
             replacements: build_replacements(&[(r"^[Hh]otel\b *", "")]),
@@ -209,6 +211,7 @@ static POI_ENTRIES: LazyLock<Vec<PoiEntry>> = LazyLock::new(|| {
             ..Extra::default()
         }),
         (15, 16, N, N, GastroPoi, "pub", Extra::default()),
+        (15, 16, N, N, GastroPoi, "biergarten", Extra::default()),
         (15, 16, N, N, GastroPoi, "farm", Extra { icon: Some("greengrocer"), ..Extra::default()}),
         (15, 16, N, N, GastroPoi, "greengrocer", Extra::default()),
         (15, 16, N, N, GastroPoi, "convenience", Extra::default()),
@@ -222,18 +225,15 @@ static POI_ENTRIES: LazyLock<Vec<PoiEntry>> = LazyLock::new(|| {
         (15, 16, N, N, GastroPoi, "bar", Extra::default()),
         (15, 16, N, N, GastroPoi, "pastry", Extra { icon: Some("confectionery"), ..Extra::default() }),
         (15, 16, N, N, GastroPoi, "confectionery", Extra::default()),
-        (14, 15, N, N, Institution, "hospital", Extra {
-            replacements: build_replacements(&[(r"^[Nn]emocnica\b", "Nem.")]),
-            ..Extra::default()
-        }),
+        (16, 17, N, N, GastroPoi, "ice_cream", Extra::default()),
         (15, 16, N, N, Institution, "pharmacy", Extra {
             replacements: build_replacements(&[(r"^[Ll]ekáreň\b *", "")]),
             ..Extra::default()
         }),
-        (14, 15, N, N, Poi, "golf_course", Extra::default()),
+        (16, 17, N, N, Poi, "dance", Extra::default()),
+        (16, 17, N, N, Poi, "city_gate", Extra::default()),
         (16, 17, N, N, Sport, "miniature_golf", Extra::default()),
         (16, 17, N, N, Sport, "leisure_miniature_golf", Extra { icon: Some("miniature_golf"), ..Extra::default() }),
-        (14, 15, N, N, Sport, "skiing", Extra::default()),
         (16, 17, N, N, Sport, "cycling", Extra::default()),
         (16, 17, N, N, Sport, "soccer", Extra::default()),
         (16, 17, N, N, Sport, "tennis", Extra::default()),
@@ -245,6 +245,7 @@ static POI_ENTRIES: LazyLock<Vec<PoiEntry>> = LazyLock::new(|| {
         (16, 17, N, N, Sport, "running", Extra::default()),
         (16, 17, N, N, Sport, "athletics", Extra { icon: Some("running"), ..Extra::default() }),
         (16, 17, N, N, Sport, "swimming", Extra { icon: Some("water_park"), ..Extra::default() }),
+        (16, 17, N, N, Sport, "bowling_alley", Extra::default()),
         (14, 15, Y, Y, Water, "waterfall", Extra {
             replacements: build_replacements(&[
                 (r"^[Vv]odopád\b *", ""),
@@ -303,6 +304,7 @@ static POI_ENTRIES: LazyLock<Vec<PoiEntry>> = LazyLock::new(|| {
             ..Extra::default()
         }),
         (15, 16, N, N, Institution, "post_office", Extra::default()),
+        (16, 17, N, N, Poi, "bureau_de_change", Extra::default()),
         (14, 15, N, N, Sport, "horse_racing", Extra { icon: Some("horse_riding"), ..Extra::default() }), // TODO use different icon
         (14, 15, N, N, Sport, "horse_riding", Extra::default()),
         (14, 15, N, N, Sport, "equestrian", Extra { icon: Some("horse_riding"), ..Extra::default() }),
@@ -350,10 +352,7 @@ static POI_ENTRIES: LazyLock<Vec<PoiEntry>> = LazyLock::new(|| {
         (15, 16, N, N, Poi, "chimney", Extra::default()),
         (15, 16, N, N, Poi, "water_tower", Extra::default()),
         (14, 15, N, N, Poi, "attraction", Extra::default()),
-        (12, 12, N, N, Poi, "aerodrome", Extra {
-            replacements: build_replacements(&[(r"^[Ll]etisko\b *", "")]),
-            ..Extra::default()
-        }),
+
         (15, 16, N, N, GastroPoi, "marketplace", Extra::default()),
         (15, 16, N, N, Sport, "public_bath", Extra::default()),
         (15, 16, N, N, Sport, "fishing", Extra::default()),
@@ -368,8 +367,10 @@ static POI_ENTRIES: LazyLock<Vec<PoiEntry>> = LazyLock::new(|| {
         (15, 16, N, N, Institution, "casino", Extra::default()),
         (15, 16, N, N, Institution, "gallery", Extra::default()),
         (15, 16, N, N, Institution, "arts_centre", Extra::default()),
-        (15, 16, N, N, Institution, "nightclub", Extra::default()),
+        (15, 16, N, N, Poi, "nightclub", Extra::default()),
         (15, 16, N, N, Poi, "sauna", Extra::default()),
+        (16, 17, N, N, Poi, "massage", Extra::default()),
+        (17, 18, N, N, Poi, "shower", Extra::default()),
         (15, NN, N, N, Poi, "tower_communication", Extra::default()),
         (15, NN, N, N, Poi, "communications_tower", Extra { icon: Some("tower_communication"), ..Extra::default() }),
         (15, NN, N, N, Poi, "mast_communication", Extra { icon: Some("tower_communication"), ..Extra::default() }),
@@ -385,7 +386,6 @@ static POI_ENTRIES: LazyLock<Vec<PoiEntry>> = LazyLock::new(|| {
         (13, 13, Y, Y, NaturalPoi, "peak", Extra { font_size: 13.0, halo: false, ..Extra::default() }),
         (15, 15, Y, Y, NaturalPoi, "saddle", Extra { font_size: 13.0, halo: false, ..Extra::default() }),
         (15, 15, Y, Y, NaturalPoi, "mountain_pass", Extra { icon: Some("saddle"), font_size: 13.0, halo: false, ..Extra::default() }),
-        (16, 17, N, N, Poi, "city_gate", Extra::default()),
         (16, 17, N, N, Water, "water_works", Extra { text_color: colors::WATER_LABEL, ..Extra::default() }),
         (16, 17, N, N, Water, "reservoir_covered", Extra { icon: Some("water_works"), text_color: colors::WATER_LABEL, ..Extra::default() }),
         (16, 17, N, N, Water, "pumping_station", Extra { icon: Some("water_works"), text_color: colors::WATER_LABEL, ..Extra::default() }),
@@ -395,7 +395,7 @@ static POI_ENTRIES: LazyLock<Vec<PoiEntry>> = LazyLock::new(|| {
         (16, NN, N, N, Poi, "firepit", Extra::default()),
         (16, NN, N, N, Poi, "outdoor_seating", Extra::default()),
         (16, NN, N, N, Poi, "picnic_table", Extra::default()),
-        (16, 17, N, N, Poi, "picnic_site", Extra::default()),
+        (16, 17, N, N, Poi, "bbq", Extra::default()),
         (17, 19, N, N, Poi, "parking", Extra { font_size: 10.0, text_color: colors::AREA_LABEL, ..Extra::default() }), // { font: { haloOpacity: 0.5 } },
         (17, NN, N, N, Poi, "bench", Extra::default()),
         (17, 18, N, N, Poi, "beehive", Extra::default()),
@@ -416,9 +416,19 @@ static POI_ENTRIES: LazyLock<Vec<PoiEntry>> = LazyLock::new(|| {
         (18, NN, N, N, Poi, "gate", Extra::default()),
         (15, NN, Y, N, Poi, "guidepost_noname", Extra { icon: Some("guidepost_x"), ..Extra::default() }),
         (16, NN, Y, N, Poi, "route_marker", Extra { icon: Some("guidepost_x"), ..Extra::default() }),
+        (14, 15, N, N, Sport, "skiing", Extra::default()),
+        (14, 15, N, N, Institution, "hospital", Extra {
+            replacements: build_replacements(&[(r"^[Nn]emocnica\b", "Nem.")]),
+            ..Extra::default()
+        }),
+        (14, 15, N, N, Poi, "golf_course", Extra::default()),
         (14, 15, N, N, Poi, "beach_resort", Extra::default()),
-        (17, 18, N, N, Poi, "shower", Extra::default()),
-        ];
+        (15, 16, N, N, Poi, "picnic_site", Extra::default()),
+        (12, 12, N, N, Poi, "aerodrome", Extra {
+            replacements: build_replacements(&[(r"^[Ll]etisko\b *", "")]),
+            ..Extra::default()
+        }),
+    ];
 
     entries
 });
@@ -775,7 +785,7 @@ pub async fn query(
             WHERE
                 geometry && ST_Expand(ST_MakeEnvelope($1, $2, $3, $4, 3857), $5) AND
                 type IN (
-                    'convenience', 'confectionery', 'pastry', 'bicycle', 'supermarket', 'greengrocer', 'farm'
+                    'convenience', 'confectionery', 'pastry', 'bicycle', 'supermarket', 'greengrocer', 'farm', 'massage'
                 )
         ");
 

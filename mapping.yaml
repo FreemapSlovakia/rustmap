@@ -620,9 +620,14 @@ tables:
             mineshaft: disused_mineshaft
           ford:
             __any__: ford
+          information:
+            terminal: information_terminal
           historic:
             mine: historic_mine
             bunker: historic_bunker
+          leisure:
+            miniature_golf: leisure_miniature_golf
+            horse_riding: leisure_horse_riding
           mountain_pass:
             yes: mountain_pass
           obstacle:
@@ -645,9 +650,6 @@ tables:
             __any__: obstacle_yes
           power:
             tower: power_tower
-          leisure:
-            miniature_golf: leisure_miniature_golf
-            horse_riding: leisure_horse_riding
       - name: tags
         type: hstore_tags
         args:
@@ -993,19 +995,21 @@ tables:
                 - wayside_shrine
           information:
             mapping:
-              # TODO filter only tourism=information
               information:
+                - audioguide
                 - guidepost
                 - board
                 - map
                 - office
                 - route_marker
+                - terminal
           leisure:
             mapping:
               leisure:
                 - bathing_place
                 - beach_resort
                 - bird_hide
+                - bowling_alley
                 - dance
                 - disc_golf_course
                 - dog_park
